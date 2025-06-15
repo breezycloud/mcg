@@ -1,0 +1,86 @@
+﻿@page "/dashboard"
+@using Microsoft.AspNetCore.SignalR.Client
+@inject IDashboardService DashboardService
+@inject NavigationManager NavigationManager
+@implements IAsyncDisposable
+
+<div class="p-1 sm:p-1 space-y-6 bg-gray-50 min-h-screen">
+    <!-- Header with SignalR status -->
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800">Dashboard</h1>
+            <span class="text-sm @(isConnected ? "text-green-500" : "text-red-500")">
+                @(isConnected ? "● Live" : "● Disconnected")
+            </span>
+        </div>
+    </div>
+
+    <!-- Time Filter -->
+    <Filter OnFilterChanged="HandleTimeFilterChange" />
+
+    <!-- Dashboard content -->
+    <DashboardMetrics StartDate="@filterStartDate" EndDate="@filterEndDate" />
+    
+
+      <!-- Charts & Recent Trips -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2">
+            <TripStatusChart />
+        </div>
+        <div class="lg:col-span-1">
+            <RecentTrips />
+        </div>
+    </div>
+
+    <!-- Product Shipments Table -->
+    <ProductShipments />
+</div>
+
+@code {
+    private HubConnection? hubConnection;
+    private bool isConnected;
+    private DateTime? filterStartDate;
+    private DateTime? filterEndDate;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await InitializeSignalR();
+    }
+
+    private async Task InitializeSignalR()
+    {
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(NavigationManager.ToAbsoluteUri("/tripsHub"))
+            .Build();
+
+        hubConnection.On<string>("ReceiveTripUpdate", message =>
+        {
+            InvokeAsync(StateHasChanged); // Refresh UI on updates
+        });
+
+        try
+        {
+            await hubConnection.StartAsync();
+            isConnected = true;
+        }
+        catch
+        {
+            isConnected = false;
+        }
+    }
+
+    private void HandleTimeFilterChange((DateTime Start, DateTime End) dates)
+    {
+        filterStartDate = dates.Start;
+        filterEndDate = dates.End;
+        StateHasChanged();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
+        }
+    }
+}

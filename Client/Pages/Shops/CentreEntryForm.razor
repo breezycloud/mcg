@@ -1,0 +1,189 @@
+@page "/sites/{Action}/{Id:guid?}"
+@inject IMaintenanceService CentreService
+
+
+<div class="max-w-2xl mx-auto p-4 sm:p-6">
+    <!-- Form Header -->
+    <div class="mb-6">
+        <h2 class="text-xl font-bold text-gray-900 dark:text-white">@(EditMode ? "Edit Maintenance Centre" : "Add New Maintenance Centre")</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Please fill in the centre details below</p>
+    </div>
+
+    <!-- Maintenance Centre Form -->
+    <EditForm Model="@CurrentSite" OnValidSubmit="HandleSubmit" class="space-y-6">
+
+        @if (alert is not null)
+        {
+            <Toast Icon="@alert.Icon" Message="@alert.Message"/>
+        }
+
+        <!-- Maintenance Centre Name -->
+        <div>
+            <label for="name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                Centre Name <span class="text-red-500">*</span>
+            </label>
+            <InputText id="name" @bind-Value="CurrentSite.Name"
+                       class="@GetInputClass("Name")"
+                       maxlength="100"
+                       placeholder="Enter centre name" />
+            @if (errors.ContainsKey("Name"))
+            {
+                <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["Name"]</p>
+            }
+        </div>
+
+        <!-- Address Fields -->
+        <fieldset class="border-t border-gray-200 pt-4 dark:border-gray-700">
+            <legend class="text-sm font-medium text-gray-900 dark:text-white">Address (Optional)</legend>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">               
+                <div>
+                    <label for="city" class="block text-sm font-medium text-gray-700 dark:text-white">State</label>
+                    <InputText id="city" @bind-Value="CurrentSite.Address!.State"
+                               class="@GetInputClass("State")"
+                               placeholder="State Name" />
+                </div>
+                <div>
+                    <label for="state" class="block text-sm font-medium text-gray-700 dark:text-white">City</label>
+                    <InputText id="state" @bind-Value="CurrentSite.Address!.Location"
+                               class="@GetInputClass("Location")"
+                               placeholder="Location" />
+                </div>               
+                <div class="md:col-span-2">
+                    <label for="country" class="block text-sm font-medium text-gray-700 dark:text-white">Address</label>
+                    <InputText id="country" @bind-Value="CurrentSite.Address!.ContactAddress"
+                               class="@GetInputClass("ContactAddress")"
+                               placeholder="ContactAddress" />
+                </div>
+            </div>
+        </fieldset>
+
+        <!-- Timestamps -->
+        @if (EditMode)
+        {
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">Created At</label>
+                    <div class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300">
+                        @CurrentSite.CreatedAt.ToString("MMM dd, yyyy HH:mm")
+                    </div>
+                </div>
+                <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">Last Updated</label>
+                    <div class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300">
+                        @(CurrentSite.UpdatedAt?.ToString("MMM dd, yyyy HH:mm") ?? "Never")
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Form Actions -->
+        <div class="flex justify-end gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <button type="button" @onclick="Cancel"
+                class="px-5 py-2.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-700 dark:focus:ring-gray-700">
+                Cancel
+            </button>
+            <button type="submit"
+                class="px-5 py-2.5 text-sm font-medium text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                @(EditMode ? "Update Centre" : "Add Centre")
+            </button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    [Parameter] public string Action { get; set; } = "Add";
+    [Parameter] public Guid? Id { get; set; }
+    [Parameter] public MaintenanceSite CurrentSite { get; set; } = new();
+    [Parameter] public bool EditMode { get; set; }
+    [Parameter] public EventCallback OnSubmit { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    bool result = false;
+    private NotificationAlert? alert = null;
+
+    private Dictionary<string, string> errors = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Id.HasValue)
+            CurrentSite = await CentreService.GetAsync(Id.Value, AppState.GetCancellationToken()) ?? new();
+        else
+            CurrentSite.Address = new();
+    }
+
+    private string GetInputClass(string fieldName)
+    {
+        var baseClass = "bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500";
+        
+        if (errors.ContainsKey(fieldName))
+        {
+            baseClass += " border-red-500 bg-red-50 dark:bg-red-900 dark:border-red-700";
+        }
+        else
+        {
+            baseClass += " border-gray-300";
+        }
+        
+        return baseClass;
+    }
+
+    private async Task HandleSubmit()
+    {
+        AppState.IsProcessing = true;
+        errors.Clear();
+
+        // Validate required fields
+        if (string.IsNullOrWhiteSpace(CurrentSite.Name))
+        {
+            errors["Name"] = "Centre Name is required";
+        }        
+
+        if (errors.Any())
+        {
+            AppState.IsProcessing = false;
+            StateHasChanged();
+            return;
+        }
+                
+        try
+        {
+            CurrentSite.Name = StringConverter.ConvertToTitleCase(CurrentSite.Name!);
+            
+            if (!string.IsNullOrWhiteSpace(CurrentSite.Address!.Location))
+                CurrentSite.Address!.Location = StringConverter.ConvertToTitleCase(CurrentSite.Address!.Location);
+            
+            if (!string.IsNullOrWhiteSpace(CurrentSite.Address!.State))
+                CurrentSite.Address!.State = StringConverter.ConvertToTitleCase(CurrentSite.Address!.State);
+            
+            if (!string.IsNullOrWhiteSpace(CurrentSite.Address!.ContactAddress))
+                CurrentSite.Address!.ContactAddress = StringConverter.ConvertToTitleCase(CurrentSite.Address!.ContactAddress);
+
+            if (!Id.HasValue)
+            {
+                result = await CentreService.AddAsync(CurrentSite, AppState.GetCancellationToken());
+            }
+            else
+            {
+                result = await CentreService.UpdateAsync(CurrentSite, AppState.GetCancellationToken());
+            }
+
+            alert = new($"Centre Successfully {(EditMode ? "Updated" : "Added")}", ToastIcon.Succees);
+            nav.NavigateTo("drivers");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            alert = new($"Operation failed", ToastIcon.Error);
+        }
+        finally
+        {
+            AppState.IsProcessing = false;
+        }
+    }
+    
+    private void Cancel()
+    {
+        nav.NavigateTo("sites");
+    }
+}

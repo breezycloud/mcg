@@ -1,0 +1,52 @@
+<div class="flex space-x-2 mb-6">
+    <button @onclick="() => SetTimeFilter(TimeFilter.ThisWeek)" 
+            class="@GetButtonClass(TimeFilter.ThisWeek) text-xs sm:text-xs px-3 py-1.5 sm:px-2 sm:py-2">
+        This Week
+    </button>
+    <button @onclick="() => SetTimeFilter(TimeFilter.LastWeek)" 
+            class="@GetButtonClass(TimeFilter.LastWeek) text-xs sm:text-xs px-3 py-1.5 sm:px-2 sm:py-2">
+        Last Week
+    </button>
+    <button @onclick="() => SetTimeFilter(TimeFilter.ThisMonth)" 
+            class="@GetButtonClass(TimeFilter.ThisMonth) text-xs sm:text-xs px-3 py-1.5 sm:px-2 sm:py-2">
+        This Month
+    </button>
+    <button @onclick="() => SetTimeFilter(TimeFilter.LastMonth)" 
+            class="@GetButtonClass(TimeFilter.LastMonth) text-xs sm:text-xs px-3 py-1.5 sm:px-2 sm:py-2">
+        Last Month
+    </button>
+</div>
+
+@code {
+    [Parameter]
+    public EventCallback<(DateTime StartDate, DateTime EndDate)> OnFilterChanged { get; set; }
+
+    private TimeFilter currentFilter = TimeFilter.ThisWeek;
+
+    protected override void OnInitialized()
+    {
+        SetTimeFilter(TimeFilter.ThisWeek);
+    }
+
+    private void SetTimeFilter(TimeFilter filter)
+    {
+        currentFilter = filter;
+        var (startDate, endDate) = filter switch
+        {
+            TimeFilter.ThisWeek => (DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek), DateTime.Today),
+            TimeFilter.LastWeek => (DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek - 7), 
+                                 DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek - 1)),
+            TimeFilter.ThisMonth => (new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1), DateTime.Today),
+            TimeFilter.LastMonth => (new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1).AddMonths(-1),
+                                 new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1).AddDays(-1)),
+            _ => (DateTime.Today, DateTime.MaxValue)
+        };
+        
+        OnFilterChanged.InvokeAsync((startDate, endDate));
+    }
+
+    private string GetButtonClass(TimeFilter filter) =>
+        currentFilter == filter 
+            ? "px-2 py-2 bg-blue-600 text-white rounded-lg"
+            : "px-2 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300";
+}

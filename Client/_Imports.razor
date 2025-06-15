@@ -1,0 +1,45 @@
+﻿@using System.Net.Http
+@using System.Net.Http.Json
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Routing
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Web.Virtualization
+@using Microsoft.AspNetCore.Components.WebAssembly.Http
+@using Microsoft.JSInterop
+@using Client
+@using Client.Layout
+
+@using Shared.Helpers
+@using Shared.Enums
+@using global::Shared.Enums.Toast
+@using Shared.Interfaces
+
+@using Shared.Models.Auth
+@using Shared.Models.BaseEntity
+@using Shared.Models.Dashboards
+@using Shared.Models.Drivers
+@using Shared.Models.IoTs
+@using Shared.Models.Services
+@using Shared.Models.Shops
+@using Shared.Models.Stations
+@using Shared.Models.Trips
+@using Shared.Models.Trucks
+@using Shared.Models.Users
+
+@using Client.Handlers;
+
+@using Shared.Interfaces.Auth
+@using Shared.Interfaces.Dashboards
+@using Shared.Interfaces.Drivers
+@using Shared.Interfaces.Services
+@using Shared.Interfaces.Shops
+@using Shared.Interfaces.Stations
+@using Shared.Interfaces.Trips
+@using Shared.Interfaces.Trucks
+
+@inject AppState AppState
+
+@inject NavigationManager nav
+
+@inject CustomAuthenticationStateProvider CustomAuthenticationProvider

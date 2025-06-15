@@ -1,0 +1,77 @@
+using Microsoft.AspNetCore.Components.Web;
+using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using Client;
+using Client.Services.Flowbites;
+using Shared.Helpers;
+using Blazored.LocalStorage;
+using Client.Handlers;
+using Polly;
+using Microsoft.AspNetCore.Components.Authorization;
+using Shared.Interfaces.Auth;
+using Client.Services.Auth;
+using Shared.Interfaces.Trucks;
+using Shared.Models.Trucks;
+using Shared.Interfaces.Trips;
+using Shared.Interfaces.Drivers;
+using Client.Services.Drivers;
+using Shared.Interfaces.Dashboards;
+using Shared.Interfaces.Services;
+using Client.Services.Services;
+using Shared.Interfaces.Shops;
+using Client.Services.Shops;
+using Shared.Interfaces.Stations;
+using Client.Services.Stations;
+
+var builder = WebAssemblyHostBuilder.CreateDefault(args);
+builder.RootComponents.Add<App>("#app");
+builder.RootComponents.Add<HeadOutlet>("head::after");
+
+builder.Services.AddOptions();
+builder.Services.AddAuthorizationCore();
+builder.Services.AddBlazoredLocalStorage();
+
+
+
+string uri = string.Empty;
+#if DEBUG
+            uri = Constants.DevBaseAddress!;
+#else
+            uri = Constants.ProdBaseAddress;
+#endif
+builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(uri) });
+builder.Services.AddHttpClient(Constants.Url, http =>
+{
+    http.BaseAddress = new Uri(uri);
+}).AddHttpMessageHandler<CustomAuthorizationHandler>()
+.AddTransientHttpErrorPolicy(policyBuilder =>
+        policyBuilder.WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)))
+    );;
+builder.Services.AddHttpClient<CustomAuthenticationStateProvider>();
+
+builder.Services.AddScoped<AuthenticationStateProvider>(options => options.GetRequiredService<CustomAuthenticationStateProvider>());
+builder.Services.AddTransient<CustomAuthorizationHandler>();
+
+// builder.Services.AddLogging(logging =>
+// {
+//     var httpClient = builder.Services.BuildServiceProvider().GetRequiredService<HttpClient>();
+//     var authenticationStateProvider = builder.Services.BuildServiceProvider().GetRequiredService<AuthenticationStateProvider>();
+//     logging.SetMinimumLevel(LogLevel.Error);
+//     logging.AddProvider(new ApplicationLoggerProvider(httpClient, authenticationStateProvider));
+// });
+
+// builder.Services.AddM
+builder.Services.AddScoped<IFlowbiteService, FlowbiteService>();
+builder.Services.AddScoped<AppState>();
+
+builder.Services.AddTransient<IAuthService, AuthService>();
+builder.Services.AddTransient<ITruckService, TruckService>();
+builder.Services.AddTransient<ITripService, TripService>();
+builder.Services.AddTransient<IDriverService, DriverService>();
+builder.Services.AddTransient<IDashboardService, DashboardService>();
+builder.Services.AddTransient<IRequestService, RequestService>();
+builder.Services.AddTransient<IMaintenanceService, MaintenanceService>();
+builder.Services.AddTransient<IStationService, StationService>();
+
+
+
+await builder.Build().RunAsync();

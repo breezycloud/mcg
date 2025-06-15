@@ -1,0 +1,335 @@
+@page "/trucks/{Action}/{Id:guid?}"
+@inject ITruckService TruckService
+
+
+<div class="max-w-2xl mx-auto p-4 sm:p-6">
+    <!-- Form Header -->
+    <div class="mb-6">
+        <h2 class="text-xl font-bold text-gray-900 dark:text-white">@(EditMode ? "Edit Truck" : "Add New Truck")</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Please fill in the truck details below</p>
+    </div>
+
+    <!-- Truck Form -->
+    <EditForm Model="@CurrentTruck" OnValidSubmit="HandleSubmit" class="space-y-6">
+        <DataAnnotationsValidator/>
+        @if (alert is not null)
+        {
+            <Toast Icon="@alert.Icon" Message="@alert.Message"/>
+        }
+
+        <!-- Truck Number -->
+        <div>
+            <label for="truckNo" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                Truck Number <span class="text-red-500">*</span>
+            </label>
+            <InputText type="text" id="truckNo" @bind-Value="CurrentTruck.TruckNo"
+                   class="@GetInputClass("TruckNo")"
+                   maxlength="20"
+                   placeholder="Enter truck number"
+                   @onchange="@(e => ValidateEntry("TruckNo", e.Value?.ToString() ?? string.Empty))"/>
+            @if (errors.ContainsKey("TruckNo"))
+            {
+                <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["TruckNo"]</p>
+            }
+        </div>
+
+        <!-- License Plate -->
+        <div>
+            <label for="licensePlate" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                License Plate <span class="text-red-500">*</span>
+            </label>
+            <InputText type="text" id="licensePlate" @bind-Value="CurrentTruck.LicensePlate"
+                   class="@GetInputClass("LicensePlate")"
+                   maxlength="15"
+                   placeholder="Enter license plate"
+                    @onchange="@(e => ValidateEntry("LicensePlate", e.Value?.ToString() ?? string.Empty))"/>
+            @if (errors.ContainsKey("LicensePlate"))
+            {
+                <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["LicensePlate"]</p>
+            }
+        </div>
+
+        <!-- Manufacturer -->
+        <div>
+            <label for="manufacturer" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                Manufacturer <span class="text-red-500">*</span>
+            </label>
+            <InputText type="text" id="manufacturer" @bind-Value="CurrentTruck.Manufacturer"
+                   class="@GetInputClass("Manufacturer")"
+                   maxlength="50"
+                   placeholder="Enter manufacturer"/>
+            @if (errors.ContainsKey("Manufacturer"))
+            {
+                <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["Manufacturer"]</p>
+            }
+        </div>
+
+        <!-- Color -->
+        <div>
+            <label for="color" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                Color
+            </label>
+            <InputText type="text" id="color" @bind-Value="CurrentTruck.Color"
+                   class="@GetInputClass("Color")"
+                   maxlength="20"
+                   placeholder="Enter color"/>
+            @if (errors.ContainsKey("Color"))
+            {
+                <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["Color"]</p>
+            }
+        </div>
+
+        <!-- VIN -->
+        <div>
+            <label for="vin" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                VIN <span class="text-red-500">*</span>
+            </label>
+            <InputText type="text" id="vin" @bind-Value="CurrentTruck.VIN"
+                   class="@GetInputClass("VIN")"
+                   maxlength="30"
+                   placeholder="Enter VIN"
+                   @onchange="@(e => ValidateEntry("VIN", e.Value?.ToString() ?? string.Empty))"/>
+            @if (errors.ContainsKey("VIN"))
+            {
+                <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["VIN"]</p>
+            }
+        </div>
+
+        <!-- Engine Number -->
+        <div>
+            <label for="engineNo" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                Engine Number
+            </label>
+            <InputText type="text" id="engineNo" @bind-Value="CurrentTruck.EngineNo"
+                class="@GetInputClass("EngineNo")"
+                maxlength="30"
+                placeholder="Enter engine number"
+                @onchange="@(e => ValidateEntry("EngineNo", e.Value?.ToString() ?? string.Empty))" />
+            @if (errors.ContainsKey("EngineNo"))
+            {
+                <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["EngineNo"]</p>
+            }
+        </div>
+
+         <!-- Product Type -->
+         <div>
+            <label for="type" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                Product Type <span class="text-red-500">*</span>
+            </label>
+            <InputSelect id="type" @bind-Value="CurrentTruck.Product" class="@GetInputClass("Type")">
+                <option value="">Select type</option>
+                @foreach (var type in Enum.GetValues<Product>())
+                {
+                    <option value="@type">@StringConverter.ToDescription(type)</option>
+                }
+            </InputSelect>
+            @if (errors.ContainsKey("Type"))
+            {
+                <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["Type"]</p>
+            }
+        </div>
+
+        <!-- Dates (Display only when editing) -->
+        @if (EditMode)
+        {
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Created At
+                    </label>
+                    <div class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300">
+                        @CurrentTruck.CreatedAt.ToString("MMM dd, yyyy HH:mm")
+                    </div>
+                </div>
+                <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Last Updated
+                    </label>
+                    <div class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300">
+                        @(CurrentTruck.UpdatedAt?.ToString("MMM dd, yyyy HH:mm") ?? "Never")
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Form Actions -->
+        <div class="flex justify-end gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <button type="button" @onclick="Cancel"
+                class="px-5 py-2.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-700 dark:focus:ring-gray-700">
+            Cancel
+            </button>
+            <button type="submit"
+                class="px-5 py-2.5 text-sm font-medium text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+            @(EditMode ? "Update Truck" : "Add Truck")
+            </button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    [Parameter] public string Action { get; set; } = "Add";
+    [Parameter] public Guid? Id { get; set; }
+    [Parameter] public Truck CurrentTruck { get; set; } = new();
+    [Parameter] public bool EditMode { get; set; }
+    [Parameter] public EventCallback OnSubmit { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    bool result = false;
+    private NotificationAlert? alert = null;
+
+    private Dictionary<string, string> errors = new();
+
+    private string GetInputClass(string fieldName)
+    {
+        var baseClass = "bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500";
+        
+        if (errors.ContainsKey(fieldName))
+        {
+            baseClass += " border-red-500 bg-red-50 dark:bg-red-900 dark:border-red-700";
+        }
+        else
+        {
+            baseClass += " border-gray-300";
+        }
+        
+        return baseClass;
+    }
+                
+    private async Task ValidateEntry(string type, string value)
+    {        
+        bool result = false;
+        try
+        {
+            if (string.IsNullOrWhiteSpace(type) || string.IsNullOrWhiteSpace(value))
+                return;
+
+            result = await TruckService.ValidateEntry(type, value, AppState.GetCancellationToken());
+            Console.WriteLine("{0} {1}", result, type);
+            if (result)
+            {
+                if (type == "EngineNo")
+                    errors["EngineNo"] = "Engine number already exist";
+
+                if (type == "VIN")
+                    errors["VIN"] = "VIN already exist";
+                
+                if (type == "TruckNo")
+                    errors["TruckNo"] = "Truck number already exist";
+
+                if (type == "LicensePlate")
+                    errors["LicensePlate"] = "License Plate already exist";
+            }    
+        }
+        catch(Exception ex)
+        {
+
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        AppState.IsProcessing = true;
+        errors.Clear();
+
+        // Validate required fields
+        if (string.IsNullOrWhiteSpace(CurrentTruck.TruckNo))
+        {
+            errors["TruckNo"] = "Truck number is required";
+        }        
+        else if (CurrentTruck.TruckNo.Length > 20)
+        {
+            errors["TruckNo"] = "Truck number cannot exceed 20 characters";
+        }
+        else
+        {
+            await ValidateEntry("TruckNo", CurrentTruck.TruckNo);
+        }
+
+        if (string.IsNullOrWhiteSpace(CurrentTruck.LicensePlate))
+        {
+            errors["LicensePlate"] = "License plate is required";
+        }
+        else if (CurrentTruck.LicensePlate.Length > 15)
+        {
+            errors["LicensePlate"] = "License plate cannot exceed 15 characters";
+        }
+        else
+        {
+            await ValidateEntry("LicensePlate", CurrentTruck.LicensePlate);
+        }
+
+        if (!string.IsNullOrWhiteSpace(CurrentTruck.Manufacturer) && CurrentTruck.Manufacturer.Length > 50)
+        {
+            errors["Manufacturer"] = "Manufacturer cannot exceed 50 characters";
+        }
+
+        if (!string.IsNullOrWhiteSpace(CurrentTruck.Color) && CurrentTruck.Color.Length > 20)
+        {
+            errors["Color"] = "Color cannot exceed 20 characters";
+        }
+
+        if (!string.IsNullOrWhiteSpace(CurrentTruck.VIN) && CurrentTruck.VIN.Length > 30)
+        {
+            errors["VIN"] = "VIN cannot exceed 30 characters";
+        }
+        else
+        {
+            await ValidateEntry("VIN", CurrentTruck.VIN!);
+        }
+
+        if (!string.IsNullOrWhiteSpace(CurrentTruck.EngineNo) && CurrentTruck.EngineNo.Length > 30)
+        {
+            errors["EngineNo"] = "Engine number cannot exceed 30 characters";
+        }
+        else
+        {
+            await ValidateEntry("EngineNo", CurrentTruck.EngineNo!);
+        }
+
+        if (errors.Any())
+        {
+            AppState.IsProcessing = false;
+            StateHasChanged();
+            return;
+        }
+                
+        try
+        {
+            CurrentTruck.TruckNo = StringConverter.ConvertToTitleCase(CurrentTruck.TruckNo);
+            if (!string.IsNullOrWhiteSpace(CurrentTruck.Manufacturer))
+                CurrentTruck.Manufacturer = StringConverter.ConvertToTitleCase(CurrentTruck.Manufacturer);
+            if (!string.IsNullOrWhiteSpace(CurrentTruck.Color))
+                CurrentTruck.Color = StringConverter.ConvertToTitleCase(CurrentTruck.Color);
+
+            if (!Id.HasValue)
+            {
+                result = await TruckService.AddAsync(CurrentTruck, AppState.GetCancellationToken());
+            }
+            else
+            {
+                result = await TruckService.UpdateAsync(CurrentTruck, AppState.GetCancellationToken());
+            }
+
+            alert = new($"Truck Successfully {(EditMode ? "Updated" : "Added")}", ToastIcon.Succees);
+            if (result)
+            {
+                await Task.Delay(1000);
+                Cancel();
+            }                
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            alert = new($"Operation failed", ToastIcon.Error);
+        }
+        finally
+        {
+            AppState.IsProcessing = false;
+        }
+    }
+    
+    private void Cancel()
+    {
+        nav.NavigateTo("trucks");
+    }
+}
