@@ -1,0 +1,41 @@
+@* @using ChartJs.Blazor
+@using ChartJs.Blazor.Charts
+@using ChartJs.Blazor.Common
+@using ChartJs.Blazor.Common.Enums
+@using ChartJs.Blazor.PieChart *@
+
+@inject IDashboardService DashboardService
+
+<div class="bg-white p-6 rounded-lg shadow">
+    <h3 class="text-lg font-semibold mb-4">Trip Status Distribution</h3>
+    @* <ChartJsPieChart @ref="pieChart" Config="pieConfig" Width="300" Height="300" /> *@
+</div>
+
+@* @code {
+    private ChartJsPieChart? pieChart;
+    private PieConfig pieConfig = new PieConfig();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var statusData = await DashboardService.GetTripStatusDistributionAsync();
+
+        pieConfig = new PieConfig
+        {
+            Options = new PieOptions
+            {
+                Responsive = true,
+                Plugins = new Plugins
+                {
+                    Legend = new Legend { Position = PositionType.Right }
+                }
+            }
+        };
+
+        pieConfig.Data.Labels.AddRange(new[] { "In Progress", "Completed", "Overdue" });
+        pieConfig.Data.Datasets.Add(new PieDataset
+        {
+            BackgroundColor = new[] { "#FFCE56", "#36A2EB", "#FF6384" },
+            Data = new List<double> { statusData.InProgress, statusData.Completed, statusData.Overdue }
+        });
+    }
+} *@
