@@ -3,105 +3,111 @@
 
 
 <div class="max-w-2xl mx-auto p-4 sm:p-6">
-    <!-- Form Header -->
-    <div class="mb-6">
-        <h2 class="text-xl font-bold text-gray-900 dark:text-white">@(EditMode ? "Edit Driver" : "Add New Driver")</h2>
-        <p class="text-sm text-gray-500 dark:text-gray-400">Please fill in the driver details below</p>
-    </div>
-
-    <!-- Driver Form -->
-    <EditForm Model="@CurrentDriver" OnValidSubmit="HandleSubmit" class="space-y-6">
-        <DataAnnotationsValidator/>
-        @if (alert is not null)
-        {
-            <Toast Icon="@alert.Icon" Message="@alert.Message"/>
-        }
-        <!-- First Name -->
-        <div>
-            <label for="firstName" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                First Name <span class="text-red-500">*</span>
-            </label>
-            <InputText type="text" id="firstName" @bind-Value="CurrentDriver.FirstName"
-                   class="@GetInputClass("FirstName")"
-                   placeholder="John"/>            
-            @if (errors.ContainsKey("FirstName"))
-            {
-                <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["FirstName"]</p>
-            }
+    @if (AppState.IsBusy)
+    {
+        <Loader/>
+    }
+    else
+    {
+        <!-- Form Header -->
+        <div class="mb-6">
+            <h2 class="text-xl font-bold text-gray-900 dark:text-white">@(EditMode ? "Edit Driver" : "Add New Driver")</h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Please fill in the driver details below</p>
         </div>
 
-        <!-- Last Name -->
-        <div>
-            <label for="lastName" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                Last Name <span class="text-red-500">*</span>
-            </label>
-            <InputText type="text" id="lastName" @bind-Value="CurrentDriver.LastName"
-                   class="@GetInputClass("LastName")"
-                   placeholder="Doe"/>
-            @if (errors.ContainsKey("LastName"))
+        <!-- Driver Form -->
+        <EditForm Model="@CurrentDriver" OnValidSubmit="HandleSubmit" class="space-y-6">
+            @if (alert is not null)
             {
-                <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["LastName"]</p>
+                <Toast Icon="@alert.Icon" Message="@alert.Message"/>
             }
-        </div>
-
-        <!-- Phone Number -->
-        <div>
-            <label for="phoneNo" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                Phone Number
-            </label>
-            <div class="relative">
-                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                    <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/>
-                    </svg>
-                </div>
-                <InputText type="tel" id="phoneNo" @bind-Value="CurrentDriver.PhoneNo"
-                       class="@GetInputClass("PhoneNo")"
-                       placeholder="12345678901"
-                       maxlength="11"/>
+            <!-- First Name -->
+            <div>
+                <label for="firstName" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    First Name <span class="text-red-500">*</span>
+                </label>
+                <InputText type="text" id="firstName" @bind-Value="CurrentDriver.FirstName"
+                    class="@GetInputClass("FirstName")"
+                    placeholder="John"/>            
+                @if (errors.ContainsKey("FirstName"))
+                {
+                    <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["FirstName"]</p>
+                }
             </div>
-            @if (errors.ContainsKey("PhoneNo"))
-            {
-                <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["PhoneNo"]</p>
-            }
-            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Must be exactly 11 digits</p>
-        </div>
 
-        <!-- Dates (Display only when editing) -->
-        @if (EditMode)
-        {
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">
-                        Created At
-                    </label>
-                    <div class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300">
-                        @CurrentDriver.CreatedAt.ToString("MMM dd, yyyy HH:mm")
+            <!-- Last Name -->
+            <div>
+                <label for="lastName" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    Last Name <span class="text-red-500">*</span>
+                </label>
+                <InputText type="text" id="lastName" @bind-Value="CurrentDriver.LastName"
+                    class="@GetInputClass("LastName")"
+                    placeholder="Doe"/>
+                @if (errors.ContainsKey("LastName"))
+                {
+                    <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["LastName"]</p>
+                }
+            </div>
+
+            <!-- Phone Number -->
+            <div>
+                <label for="phoneNo" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    Phone Number
+                </label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                        <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/>
+                        </svg>
+                    </div>
+                    <InputText type="tel" id="phoneNo" @bind-Value="CurrentDriver.PhoneNo"
+                        class="@GetInputClass("PhoneNo")"
+                        placeholder="12345678901"
+                        maxlength="11"/>
+                </div>
+                @if (errors.ContainsKey("PhoneNo"))
+                {
+                    <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["PhoneNo"]</p>
+                }
+                <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Must be exactly 11 digits</p>
+            </div>
+
+            <!-- Dates (Display only when editing) -->
+            @if (EditMode)
+            {
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">
+                            Created At
+                        </label>
+                        <div class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300">
+                            @CurrentDriver.CreatedAt.ToString("MMM dd, yyyy HH:mm")
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">
+                            Last Updated
+                        </label>
+                        <div class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300">
+                            @(CurrentDriver.UpdatedAt?.ToString("MMM dd, yyyy HH:mm") ?? "Never")
+                        </div>
                     </div>
                 </div>
-                <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">
-                        Last Updated
-                    </label>
-                    <div class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300">
-                        @(CurrentDriver.UpdatedAt?.ToString("MMM dd, yyyy HH:mm") ?? "Never")
-                    </div>
-                </div>
-            </div>
-        }
+            }
 
-        <!-- Form Actions -->
-        <div class="flex justify-end gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <button type="button" @onclick="Cancel"
-                class="px-5 py-2.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-700 dark:focus:ring-gray-700">
-            Cancel
-            </button>
-            <button type="submit"
-                class="px-5 py-2.5 text-sm font-medium text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
-            @(EditMode ? "Update Driver" : "Add Driver")
-            </button>
-        </div>
-    </EditForm>
+            <!-- Form Actions -->
+            <div class="flex justify-end gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <button type="button" @onclick="Cancel"
+                    class="px-5 py-2.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-700 dark:focus:ring-gray-700">
+                Cancel
+                </button>
+                <button type="submit"
+                    class="px-5 py-2.5 text-sm font-medium text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                @(EditMode ? "Update Driver" : "Add Driver")
+                </button>
+            </div>
+        </EditForm>
+    }
 </div>
 
 @code {
@@ -117,6 +123,15 @@
 
 
     private Dictionary<string, string> errors = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load driver
+        AppState.IsBusy = true;
+        if (Id.HasValue)        
+            CurrentDriver = await DriverService.GetAsync(Id.Value, AppState.GetCancellationToken());
+        AppState.IsBusy = false;
+    }
 
     private string GetInputClass(string fieldName)
     {
@@ -149,19 +164,25 @@
         {
             errors["LastName"] = "Last name is required";
         }
-        
-        // Validate phone number format if provided
-        if (!string.IsNullOrWhiteSpace(CurrentDriver.PhoneNo) && !System.Text.RegularExpressions.Regex.IsMatch(CurrentDriver.PhoneNo, @"^\d{11}$"))
+
+        if (string.IsNullOrWhiteSpace(CurrentDriver.PhoneNo))
+        {
+            errors["PhoneNo"] = "Phone number is required";
+        }        
+        else if (CurrentDriver.PhoneNo.Length > 11)
         {
             errors["PhoneNo"] = "Phone number must be exactly 11 digits";
         }
 
-        if (errors is not null || errors!.Any())
+        Console.WriteLine(CurrentDriver.PhoneNo);
+
+        if (errors!.Any())
         {
+            AppState.IsProcessing = false;
+            StateHasChanged();
             return;
         }
 
-        Console.WriteLine("Handling submit");
         try
         {
             CurrentDriver!.FirstName = StringConverter.ConvertToTitleCase(CurrentDriver!.FirstName!);

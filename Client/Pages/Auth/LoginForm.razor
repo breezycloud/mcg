@@ -1,12 +1,16 @@
 @layout LoginLayout
 @page "/"
+@using Shared.Enums
 @inject IAuthService AuthService
+@inject ToastService Toast
 
 
- @if (loginResponse is not null && !string.IsNullOrEmpty(loginResponse.Message))
-    {
-        <Toast Icon="ToastIcon.Error" Message="@loginResponse!.Message"/>
-    }
+@* @if (!string.IsNullOrEmpty(loginResponse!.Message))
+{
+    <Alerts Title="Error" Dismissible Type="AlertType.Error">
+        @loginResponse.Message
+    </Alerts>
+} *@
 <EditForm Model="Model" OnValidSubmit="OnValidSubmit">
     <DataAnnotationsValidator/>
     <section class="bg-gray-50 dark:bg-gray-900 min-h-screen flex items-center justify-center">
@@ -77,7 +81,6 @@
     private async Task OnValidSubmit()
     {
         AppState.IsProcessing = true;
-        Console.WriteLine("Hello world");
         try
         {
             var response = await AuthService.Login(Model, AppState.GetCancellationToken());
@@ -87,8 +90,10 @@
             }
             else
             {                
-                await CustomAuthenticationProvider.SetTokenAsync(response);           
-                nav.NavigateTo("/dashboard", true);
+                await CustomAuthenticationProvider.SetTokenAsync(response);
+
+                var userRole = response.Role;
+                Path(userRole);                
             }
         }
         catch
@@ -101,6 +106,25 @@
         finally 
         {
             AppState.IsProcessing = false;
+        }
+    }
+    
+    void Path(UserRole userRole)
+    {        
+        switch (userRole)
+        {
+            case UserRole.Supervisor:
+                nav.NavigateTo("/trucks");
+                break;
+            case UserRole.Maintenance:
+                nav.NavigateTo("/requests");
+                break;
+            case UserRole.Monitoring:
+                nav.NavigateTo("/trips");
+                break;
+            default:
+                nav.NavigateTo("/dashboard");
+                break;
         }
     }
 }

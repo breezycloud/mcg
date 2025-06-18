@@ -5,7 +5,13 @@
 
 
 <div class="max-w-2xl mx-auto p-4 sm:p-6">
-    <!-- Form Header -->
+    @if (AppState.IsBusy)
+    {
+        <Loader/>
+    }
+   else
+   {
+         <!-- Form Header -->
     <div class="mb-6">
         <h2 class="text-xl font-bold text-gray-900 dark:text-white">@(EditMode ? "Edit Request" : "Add New Request")</h2>
         <p class="text-sm text-gray-500 dark:text-gray-400">Please fill in the request details below</p>
@@ -19,22 +25,43 @@
             <Toast Icon="@alert.Icon" Message="@alert.Message"/>
         }
 
-        <!-- Service Type -->
-        <div>
-            <label for="type" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                Service Type <span class="text-red-500">*</span>
-            </label>
-            <InputSelect id="type" @bind-Value="CurrentRequest.Type" class="@GetInputClass("Type")">
-                <option value="">Select type</option>
-                @foreach (var type in Enum.GetValues<ServiceType>())
+        <!-- Service Type & Service Item in one row -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Service Type -->
+            <div>
+                <label for="type" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    Service Type <span class="text-red-500">*</span>
+                </label>
+                <InputSelect id="type" @bind-Value="CurrentRequest.Type" class="@GetInputClass("Type")">
+                    <option value="">Select type</option>
+                    @foreach (var type in Enum.GetValues<ServiceType>())
+                    {
+                        <option value="@type">@type</option>
+                    }
+                </InputSelect>
+                @if (errors.ContainsKey("Type"))
                 {
-                    <option value="@type">@type</option>
+                    <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["Type"]</p>
                 }
-            </InputSelect>
-            @if (errors.ContainsKey("Type"))
-            {
-                <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["Type"]</p>
-            }
+            </div>
+
+            <!-- Service Item -->
+            <div>
+                <label for="item" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    Request Item <span class="text-red-500">*</span>
+                </label>
+                <InputSelect id="item" @bind-Value="CurrentRequest.Item" class="@GetInputClass("Item")">
+                    <option value="">Select item</option>
+                    @foreach (var item in Enum.GetValues<ServiceItem>())
+                    {
+                        <option value="@item">@item</option>
+                    }
+                </InputSelect>
+                @if (errors.ContainsKey("Item"))
+                {
+                    <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["Item"]</p>
+                }
+            </div>
         </div>
 
         <!-- Truck -->
@@ -107,10 +134,18 @@
                 </div>
                 <div>
                     <label class="block mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">
-                        Last Updated
+                        Treated At
                     </label>
                     <div class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300">
-                        @(CurrentRequest.UpdatedAt?.ToString("MMM dd, yyyy HH:mm") ?? "Never")
+                        @(CurrentRequest.TreatedAt?.ToString("MMM dd, yyyy HH:mm") ?? "Not yet")
+                    </div>
+                </div>
+                <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Closed At
+                    </label>
+                    <div class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300">
+                        @(CurrentRequest.ClosedAt?.ToString("MMM dd, yyyy HH:mm") ?? "Not yet")
                     </div>
                 </div>
             </div>
@@ -127,7 +162,8 @@
             @(EditMode ? "Update Request" : "Add Request")
             </button>
         </div>
-    </EditForm>
+    </EditForm>    
+   }
 </div>
 
 @code {
@@ -150,8 +186,12 @@
     protected override async Task OnInitializedAsync()
     {
         // Load trucks and sites here
+        AppState.IsBusy = true;
+        if (Id.HasValue)
+            CurrentRequest = await RequestService.GetAsync(Id.Value, AppState.GetCancellationToken()) ?? new();
         Trucks = await TruckService.GetAsync(AppState.GetCancellationToken());
         Sites = await SiteService.GetAsync(AppState.GetCancellationToken());
+        AppState.IsBusy = false;
     }
 
     private string GetInputClass(string fieldName)
@@ -176,9 +216,13 @@
         errors.Clear();
 
         // Validate required fields
-        if (CurrentRequest.Type.Equals(default(ServiceType)))
+        if (CurrentRequest.TruckId.Equals(Guid.Empty) || CurrentRequest.TruckId is null)
         {
-            errors["Type"] = "Service type is required";
+            errors["TruckId"] = "Truck is required";
+        }
+        if (CurrentRequest.MaintenanceSiteId.Equals(Guid.Empty) || CurrentRequest.TruckId is null)
+        {
+            errors["MaintenanceSiteId"] = "Maintenance Site is required";
         }
         if (string.IsNullOrWhiteSpace(CurrentRequest.Description))
         {
@@ -188,23 +232,30 @@
         if (errors.Any())
         {
             AppState.IsProcessing = false;
+            StateHasChanged();
             return;
         }
                 
         try
         {
+            CurrentRequest!.Description = StringConverter.ConvertToTitleCase(CurrentRequest!.Description!);
+            Guid userId = await localStorage.GetItemAsync<Guid>("uid");
             if (!Id.HasValue)
             {
+                CurrentRequest.CreatedById = userId;
                 result = await RequestService.AddAsync(CurrentRequest, AppState.GetCancellationToken());
             }
             else
             {
+                CurrentRequest.TreatedById = userId;
                 result = await RequestService.UpdateAsync(CurrentRequest, AppState.GetCancellationToken());
             }
 
             alert = new($"Request Successfully {(EditMode ? "Updated" : "Added")}", ToastIcon.Succees);
-
-            nav.NavigateTo("requests");
+            if (result)            
+            {
+                Cancel();
+            }
         }
         catch (Exception ex)
         {
@@ -216,8 +267,8 @@
         }
     }
     
-    private async Task Cancel()
+    private void Cancel()
     {
-        await OnCancel.InvokeAsync();
+        nav.NavigateTo("requests");
     }
 }

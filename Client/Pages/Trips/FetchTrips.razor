@@ -1,0 +1,344 @@
+@page "/trips"
+@inject ITripService TripService
+@inject IDestinationService DestinationService
+@attribute [Authorize(Roles = "Monitoring, Admin, Master")]
+<PageTitle>Trips</PageTitle>
+
+
+
+<section class="bg-gray-50 dark:bg-gray-900 rounded-lg">    
+    @if (showData)
+    {
+        <div class="px-4 lg:px-12">
+            <div class="bg-white dark:bg-gray-800 relative shadow-md sm:rounded-lg overflow-hidden">
+                <!-- Header with search and add button -->
+                <div class="flex flex-col items-center justify-between p-4 space-y-3 md:flex-row md:space-y-0 md:space-x-4">
+                <div class="w-full flex-auto">
+                        <label for="trip-search" class="sr-only">Search trips</label>
+                            <div class="relative w-full">
+                                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                    <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <input 
+                                    type="text" 
+                                    id="trip-search" 
+                                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" 
+                                    placeholder="Search trips..." 
+                                    @bind-value="@request.SearchTerm" @bind-value:event="oninput" @onkeyup="async () => await HandleSearch(request.SearchTerm!)" />
+                            </div>
+                    </div>
+                    <div class="flex flex-col items-stretch justify-end flex-shrink-0 w-full space-y-2 md:w-auto md:flex-row md:space-y-0 md:items-center md:space-x-3">
+                        <button 
+                            @onclick="AddTrip" 
+                            type="button" 
+                            class="flex items-center justify-center text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">
+                            <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                <path clip-rule="evenodd" fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" />
+                            </svg>
+                            Add Trip
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-400">
+                            <tr>
+                                <th scope="col" class="px-6 py-3">Loading Date</th>
+                                <th scope="col" class="px-6 py-3">Reference</th>
+                                <th scope="col" class="px-6 py-3">Truck</th>
+                                <th scope="col" class="px-6 py-3">Driver</th>                                                      
+                                <th scope="col" class="px-6 py-3">Origin</th>
+                                <th scope="col" class="px-6 py-3">Destination</th>
+                                <th scope="col" class="px-6 py-3">Status</th>
+                                <th scope="col" class="px-6 py-3 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @if (response != null && response.Data!.Any())
+                        {
+                            foreach (var trip in response.Data!)
+                            {
+                                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                                    <!-- Trip Date -->
+                                    <td class="px-6 py-4 text-sm text-gray-900 dark:text-white">
+                                        @trip.Date.ToString("MMM dd, yyyy")
+                                    </td>
+
+                                    <!-- Dispatch Number & Waybill -->
+                                    <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
+                                        <div>
+                                            <span class="font-semibold">Dispatch:</span>
+                                            @trip.DispatchId
+                                        </div>
+                                        <div>
+                                            <span class="font-semibold">Waybill:</span>
+                                            @trip.WaybillNo
+                                        </div>
+                                    </td>
+
+                                    <!-- Truck -->
+                                    <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
+                                        @trip.Truck?.LicensePlate
+                                    </td>
+
+                                    <!-- Driver -->
+                                    <td class="px-6 py-4 text-sm">
+                                        @if (trip.Driver != null)
+                                        {
+                                            <div class="font-medium text-gray-900 dark:text-white">@trip.Driver.FirstName @trip.Driver.LastName</div>
+                                            <div class="text-xs text-gray-500">@trip.Driver.PhoneNo</div>
+                                        }
+                                        else
+                                        {
+                                            <span class="italic text-gray-400">Unassigned</span>
+                                        }
+                                    </td>                                                                
+
+                                    <!-- Origin -->
+                                    <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
+                                        @if (trip.Origin?.Station != null)
+                                        {
+                                            <div>@trip.Origin.Station.Name</div>
+                                            <div class="text-xs text-gray-500">@trip.Origin.Quantity @trip.Origin.Unit</div>
+                                        }
+                                        else
+                                        {
+                                            <span class="italic text-gray-400">N/A</span>
+                                        }
+                                    </td>
+
+                                    <!-- Destination -->
+                                    <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
+                                        @if (trip.Destination?.Station != null)
+                                        {
+                                            <div>@trip.Destination.Station.Name</div>
+                                            <div class="text-xs text-gray-500">@trip.Destination.DischargedQuantity @trip.Destination.DischargedUnit</div>
+                                        }
+                                        else
+                                        {
+                                            <span class="italic text-gray-400">N/A</span>
+                                        }
+                                    </td>
+
+                                    <!-- Status -->
+                                    <td class="px-6 py-4">
+                                        <span class="text-xs font-medium px-2.5 py-0.5 rounded
+                                            @(trip.Status == TripStatus.Active
+                                                ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+                                                : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300")">
+                                            @trip.Status
+                                        </span>
+                                    </td>
+
+                                    <!-- Actions -->
+                                    <td class="px-6 py-4 text-right">
+                                        <div class="flex justify-end space-x-3">
+                                            @if (trip.Status != TripStatus.Closed)
+                                            {
+                                                <button @onclick="() => EditStatus(trip)" class="font-medium text-blue-600 dark:text-blue-500 hover:underline">
+                                                    Edit
+                                                </button>
+                                            }
+                                            <button @onclick="() => ViewTrip(trip)" class="font-medium text-green-600 dark:text-green-500 hover:underline">
+                                                View
+                                            </button>                                                                                   
+                                        </div>
+                                    </td>                                
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="8" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                                    @if (AppState.IsBusy)
+                                    {
+                                        <div class="flex justify-center items-center">
+                                            <svg class="animate-spin h-5 w-5 text-blue-500 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor"
+                                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                            </svg>
+                                            Loading trips...
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="flex flex-col items-center justify-center py-6">
+                                            <svg class="w-8 h-8 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                            <span class="text-lg font-medium">No trips found</span>
+                                            <p class="text-sm text-gray-500 mt-1">Try adding a new trip or adjusting your filter</p>
+                                        </div>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+                    <Pagination             
+                        CurrentPage="request.Page + 1"
+                        PageSize="request.PageSize"
+                        TotalItems="response?.Total ?? 0"
+                        OnPageChanged="async (page) => { 
+                            request.Page = page - 1; 
+                            await LoadTrips(); 
+                            StateHasChanged(); 
+                        }" />
+                </div>
+            </div>
+        </div>
+    }
+    @if (showStatusModal)
+    {
+         <TripStatusModal 
+            Trip="selectedTrip" 
+            CloseModal="() => showStatusModal = false" 
+            OnSave="UpdateTrip"
+            OnUpdateDestination="UpdateDestination" />
+    }
+
+
+    @if (selectedTrip != null && !showData)
+    {
+        <ViewTrip
+            Trip="selectedTrip" 
+            OnBack="() => {  selectedTrip = null; showData = true; }" 
+            OnEdit="() => EditStatus(selectedTrip)" />
+    }
+</section>
+
+
+
+
+@code {
+    private GridDataResponse<Trip>? response = null;
+    private GridDataRequest request = new();
+    private Trip selectedTrip;
+    private string openMenuId;
+    private bool showData = true;
+    private bool showStatusModal = false;    
+
+    protected override async Task OnInitializedAsync()
+    {
+        request = new GridDataRequest { Page = 0, PageSize = 10};
+        await LoadTrips();
+    }
+
+    private void ToggleMenu(string tripId)
+    {
+        if (openMenuId == tripId)
+        {
+            openMenuId = null;
+        }
+        else
+        {
+            openMenuId = tripId;
+        }
+    }
+
+    private async Task HandleSearch(string search)
+    {
+        if (string.IsNullOrWhiteSpace(search))
+        {
+            request.SearchTerm = string.Empty;
+        }
+        else
+            request.SearchTerm = search;
+        request.Page = 0; // Reset to first page when searching
+        await LoadTrips();
+    }
+    
+    private async Task LoadTrips()
+    {
+        AppState.IsBusy = true;
+        try 
+        {
+            response = await TripService.GetPagedAsync(request, AppState.GetCancellationToken());
+        }
+        finally
+        {
+            AppState.IsBusy = false;
+        }
+        StateHasChanged();
+    }
+
+    private void AddTrip()
+    {
+        nav.NavigateTo("/trips/add");
+    }
+
+    private void EditTrip(Guid id)
+    {
+        nav.NavigateTo($"/trips/edit/{id}");
+    }
+
+    bool result = false;
+
+    private async Task UpdateTrip(Trip trip)
+    {
+        
+        try
+        {
+            result = await TripService.UpdateAsync(trip, AppState.GetCancellationToken());
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("{0} {1}", "Error", ex.Message);
+        }
+        finally
+        {
+            AppState.IsProcessing = false;
+            await LoadTrips();
+            
+        }
+    }
+
+    private async Task UpdateDestination(Destination destination)
+    {
+        try
+        {
+            result = await DestinationService.UpdateAsync(destination, AppState.GetCancellationToken());
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("{0} {1}", "Error", ex.Message);
+        }
+        finally
+        {
+            AppState.IsProcessing = false;
+            await LoadTrips();
+        }
+    }
+
+    private void EditStatus(Trip trip)
+    {
+        selectedTrip = trip;
+        showStatusModal = true;
+        showData = true;
+    }
+
+    private void ViewTrip(Trip trip)
+    {
+        selectedTrip = trip;
+        showStatusModal = false;
+        showData = false;
+    }
+
+
+    private async Task DeleteTrip(Guid id)
+    {
+        await TripService.DeleteAsync(id, AppState.GetCancellationToken());
+        await LoadTrips();
+    }
+} 

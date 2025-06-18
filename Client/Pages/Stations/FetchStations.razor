@@ -8,24 +8,21 @@
     <div class="px-4 lg:px-12">
         <div class="bg-white dark:bg-gray-800 relative shadow-md sm:rounded-lg overflow-hidden">
             <!-- Header with search and add button -->
-            <div class="flex md:flex-col flex-row md:items-center justify-between gap-10 p-4">
-                <div class="flex-1">
-                    <div class="flex items-center w-full">
-                        <label for="station-search" class="sr-only">Search stations</label>
-                        <div class="relative w-full">
-                            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                                <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
-                                </svg>
-                            </div>
-                            <input 
-                                type="text" 
-                                id="station-search" 
-                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" 
-                                placeholder="Search stations..." 
-                                @bind="request.SearchTerm"
-                                @oninput="async () => await HandleSearch()" />
+            <div class="flex flex-row sm:items-center justify-between gap-10 p-4">
+               <div class="flex-auto">
+                 <label for="station-search" class="sr-only">Search stations</label>
+                    <div class="relative w-full">
+                        <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                            <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+                            </svg>
                         </div>
+                        <input 
+                            type="text" 
+                            id="station-search" 
+                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" 
+                            placeholder="Search stations..." 
+                            @bind-value="@request.SearchTerm" @bind-value:event="oninput" @onkeyup="async () => await HandleSearch(request.SearchTerm!)" />
                     </div>
                 </div>
                 <div class="flex md:justify-end">
@@ -48,8 +45,9 @@
                         <tr>
                             <th scope="col" class="px-6 py-3">Station</th>
                             <th scope="col" class="px-6 py-3">Address</th>
-                            <th scope="col" class="px-6 py-3">Dates</th>
                             <th scope="col" class="px-6 py-3">Type</th>
+                            <th scope="col" class="px-6 py-3">Created</th>
+                            <th scope="col" class="px-6 py-3">Updated</th>
                             <th scope="col" class="px-6 py-3 text-right">Actions</th>
                         </tr>
                     </thead>
@@ -61,7 +59,6 @@
                             <tr class="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
                                 <td class="px-6 py-4">
                                     <div class="font-medium text-gray-900 dark:text-white">@station.Name</div>
-                                    <div class="text-xs text-gray-500">ID: @station.Id</div>
                                 </td>
                                 <td class="px-6 py-4">
                                     @if (station.Address != null)
@@ -75,29 +72,23 @@
                                     }
                                 </td>
                                 <td class="px-6 py-4">
-                                    <div class="text-sm">Created: @station.CreatedAt.ToString("MMM dd, yyyy")</div>
-                                    <div class="text-xs text-gray-500">Updated: @(station.UpdatedAt?.ToString("MMM dd, yyyy") ?? "Never")</div>
+                                    <span class="text-xs font-medium px-2.5 py-0.5 rounded bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                                        @StringConverter.ToDescription(station.Type)
+                                    </span>
                                 </td>
                                 <td class="px-6 py-4">
-                                    <span class="text-xs font-medium px-2.5 py-0.5 rounded 
-                                        @(station.IsDepot 
-                                            ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300" 
-                                            : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300")">
-                                        @(station.IsDepot ? "Depot" : "Standard")
-                                    </span>
+                                    <div class="text-sm">@station.CreatedAt.ToString("MMM dd, yyyy")</div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="text-sm">@((station.UpdatedAt.HasValue) ? station.UpdatedAt.Value.ToString("MMM dd, yyyy") : "Never")</div>
                                 </td>
                                 <td class="px-6 py-4 text-right">
                                     <div class="flex justify-end space-x-3">
                                         <button 
                                             @onclick="() => EditStation(station.Id)" 
-                                            class="font-medium text-gray-600 dark:text-gray-400 hover:underline">
+                                            class="font-medium text-blue-600 dark:text-blue-400 hover:underline">
                                             Edit
-                                        </button>
-                                        <button 
-                                            @onclick="() => DeleteStation(station.Id)" 
-                                            class="font-medium text-red-600 dark:text-red-500 hover:underline">
-                                            Delete
-                                        </button>
+                                        </button>                                        
                                     </div>
                                 </td>
                             </tr>
@@ -106,7 +97,7 @@
                     else
                     {
                         <tr>
-                            <td colspan="5" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                            <td colspan="6" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
                                 @if (AppState.IsBusy)
                                 {
                                     <div class="flex justify-center items-center">
@@ -164,9 +155,15 @@
         await LoadStations();
     }
 
-     private async Task HandleSearch()
+    private async Task HandleSearch(string search)
     {
-        request.Page = 0; // Reset to first page when searching
+        if (string.IsNullOrWhiteSpace(search))
+        {
+            request.SearchTerm = string.Empty;
+        }
+        else
+            request.SearchTerm = search;
+        request.Page = 0; // Reset to first page when searching        
         await LoadStations();
     }
     

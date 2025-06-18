@@ -6,5 +6,6 @@ public enum Product
     CNG,
     PMS,
     ATK,
-    LPG
+    LPG,
+    AGO
 }

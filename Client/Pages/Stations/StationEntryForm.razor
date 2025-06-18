@@ -3,120 +3,96 @@
 
 
 <div class="max-w-2xl mx-auto p-4 sm:p-6">
-    <!-- Form Header -->
-    <div class="mb-6">
-        <h2 class="text-xl font-bold text-gray-900 dark:text-white">@(EditMode ? "Edit Station" : "Add New Station")</h2>
-        <p class="text-sm text-gray-500 dark:text-gray-400">Please fill in the station details below</p>
-    </div>
 
-    <!-- Station Form -->
-    <EditForm Model="@CurrentStation" OnValidSubmit="HandleSubmit" class="space-y-6">
-
-        @if (alert is not null)
-        {
-            <Toast Icon="@alert.Icon" Message="@alert.Message"/>
-        }
-
-        <!-- Station Name -->
-        <div>
-            <label for="name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                Station Name <span class="text-red-500">*</span>
-            </label>
-            <InputText id="name" @bind-Value="CurrentStation.Name"
-                       class="@GetInputClass("Name")"
-                       maxlength="100"
-                       placeholder="Enter station name" />
-            @if (errors.ContainsKey("Name"))
-            {
-                <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["Name"]</p>
-            }
+    @if (AppState.IsBusy)
+    {
+        <Loader/>
+    }
+    else
+    {
+        <!-- Form Header -->
+        <div class="mb-6">
+            <h2 class="text-xl font-bold text-gray-900 dark:text-white">@(EditMode ? "Edit Station" : "Add New Station")</h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Please fill in the station details below</p>
         </div>
-        
-          <!-- Station Type -->
-         <div>
-            <label for="type" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                Station Type <span class="text-red-500">*</span>
-            </label>
-            <InputSelect id="type" @bind-Value="CurrentStation.Type" class="@GetInputClass("Type")">
-                <option value="">Select type</option>
-                @foreach (var type in Enum.GetValues<StationType>())
+
+        <!-- Station Form -->
+        <EditForm Model="@CurrentStation" OnValidSubmit="HandleSubmit" class="space-y-6">
+
+            @if (alert is not null)
+            {
+                <Toast Icon="@alert.Icon" Message="@alert.Message"/>
+            }
+
+            <!-- Station Name -->
+            <div>
+                <label for="name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    Station Name <span class="text-red-500">*</span>
+                </label>
+                <InputText id="name" @bind-Value="CurrentStation.Name"
+                        class="@GetInputClass("Name")"
+                        maxlength="100"
+                        placeholder="Enter station name" />
+                @if (errors.ContainsKey("Name"))
                 {
-                    <option value="@type">@StringConverter.ToDescription(type)</option>
+                    <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["Name"]</p>
                 }
-            </InputSelect>
-            @if (errors.ContainsKey("Type"))
+            </div>
+            
+            <!-- Station Type -->
+            <div>
+                <label for="type" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    Station Type <span class="text-red-500">*</span>
+                </label>
+                <InputSelect id="type" @bind-Value="CurrentStation.Type" class="@GetInputClass("Type")">
+                    <option value="">Select type</option>
+                    @foreach (var type in Enum.GetValues<StationType>())
+                    {
+                        <option value="@type">@StringConverter.ToDescription(type)</option>
+                    }
+                </InputSelect>
+                @if (errors.ContainsKey("Type"))
+                {
+                    <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["Type"]</p>
+                }
+            </div>
+
+            <!-- Address Fields -->
+
+            <LocationSelector Address="CurrentStation.Address" GetInputClass="@GetInputClass" Errors="errors"/>
+
+            <!-- Timestamps -->
+            @if (EditMode)
             {
-                <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["Type"]</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">Created At</label>
+                        <div class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300">
+                            @CurrentStation.CreatedAt.ToString("MMM dd, yyyy HH:mm")
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">Last Updated</label>
+                        <div class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300">
+                            @(CurrentStation.UpdatedAt?.ToString("MMM dd, yyyy HH:mm") ?? "Never")
+                        </div>
+                    </div>
+                </div>
             }
-        </div>
 
-        <!-- Address Fields -->
-        <fieldset class="border-t border-gray-200 pt-4 dark:border-gray-700">
-            <legend class="text-sm font-medium text-gray-900 dark:text-white">Address</legend>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">               
-                <div>
-                    <label for="city" class="block text-sm font-medium text-gray-700 dark:text-white">State</label>
-                    <InputText id="city" @bind-Value="CurrentStation.Address!.State"
-                               class="@GetInputClass("State")"
-                               placeholder="State Name" />
-                </div>
-                <div>
-                    <label for="state" class="block text-sm font-medium text-gray-700 dark:text-white">City</label>
-                    <InputText id="state" @bind-Value="CurrentStation.Address!.Location"
-                               class="@GetInputClass("Location")"
-                               placeholder="Location" />
-                </div>               
-                <div class="md:col-span-2">
-                    <label for="country" class="block text-sm font-medium text-gray-700 dark:text-white">Address</label>
-                    <InputText id="country" @bind-Value="CurrentStation.Address!.ContactAddress"
-                               class="@GetInputClass("ContactAddress")"
-                               placeholder="ContactAddress" />
-                </div>
+            <!-- Form Actions -->
+            <div class="flex justify-end gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <button type="button" @onclick="Cancel"
+                    class="px-5 py-2.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-700 dark:focus:ring-gray-700">
+                    Cancel
+                </button>
+                <button type="submit"
+                    class="px-5 py-2.5 text-sm font-medium text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                    @(EditMode ? "Update Station" : "Add Station")
+                </button>
             </div>
-        </fieldset>
-
-        <!-- Is Depot Toggle -->
-        @* <div class="flex items-center mt-4">
-            <InputCheckbox id="isDepot" @bind-Value="CurrentStation.IsDepot"
-                           class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600" />
-            <label for="isDepot" class="ml-2 text-sm text-gray-700 dark:text-white">Is this a Depot?</label>
-        </div>
- *@
-
-       
-
-        <!-- Timestamps -->
-        @if (EditMode)
-        {
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">Created At</label>
-                    <div class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300">
-                        @CurrentStation.CreatedAt.ToString("MMM dd, yyyy HH:mm")
-                    </div>
-                </div>
-                <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">Last Updated</label>
-                    <div class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300">
-                        @(CurrentStation.UpdatedAt?.ToString("MMM dd, yyyy HH:mm") ?? "Never")
-                    </div>
-                </div>
-            </div>
-        }
-
-        <!-- Form Actions -->
-        <div class="flex justify-end gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <button type="button" @onclick="Cancel"
-                class="px-5 py-2.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-700 dark:focus:ring-gray-700">
-                Cancel
-            </button>
-            <button type="submit"
-                class="px-5 py-2.5 text-sm font-medium text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
-                @(EditMode ? "Update Station" : "Add Station")
-            </button>
-        </div>
-    </EditForm>
+        </EditForm>
+    }
 </div>
 
 @code {
@@ -134,10 +110,12 @@
 
     protected override async Task OnInitializedAsync()
     {
+        AppState.IsBusy = true;
         if (Id.HasValue)
             CurrentStation = await StationService.GetAsync(Id.Value, AppState.GetCancellationToken()) ?? new();
         else
             CurrentStation.Address = new();
+        AppState.IsBusy = false;
     }
 
     private string GetInputClass(string fieldName)
@@ -165,7 +143,22 @@
         if (string.IsNullOrWhiteSpace(CurrentStation.Name))
         {
             errors["StationNo"] = "Station number is required";
-        }        
+        }    
+
+        if (string.IsNullOrWhiteSpace(CurrentStation.Address!.State))
+        {
+            errors["State"] = "State is required";
+        }
+
+        if (string.IsNullOrWhiteSpace(CurrentStation.Address!.Location))
+        {
+            errors["Location"] = "Location is required";
+        } 
+
+        if (string.IsNullOrWhiteSpace(CurrentStation.Address!.ContactAddress))
+        {
+            errors["ContactAddress"] = "ContactAddress is required";
+        }    
 
         if (errors.Any())
         {
@@ -197,7 +190,7 @@
             }
 
             alert = new($"Station Successfully {(EditMode ? "Updated" : "Added")}", ToastIcon.Succees);
-            nav.NavigateTo("drivers");
+            nav.NavigateTo("stations");
         }
         catch (Exception ex)
         {

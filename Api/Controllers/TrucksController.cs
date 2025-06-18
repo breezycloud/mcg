@@ -59,6 +59,56 @@ public class TrucksController : ControllerBase
         }
     }
 
+    // POST: api/Paged
+    [HttpGet("status")]
+    public async Task<ActionResult<IEnumerable<Truck>?>> GetPagedDatAsync(string state, CancellationToken cancellationToken = default)
+    {
+        GridDataResponse<Truck> response = new();
+        try
+        {
+            IQueryable<Truck> truckQuery;
+
+            if (_context.Trips.Any())
+            {
+                var tripQuery = _context.Trips.Include(x => x.Truck).AsSplitQuery().AsQueryable();
+
+                if (!string.IsNullOrEmpty(state))
+                {
+                    string pattern = $"%{state}%";
+                    tripQuery = tripQuery.Where(x => EF.Functions.ILike(x.Status.ToString(), pattern));
+                }
+
+                truckQuery = tripQuery.Select(x => x.Truck!);
+            }
+            else
+            {
+                truckQuery = _context.Trucks.AsQueryable();
+
+                // if (!string.IsNullOrEmpty(state))
+                // {
+                //     string pattern = $"%{state}%";
+                //     truckQuery = truckQuery.Where(x => EF.Functions.ILike(x.Status.ToString(), pattern));
+                // }
+            }
+
+            response.Total = await truckQuery.CountAsync(cancellationToken);
+
+            response.Data = [];
+            var pagedQuery = truckQuery.OrderByDescending(x => x.CreatedAt).AsAsyncEnumerable().WithCancellation(cancellationToken);
+
+            await foreach (var item in pagedQuery)
+            {
+            response.Data.Add(item);
+            }
+
+            return response.Data.ToArray();
+        }
+        catch (System.Exception)
+        {
+            throw;
+        }
+    }
+
     // GET: api/Validate/{type}/value
     [HttpGet("validate")]
     public async Task<ActionResult<bool>> ValidateEntry(string type, string value, CancellationToken cancellationToken = default)

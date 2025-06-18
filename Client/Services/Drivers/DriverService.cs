@@ -40,7 +40,7 @@ public class DriverService(IHttpClientFactory _httpClient) : IDriverService
     {
         try
         {
-            using var response = await _httpClient.CreateClient("AppUrl").DeleteAsync($"drivers/{id}",  cancellationToken);
+            using var response = await _httpClient.CreateClient("AppUrl").DeleteAsync($"drivers/{id}", cancellationToken);
             response.EnsureSuccessStatusCode();
             return response.IsSuccessStatusCode;
         }
@@ -71,6 +71,21 @@ public class DriverService(IHttpClientFactory _httpClient) : IDriverService
             using var response = await _httpClient.CreateClient("AppUrl").PostAsJsonAsync("drivers/paged", request, cancellationToken);
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<GridDataResponse<Driver>?>();
+        }
+        catch (System.Exception)
+        {
+
+            throw;
+        }
+    }
+    
+    public async Task<Driver[]?> GetAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var response = await _httpClient.CreateClient("AppUrl").GetAsync($"drivers", cancellationToken);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<Driver[]?>();
         }
         catch (System.Exception)
         {

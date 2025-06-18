@@ -30,7 +30,7 @@ public class TripsController : ControllerBase
         GridDataResponse<Trip> response = new();
         try
         {
-            var query = _context.Trips.Include(x => x.Origin).ThenInclude(x => x!.Station).AsQueryable();
+            var query = _context.Trips.Include(x => x.Driver).Include(x => x.Truck).Include(x => x.Origin).ThenInclude(x => x!.Station).Include(x=>x.Destination).ThenInclude(x=> x.Station).AsSplitQuery().AsQueryable();
 
             if (request.Id.HasValue)
             {

@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Shared.Enums;
+using Shared.Models.Trips;
 
 namespace Shared.Models.Trucks;
 
@@ -19,10 +20,10 @@ public class Truck
 
     [StringLength(50)]
     [Required]
-    public string? Manufacturer { get; set; }
+    public string? Manufacturer { get; set; } = "FAW";
 
     [StringLength(20)]
-    public string? Color { get; set; }
+    public string? Color { get; set; } = "White";
 
     [Required]
     [StringLength(30)]
@@ -35,4 +36,6 @@ public class Truck
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
     public DateTimeOffset? UpdatedAt { get; set; }
+
+    public virtual ICollection<Trip>? Trips { get; set; } = [];
 }

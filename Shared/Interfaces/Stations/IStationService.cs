@@ -9,5 +9,7 @@ public interface IStationService
     Task<bool> UpdateAsync(Station model, CancellationToken cancellationToken);
     Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken);
     Task<Station?> GetAsync(Guid id, CancellationToken cancellationToken);
+    Task<Station[]?> GetAsync(CancellationToken cancellationToken);
+    Task<Station[]?> GetAsync(string type, CancellationToken cancellationToken);
     Task<GridDataResponse<Station>?> GetPagedAsync(GridDataRequest request, CancellationToken cancellationToken);
 }

@@ -1,8 +1,9 @@
 ﻿@page "/dashboard"
-@using Microsoft.AspNetCore.SignalR.Client
+
 @inject IDashboardService DashboardService
 @inject NavigationManager NavigationManager
 @implements IAsyncDisposable
+@attribute [Authorize(Roles = "Admin, Master, Management")]
 
 <div class="p-1 sm:p-1 space-y-6 bg-gray-50 min-h-screen">
     <!-- Header with SignalR status -->
@@ -14,7 +15,7 @@
             </span>
         </div>
     </div>
-
+    
     <!-- Time Filter -->
     <Filter OnFilterChanged="HandleTimeFilterChange" />
 
@@ -25,22 +26,22 @@
       <!-- Charts & Recent Trips -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div class="lg:col-span-2">
-            <TripStatusChart />
+            <TripStatusChart  />
         </div>
         <div class="lg:col-span-1">
-            <RecentTrips />
+            <RecentTrips  />
         </div>
     </div>
 
     <!-- Product Shipments Table -->
-    <ProductShipments />
+    <ProductShipments StartDate="@filterStartDate" EndDate="@filterEndDate" />
 </div>
 
 @code {
     private HubConnection? hubConnection;
     private bool isConnected;
-    private DateTime? filterStartDate;
-    private DateTime? filterEndDate;
+    private DateOnly? filterStartDate;
+    private DateOnly? filterEndDate;
 
     protected override async Task OnInitializedAsync()
     {
@@ -69,7 +70,7 @@
         }
     }
 
-    private void HandleTimeFilterChange((DateTime Start, DateTime End) dates)
+    private void HandleTimeFilterChange((DateOnly Start, DateOnly End) dates)
     {
         filterStartDate = dates.Start;
         filterEndDate = dates.End;

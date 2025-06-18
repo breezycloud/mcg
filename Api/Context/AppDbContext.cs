@@ -8,6 +8,7 @@ using Shared.Models.Trips;
 using Shared.Models.Trucks;
 using Shared.Models.Users;
 using Shared.Models.Services;
+using Shared.Models.Checkpoints;
 
 namespace Api.Context;
 
@@ -19,11 +20,13 @@ public class AppDbContext : DbContext
 
     }
     public virtual DbSet<User> Users { get; set; } = default!;
+    public virtual DbSet<AuditLog> AuditLogs { get; set; } = default!;
     public virtual DbSet<Driver> Drivers { get; set; } = default!;
     public virtual DbSet<LogMessage> Logs { get; set; } = default!;
     public virtual DbSet<MaintenanceSite> MaintenanceSites { get; set; } = default!;
     public virtual DbSet<Station> Stations { get; set; } = default!;
     public virtual DbSet<Trip> Trips { get; set; } = default!;
+    public virtual DbSet<Checkpoint> Checkpoints { get; set; } = default!;
     public virtual DbSet<Origin> TripOrigins { get; set; } = default!;
     public virtual DbSet<Destination> TripDestinations { get; set; } = default!;
     public virtual DbSet<Truck> Trucks { get; set; } = default!;

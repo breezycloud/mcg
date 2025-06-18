@@ -8,6 +8,7 @@ public class User
 {
     [Key]
     public Guid Id { get; set; }
+    public Guid? MaintenanceSiteId { get; set; }
     [Required]
     public string? FirstName { get; set; }
     [Required]
@@ -24,5 +25,10 @@ public class User
     public bool? IsVerified { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? UpdatedAt { get; set; }
+
+    public override string ToString()
+    {
+        return $"{FirstName} {LastName}";
+    }
     
 }
