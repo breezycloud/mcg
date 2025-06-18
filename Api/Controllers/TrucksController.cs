@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Api.Context;
 using Shared.Models.Trucks;
 using Shared.Helpers;
+using Shared.Enums;
 
 namespace Api.Controllers;
 
@@ -68,37 +69,30 @@ public class TrucksController : ControllerBase
         {
             IQueryable<Truck> truckQuery;
 
-            if (_context.Trips.Any())
-            {
-                var tripQuery = _context.Trips.Include(x => x.Truck).AsSplitQuery().AsQueryable();
+            // Get trucks with no active trip (assuming "Active" is the status for active trips)
+            var trucksWithActiveTrips = _context.Trips
+                .Where(t => t.Status == TripStatus.Active)
+                .Select(t => t.TruckId)
+                .Distinct();
 
-                if (!string.IsNullOrEmpty(state))
-                {
-                    string pattern = $"%{state}%";
-                    tripQuery = tripQuery.Where(x => EF.Functions.ILike(x.Status.ToString(), pattern));
-                }
+            truckQuery = _context.Trucks
+                .Where(truck => !trucksWithActiveTrips.Contains(truck.Id));
 
-                truckQuery = tripQuery.Select(x => x.Truck!);
-            }
-            else
-            {
-                truckQuery = _context.Trucks.AsQueryable();
-
-                // if (!string.IsNullOrEmpty(state))
-                // {
-                //     string pattern = $"%{state}%";
-                //     truckQuery = truckQuery.Where(x => EF.Functions.ILike(x.Status.ToString(), pattern));
-                // }
-            }
+            // // Optionally filter by state if provided
+            // if (!string.IsNullOrEmpty(state))
+            // {
+            //     string pattern = $"%{state}%";
+            //     truckQuery = truckQuery.Where(x => EF.Functions.ILike(x.Status.ToString(), pattern));
+            // }
 
             response.Total = await truckQuery.CountAsync(cancellationToken);
 
             response.Data = [];
-            var pagedQuery = truckQuery.OrderByDescending(x => x.CreatedAt).AsAsyncEnumerable().WithCancellation(cancellationToken);
+            var pagedQuery = truckQuery.OrderBy(x => x.LicensePlate).AsAsyncEnumerable().WithCancellation(cancellationToken);
 
             await foreach (var item in pagedQuery)
             {
-            response.Data.Add(item);
+                response.Data.Add(item);
             }
 
             return response.Data.ToArray();

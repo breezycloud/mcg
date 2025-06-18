@@ -18,7 +18,6 @@ public class Discharge
     public string Location { get; set; } = string.Empty;
     
     public DateTimeOffset DischargeStartTime { get; set; } = DateTimeOffset.UtcNow;
-    public DateTimeOffset? DischargeEndTime { get; set; }
     
     public decimal QuantityDischarged { get; set; }
     

@@ -1,6 +1,6 @@
 @using Shared.Models.Checkpoints
 <!-- CheckpointCard.razor -->
-<div class="p-6 bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700">
+@* <div class="p-6 bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700">
     <div class="flex justify-between items-start">
         <div>
             <h5 class="mb-1 text-xl font-medium text-gray-900 dark:text-white">
@@ -43,7 +43,7 @@
             <p class="text-sm text-gray-700 dark:text-gray-300">@Checkpoint.Notes</p>
         </div>
     }
-</div>
+</div> *@
 
 @code {
     [Parameter] public Checkpoint Checkpoint { get; set; } = new();
