@@ -1,0 +1,340 @@
+@* New View *@
+<div class="max-w-4xl mx-auto px-4 lg:px-6">
+    <!-- Header Section -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Trip Details</h2>
+            <div class="flex flex-col gap-x-4">
+                <div>
+                    <span class="font-semibold">Dispatch:</span>
+                    @Trip.DispatchId
+                </div>
+                <div>
+                    <span class="font-semibold">Waybill:</span>
+                    @Trip.WaybillNo
+                </div>
+            </div>
+        </div>
+        <div class="mt-4 md:mt-0">
+            <span class="@GetStatusBadgeClass(Trip.Status) text-xs font-medium px-2.5 py-0.5 rounded-full">
+                @Trip.Status
+            </span>
+        </div>
+    </div>
+
+    <!-- Main Card -->
+    <div class="bg-white shadow rounded-lg divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+        <!-- Basic Info Section -->
+        <div class="p-6">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Basic Information</h3>
+            <div class="grid grid-cols-1 gap-4">
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Trip Date</p>
+                    <p class="font-medium dark:text-white">@Trip.Date.ToString("dd MMMM yyyy")</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">E-Lock Status</p>
+                    <span class="text-sm font-medium inline-flex items-center px-2.5 py-0.5 rounded @(Trip.ElockStatus == ElockStatus.Normal ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800")">
+                        @Trip.ElockStatus
+                    </span>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Last Updated</p>
+                    <p class="font-medium dark:text-white">
+                        @(Trip.UpdatedAt?.ToString("g") ?? "Never")
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Driver & Truck Section -->
+        <div class="p-6">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Driver & Vehicle</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Driver</p>
+                    <p class="font-medium dark:text-white">
+                        @(Trip.Driver != null ? $"{Trip.Driver.FirstName} {Trip.Driver.LastName}" : "Not assigned")
+                    </p>
+                    @if (Trip.Driver != null)
+                    {
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                            <svg class="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/>
+                            </svg>
+                            @Trip.Driver.PhoneNo
+                        </p>
+                    }
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Truck</p>
+                    <p class="font-medium dark:text-white">
+                        @(Trip.Truck?.LicensePlate ?? "Not assigned")
+                    </p>
+                    @if (Trip.Truck != null)
+                    {
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                            <span class="inline-flex items-center bg-gray-100 px-2.5 py-0.5 rounded-full text-xs font-medium text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                                @Trip.Truck.TruckNo
+                            </span>
+                        </p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Origin Section -->
+        <div class="p-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Origin</h3>
+                    <div class="grid grid-cols-1 gap-4">
+                        <div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Station</p>
+                            <p class="font-medium dark:text-white">@Trip.Origin?.Station?.Name</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                @(string.Concat(@Trip.Origin?.Station?.Address?.State, " ", @Trip.Origin?.Station?.Address?.Location))
+                            </p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                @Trip.Origin?.Station?.Address?.ContactAddress
+                            </p>                   
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Destination</p>
+                            <p class="font-medium dark:text-white">
+                                @Trip.Dest
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Quantity</p>
+                            <p class="font-medium dark:text-white">
+                                @Trip.Origin?.Quantity @Trip.Origin?.Unit
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Loaded At</p>
+                            <p class="font-medium dark:text-white">
+                                @Trip.Origin?.CreatedAt.ToString("g")
+                            </p>
+                        </div>
+                        @if (Trip.ArrivedAtATV)
+                        {
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">ATV</p>
+                                <p class="font-medium dark:text-white">
+                                    @Trip.LocationAtv
+                                </p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">Arrived At</p>
+                                <p class="font-medium dark:text-white">
+                                    @Trip.ATVArrivalDate?.ToString("g")
+                                </p>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Final Destination</h3>
+                    <div class="grid grid-cols-1 gap-4">
+                        <div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Station</p>
+                            <p class="font-medium dark:text-white">@Trip.Destination?.Station?.Name</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                @(string.Concat(@Trip.Destination?.Station?.Address?.State, " ", @Trip.Destination?.Station?.Address?.Location))
+                            </p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                @Trip.Destination?.Station?.Address?.ContactAddress
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Status</p>
+                            <div class="space-y-2">
+                                <div class="flex items-center">
+                                    <span class="@(Trip.Destination!.ArrivedAtStation ? "text-green-500" : "text-gray-400") mr-2">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </span>
+                                    <span class="font-medium dark:text-white">Arrived</span>
+                                    @if (Trip.Destination!.ArrivedAtStation)
+                                    {
+                                        <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                                            @Trip.Destination.StationArrivalDate?.ToString("g")
+                                        </span>
+                                    }
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="@(Trip.Destination!.IsDischarged ? "text-green-500" : "text-gray-400") mr-2">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </span>
+                                    <span class="font-medium dark:text-white">Discharged</span>
+                                    @if (Trip.Destination!.IsDischarged)
+                                    {
+                                        <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                                            @Trip.Destination.DischargeDate?.ToString("g")
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Discharge Details</p>
+                            @if (Trip.Destination!.IsDischarged)
+                            {
+                                <div class="space-y-1">
+                                    <p class="font-medium dark:text-white">
+                                        @Trip.Destination.DischargedQuantity @Trip.Destination.DischargedUnit
+                                    </p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                                        @Trip.Destination.DischargeLocation
+                                    </p>
+                                    @if (Trip.Destination.HasShortage ?? false)
+                                    {
+                                        <p class="text-xs text-red-500 dark:text-red-400">
+                                            Shortage: @Trip.Destination.ShortageAmount @Trip.Origin?.Unit
+                                        </p>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <p class="text-gray-400 dark:text-gray-500">Not discharged yet</p>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>            
+        </div>
+
+        <!-- Checkpoints Section -->
+        @if (Trip.Checkpoints?.Any() == true)
+        {
+            <div class="p-6">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Checkpoints</h3>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead class="bg-gray-50 dark:bg-gray-700">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Location</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Distance (km)</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Arrival Time</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+                            @foreach (var checkpoint in Trip.Checkpoints)
+                            {
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="font-medium text-gray-900 dark:text-white">@checkpoint.Address?.Location</div>
+                                        <div class="text-xs text-gray-500 dark:text-gray-400">@checkpoint.Address?.State</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-gray-900 dark:text-white">
+                                            <span class="font-medium">@checkpoint.ActualDistanceFromPreviousKm</span>
+                                            <span class="text-xs text-gray-500">/ @checkpoint.ExpectedDistanceFromPreviousKm</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-gray-900 dark:text-white">
+                                            @if (checkpoint.ActualArrivalTime.HasValue)
+                                            {
+                                                <span>@checkpoint.ActualArrivalTime?.ToString("g")</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-gray-400">--</span>
+                                            }
+                                        </div>
+                                        @if (checkpoint.EstimatedArrivalTime.HasValue)
+                                        {
+                                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                                                Est: @checkpoint.EstimatedArrivalTime?.ToString("g")
+                                            </div>
+                                        }
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        @if (checkpoint.IsCompleted)
+                                        {
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                                Completed
+                                            </span>
+                                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                                                @checkpoint.CompletionTime?.ToString("g")
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                                                Pending
+                                            </span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+
+        <!-- Return & Close Section -->
+        @if (Trip.Status == TripStatus.Closed)
+        {
+            <div class="p-6">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Trip Completion</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Return Date</p>
+                        <p class="font-medium dark:text-white">
+                            @(Trip?.ReturnDate?.ToString("d") ?? "Not returned")
+                        </p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Closed At</p>
+                        <p class="font-medium dark:text-white">
+                            @Trip.UpdatedAt?.ToString("g")
+                        </p>
+                    </div>
+                </div>
+            </div>            
+        }
+
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row justify-end p-6 space-y-3 sm:space-y-0 sm:space-x-3">
+            <button @onclick="OnBack" class="px-4 py-2 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700">
+                Back
+            </button>
+            @if (Trip.Status != TripStatus.Closed)
+            {
+                <button @onclick="OnEdit" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">
+                    Edit Trip
+                </button>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public Trip Trip { get; set; } = new();
+
+    [Parameter]
+    public EventCallback OnBack { get; set; }
+
+    [Parameter]
+    public EventCallback OnEdit { get; set; }
+
+    private string GetStatusBadgeClass(TripStatus status)
+    {
+        return status switch
+        {
+            TripStatus.Closed => "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
+            TripStatus.Active => "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
+            _ => "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300",
+        };
+    }
+}

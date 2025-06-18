@@ -1,0 +1,86 @@
+@using System.Collections.Generic
+@using Microsoft.AspNetCore.Components.Forms
+
+@inject ILocationService LocationService
+
+<fieldset class="border-t border-gray-200 pt-4 dark:border-gray-700">
+    <legend class="text-sm font-medium text-gray-900 dark:text-white">Address</legend>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+        <div>
+            <label for="state" class="block text-sm font-medium text-gray-700 dark:text-white">State</label>
+            <InputSelect id="state" 
+                class="@GetInputClass("State")"
+                ValueExpression="@(() => Address.State)"
+                 Value="@Address.State" 
+              ValueChanged="@((string value) => OnValueChanged(value ))">
+            <option value="">Select State</option>
+            @foreach (var state in States)
+            {
+                <option value="@state">@state</option>
+            }
+            </InputSelect>
+            @if (Errors != null && Errors.ContainsKey("State"))
+            {
+            <p class="mt-1 text-sm text-red-600 dark:text-red-500">@Errors["State"]</p>
+            }
+        </div>
+        <div>
+            <label for="city" class="block text-sm font-medium text-gray-700 dark:text-white">City</label>
+            <InputSelect id="city" @bind-Value="Address.Location"
+                 class="@GetInputClass("Location")" disabled="@(!LocalGovts.Any())">
+            <option value="">Select City</option>
+            @foreach (var city in LocalGovts)
+            {
+                <option value="@city">@city</option>
+            }
+            </InputSelect>
+            @if (Errors != null && Errors.ContainsKey("Location"))
+            {
+            <p class="mt-1 text-sm text-red-600 dark:text-red-500">@Errors["Location"]</p>
+            }
+        </div>
+        <div class="md:col-span-2">
+            <label for="country" class="block text-sm font-medium text-gray-700 dark:text-white">Address</label>
+            <InputText id="country" @bind-Value="Address.ContactAddress"
+                       class="@GetInputClass("ContactAddress")"
+                       placeholder="ContactAddress" />
+            @if (Errors != null && Errors.ContainsKey("ContactAddress"))
+            {
+                <p class="mt-1 text-sm text-red-600 dark:text-red-500">@Errors["ContactAddress"]</p>
+            }
+        </div>
+    </div>
+</fieldset>
+
+@code {
+    [Parameter, EditorRequired]
+    public Address Address { get; set; } = default!;
+
+    [Parameter]
+    public Dictionary<string, string>? Errors { get; set; }
+
+    [Parameter]
+    public Func<string, string>? GetInputClass { get; set; }
+    
+    private List<string>? States = [];
+
+    private List<string>? LocalGovts = [];
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        States = await LocationService.States(AppState.GetCancellationToken());
+    }
+
+    private async Task OnValueChanged(string? selectedState)
+    {
+        Console.WriteLine($"Hello {selectedState}");
+        Address.State = selectedState;
+        LocalGovts = string.IsNullOrEmpty(selectedState)
+            ? new List<string>()
+            : await LocationService.GetLocalGovtsByState(selectedState, AppState.GetCancellationToken());
+        Address.Location = ""; // Reset city selection
+        StateHasChanged();
+    }
+}

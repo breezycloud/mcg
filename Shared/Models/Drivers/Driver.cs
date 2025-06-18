@@ -14,8 +14,14 @@ public class Driver
     [Required]
     public string? LastName { get; set; }
 
-    [RegularExpression(@"^\d{11}$", ErrorMessage = "Phone number must be exactly 11 digits.")]
+    [Required]
+    [StringLength(11, ErrorMessage = "Phone must be exactly 11 digits")]
     public string? PhoneNo { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? UpdatedAt { get; set; }
+
+    public override string ToString()
+    {
+        return $"{FirstName} {LastName}";
+    }
 }

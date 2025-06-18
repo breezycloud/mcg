@@ -1,0 +1,59 @@
+<div class="mb-4">
+    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+        Select Product
+    </label>
+    <div class="flex flex-wrap gap-2">
+        @foreach (Product product in Enum.GetValues(typeof(Product)))
+        {
+            <button @onclick="() => OnProductSelected.InvokeAsync(product)"
+                    class="@(SelectedProduct == product ? GetSelectedButtonClass(product) : GetUnselectedButtonClass(product)) px-4 py-2 text-sm font-medium rounded-lg">
+                @GetProductDisplayName(product)
+            </button>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public Product SelectedProduct { get; set; }
+
+    [Parameter]
+    public EventCallback<Product> OnProductSelected { get; set; }
+
+    private string GetSelectedButtonClass(Product product)
+    {
+        return product switch
+        {
+            Product.CNG => "bg-blue-600 text-white hover:bg-blue-700",
+            Product.PMS => "bg-green-600 text-white hover:bg-green-700",
+            Product.ATK => "bg-yellow-500 text-white hover:bg-yellow-600",
+            Product.LPG => "bg-red-600 text-white hover:bg-red-700",
+            _ => "bg-gray-600 text-white hover:bg-gray-700"
+        };
+    }
+
+    private string GetUnselectedButtonClass(Product product)
+    {
+        return product switch
+        {
+            Product.CNG => "bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-800 dark:text-blue-200 dark:hover:bg-blue-700",
+            Product.PMS => "bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-800 dark:text-green-200 dark:hover:bg-green-700",
+            Product.ATK => "bg-yellow-100 text-yellow-800 hover:bg-yellow-200 dark:bg-yellow-800 dark:text-yellow-200 dark:hover:bg-yellow-700",
+            Product.LPG => "bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-800 dark:text-red-200 dark:hover:bg-red-700",
+            _ => "bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+        };
+    }
+
+    private string GetProductDisplayName(Product product)
+    {
+        return product switch
+        {
+            Product.CNG => "Compressed Natural Gas (CNG)",
+            Product.PMS => "Premium Motor Spirit (PMS)",
+            Product.ATK => "Automotive Turbine Kerosene (ATK)",
+            Product.LPG => "Liquefied Petroleum Gas (LPG)",
+            _ => product.ToString()
+        };
+    }
+    
+}

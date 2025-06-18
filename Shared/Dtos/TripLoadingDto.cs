@@ -1,25 +1,31 @@
 using System.ComponentModel.DataAnnotations;
 using Shared.Enums;
+using Shared.Models.Trucks;
 
 namespace Shared.Dtos;
 
 public class TripLoadingDto
 {
     [Required]
-    public DateTime LoadingDate { get; set; }  
-    public required Guid TruckId { get; set; }
-    public Product Product { get; set; }
+    public DateTime? LoadingDate { get; set; }  
+    public Guid TruckId { get; set; }
+    public Truck? Truck { get; set; }
+    public string? LicensePlate { get; set; }
+    public Guid? DriverId { get; set; }
 
     [Required]
-    public required Guid LoadingPointId { get; set; }
+    public Guid LoadingPointId { get; set; }
 
     [Required]
+    public string? DispatchId => $"{DateTime.Now:yy}{DateTime.Now:MM}{DateTime.Now:dd}{LicensePlate?.Substring(2, 6)}";
     public string? WaybillNumber { get; set; }
+    [Required]
+    public string? Destination { get; set; } = "abuja";
     [Required]
     public decimal? DispatchQuantity { get; set; }
 
     public UnitOfMeasure DispatchUnit { get; set; }
 
     [Required]
-    public required Guid? DestinationId { get; set; }
+    public Guid? DestinationId { get; set; } = null;
 }

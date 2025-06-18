@@ -25,7 +25,7 @@ public class RequestService(IHttpClientFactory _httpClient) : IRequestService
     {
         try
         {
-            using var response = await _httpClient.CreateClient("AppUrl").PutAsJsonAsync("servicerequests", model, cancellationToken);
+            using var response = await _httpClient.CreateClient("AppUrl").PutAsJsonAsync($"servicerequests/{model.Id}", model, cancellationToken);
             response.EnsureSuccessStatusCode();
             return response.IsSuccessStatusCode;
         }
@@ -67,7 +67,7 @@ public class RequestService(IHttpClientFactory _httpClient) : IRequestService
     {
         try
         {
-            using var response = await _httpClient.CreateClient("AppUrl").GetAsync($"servicerequests/paged", cancellationToken);
+            using var response = await _httpClient.CreateClient("AppUrl").PostAsJsonAsync("servicerequests/paged", request, cancellationToken);
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<GridDataResponse<ServiceRequest>?>();
         }

@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using Shared.Dtos;
 using Shared.Helpers;
 using Shared.Models.Trips;
 
@@ -7,7 +8,53 @@ namespace Shared.Interfaces.Trips;
 
 public class TripService(IHttpClientFactory _httpClient) : ITripService
 {
-  public async Task<bool> AddAsync(Trip model, CancellationToken cancellationToken)
+    public Trip MapTripLoadingAsync(TripLoadingDto model, CancellationToken cancellationToken)
+    {
+        Guid id = Guid.NewGuid();
+        return new Trip
+        {
+            Id = id,
+            Date = DateOnly.FromDateTime(model.LoadingDate!.Value),
+            DriverId = model.DriverId,
+            TruckId = model.TruckId,
+            DispatchId = model.DispatchId,
+            WaybillNo = model.WaybillNumber,
+            Status = Enums.TripStatus.Active,
+            Dest = model.Destination,
+            Origin = new Origin
+            {
+                TripId = id,
+                StationId = model.LoadingPointId,
+                Quantity = model.DispatchQuantity,
+                Unit = model.DispatchUnit
+            },
+            Destination = new Destination
+            {
+                TripId = id
+            }
+        };
+    }
+    // public Trip MapTripDischargeAsync(TripDischargingDto model, CancellationToken cancellationToken)
+    // {
+    //     Guid id = Guid.NewGuid();
+    //     return new Trip
+    //     {
+    //         Id = id,
+    //         Date = DateOnly.FromDateTime(model.LoadingDate!.Value),
+    //         DriverId = model.DriverId,
+    //         TruckId = model.TruckId,
+    //         WaybillNo = model.WaybillNumber,
+    //         Status = Enums.TripStatus.Active,
+    //         Origin = new Destination
+    //         {
+    //             TripId = id,
+    //             StationId = model.LoadingPointId,
+    //             Quantity = model.DispatchQuantity,
+    //             Unit = model.DispatchUnit
+    //         }
+    //     };
+    // }
+    public async Task<bool> AddAsync(Trip model, CancellationToken cancellationToken)
     {
         try
         {
@@ -35,6 +82,8 @@ public class TripService(IHttpClientFactory _httpClient) : ITripService
             throw;
         }
     }
+
+    
     public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -63,6 +112,8 @@ public class TripService(IHttpClientFactory _httpClient) : ITripService
             throw;
         }
     }
+
+    
     public async Task<GridDataResponse<Trip>?> GetPagedAsync(GridDataRequest request, CancellationToken cancellationToken)
     {
         try

@@ -10,7 +10,7 @@ public class Origin
     public Guid Id { get; set; }
     public Guid TripId { get; set; }
     public Guid StationId { get; set; }
-    public double? Quantity { get; set; }
+    public decimal? Quantity { get; set; }
     public UnitOfMeasure Unit { get; set; }
     public virtual Station? Station { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;

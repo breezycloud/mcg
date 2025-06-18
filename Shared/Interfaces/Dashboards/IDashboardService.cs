@@ -5,9 +5,9 @@ namespace Shared.Interfaces.Dashboards;
 
 public interface IDashboardService
 {
-    Task<DashboardMetricsDto> GetMetricsAsync(DateTime? startDate = null, DateTime? endDate = null);
-    Task<MetricsTrendDto> GetMetricsTrendsAsync(DateTime? startDate, DateTime? endDate);
-    Task<TripStatusDistributionDto> GetTripStatusDistributionAsync(DateTime? startDate = null, DateTime? endDate = null);
-    Task<List<ProductShipmentDto>> GetProductShipmentsAsync(DateTime? startDate = null, DateTime? endDate = null);
-    Task<List<RecentTripDto>> GetRecentTripsAsync(int count = 5, DateTime? startDate = null, DateTime? endDate = null);
+    Task<DashboardMetricsDto> GetMetricsAsync(DateOnly? startDate = null, DateOnly? endDate = null);
+    Task<MetricsTrendDto> GetMetricsTrendsAsync(DateOnly? startDate, DateOnly? endDate);
+    Task<TripStatusDistributionDto> GetTripStatusDistributionAsync(DateOnly? startDate = null, DateOnly? endDate = null);
+    Task<List<ProductShipmentDto>> GetProductShipmentsAsync(DateOnly? startDate = null, DateOnly? endDate = null);
+    Task<List<RecentTripDto>> GetRecentTripsAsync(int count = 5, DateOnly? startDate = null, DateOnly? endDate = null);
 }

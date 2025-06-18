@@ -12,6 +12,7 @@ using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Shared.Helpers;
 using Shared.Enums;
+using System.Runtime.InteropServices;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -53,7 +54,7 @@ public class Auth : ControllerBase
             _result.Email = credential.Email;
             if (credential.Role == UserRole.Maintenance)
             {
-                var site = await _context.MaintenanceSites.FindAsync(credential.Id);
+                var site = await _context.MaintenanceSites.FindAsync(credential.MaintenanceSiteId);
                 if (site is not null)
                     _result.ShopId = site!.Id;
                 else
@@ -61,9 +62,10 @@ public class Auth : ControllerBase
             }
         }                 
 
-
+        
         var claim = new Claim[]
         {
+            new Claim(ClaimTypes.Name, credential.ToString()!),
             new Claim(ClaimTypes.Email, _result.Email!),
             new Claim(ClaimTypes.Role, _result.Role.ToString())
         };

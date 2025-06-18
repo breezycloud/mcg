@@ -29,7 +29,7 @@ public class ServiceRequestsController : ControllerBase
         GridDataResponse<ServiceRequest> response = new();
         try
         {
-            var query = _context.ServiceRequest.AsQueryable();
+            var query = _context.ServiceRequest.Include(x => x.Truck).AsQueryable();
 
             if (request.Id.HasValue)
             {
@@ -44,12 +44,12 @@ public class ServiceRequestsController : ControllerBase
 
             
 
-            response.Total = await query.CountAsync();
+            response.Total = await query.CountAsync(cancellationToken);
 
 
 
             response.Data = [];
-            var pagedQuery = query.OrderByDescending(x => x.CreatedAt).ThenByDescending(x => x.UpdatedAt).Skip(request.Page).Take(request.PageSize).AsAsyncEnumerable();
+            var pagedQuery = query.OrderByDescending(x => x.CreatedAt).ThenByDescending(x => x.TreatedAt).Skip(request.Page).Take(request.PageSize).AsAsyncEnumerable();
 
             await foreach (var item in pagedQuery)
             {
@@ -80,7 +80,14 @@ public class ServiceRequestsController : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<ServiceRequest>> GetServiceRequest(Guid id)
     {
-        var serviceRequest = await _context.ServiceRequest.FindAsync(id);
+        var serviceRequest = await _context.ServiceRequest.AsNoTracking()
+                                                          .Include(x => x.Site)
+                                                          .Include(x => x.Truck)
+                                                          .Include(x => x.CreatedBy)
+                                                          .Include(x => x.TreatedBy)
+                                                          .Include(x => x.ClosedBy)
+                                                          .AsSplitQuery()
+                                                          .FirstOrDefaultAsync(x => x.Id == id);
 
         if (serviceRequest == null)
         {

@@ -1,0 +1,267 @@
+@using Shared.Enums
+@using global::Client.Handlers
+<div class="max-w-2xl mx-auto p-4 sm:p-6">
+    <div class="bg-white shadow rounded-lg dark:bg-gray-800">
+        <!-- Header -->
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="text-xl font-bold text-gray-900 dark:text-white">@(EditMode ? "Edit User" : "Add New User")</h2>
+        </div>
+
+        <!-- Form -->
+        <form @onsubmit="HandleSubmit" class="p-6 space-y-6">
+            <!-- Name Fields -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="firstName" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        First Name <span class="text-red-500">*</span>
+                    </label>
+                        <input type="text" id="firstName" @bind="CurrentUser.FirstName" class="@GetInputClass("FirstName")"
+                           placeholder="Doe">
+                    @if (errors.ContainsKey("FirstName"))
+                    {
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["FirstName"]</p>
+                    }
+                </div>
+                <div>
+                    <label for="lastName" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        Last Name <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="lastName" @bind="CurrentUser.LastName"
+                           class="@GetInputClass("LastName")"
+                           placeholder="Doe">
+                    @if (errors.ContainsKey("LastName"))
+                    {
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["LastName"]</p>
+                    }
+                </div>
+            </div>
+
+            <!-- Contact Fields -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="email" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        Email <span class="text-red-500">*</span>
+                    </label>
+                    <input type="email" id="email" @bind="CurrentUser.Email"
+                           class="@GetInputClass("Email")"
+                           placeholder="user@example.com">
+                    @if (errors.ContainsKey("Email"))
+                    {
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["Email"]</p>
+                    }
+                </div>
+                <div>
+                    <label for="phoneNo" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        Phone Number
+                    </label>
+                    <input type="tel" id="phoneNo" @bind="CurrentUser.PhoneNo"
+                           class="@GetInputClass("PhoneNo")"
+                           placeholder="12345678901"
+                           maxlength="11">
+                    @if (errors.ContainsKey("PhoneNo"))
+                    {
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["PhoneNo"]</p>
+                    }
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Must be exactly 11 digits</p>
+                </div>
+            </div>
+
+            <!-- Role & Status -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="role" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        Role <span class="text-red-500">*</span>
+                    </label>
+                    <select id="role" @bind="CurrentUser.Role"
+                            class="@GetInputClass("Role")">
+                        @foreach (var role in Enum.GetValues(typeof(UserRole)))
+                        {
+                            <option value="@role">@role</option>
+                        }
+                    </select>
+                </div>
+                <div class="flex flex-col justify-center h-full">
+                    <div class="flex flex-row items-center gap-2 px-2 py-3">
+                        <div class="flex items-center">
+                            <input id="isActive" type="checkbox" @bind="CurrentUser.IsActive"
+                                   class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                            <label for="isActive" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                                Active User
+                            </label>
+                        </div>
+                        <div class="flex items-center">
+                            <input id="isVerified" type="checkbox" @bind="CurrentUser.IsVerified"
+                                   class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                            <label for="isVerified" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                                Verified Account
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @if (CurrentUser.Role == UserRole.Maintenance)
+            {
+                <div>
+                    <label for="maintenanceSite" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        Maintenance Site
+                    </label>
+                    <InputSelect id="maintenanceSite" @bind-Value="CurrentUser.MaintenanceSiteId" class="@GetInputClass("MaintenanceSiteId")">
+                        <option value="">Select site</option>
+                        @if (Sites is not null)
+                        {
+                            @foreach (var site in Sites)
+                            {
+                                <option value="@site.Id">@site.Name</option>
+                            }
+                        }
+                    </InputSelect>
+                    @if (errors.ContainsKey("MaintenanceSiteId"))
+                    {
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["MaintenanceSiteId"]</p>
+                    }
+                </div>
+            }
+
+            <!-- Password (only for new users) -->
+            @if (!EditMode)
+            {
+                <div>
+                    <label for="password" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        Password <span class="text-red-500">*</span>
+                    </label>
+                    <input type="password" id="password" @bind="password"
+                           class="@GetInputClass("HashedPassword")"
+                           placeholder="••••••••">
+                    @if (errors.ContainsKey("HashedPassword"))
+                    {
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["HashedPassword"]</p>
+                    }
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Minimum 8 characters</p>
+                </div>
+            }
+
+            <!-- Form Actions -->
+            <div class="flex justify-end pt-6 border-t border-gray-200 dark:border-gray-700 space-x-3">
+                <button type="button" @onclick="OnCancel"
+                        class="px-4 py-2 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700">
+                    Cancel
+                </button>
+                <button type="submit"
+                        class="px-4 py-2 text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">
+                    @(EditMode ? "Update User" : "Create User")
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public User CurrentUser { get; set; } = new();
+
+    [Parameter]
+    public bool EditMode { get; set; }
+
+    [Parameter]
+    public EventCallback<User> OnSubmit { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    private Dictionary<string, string> errors = new();
+    private string password = string.Empty;
+    [Parameter]
+    public MaintenanceSite[]? Sites { get; set; }
+
+    private void OnInitialized()
+    {
+        if (CurrentUser.MaintenanceSiteId is not null || !CurrentUser.MaintenanceSiteId.Equals(Guid.Empty))
+        {
+            var site = Sites.First(x => x.Id == CurrentUser.MaintenanceSiteId);
+            CurrentUser.MaintenanceSiteId = site.Id;
+            StateHasChanged();
+        }
+    }
+    
+    private string GetInputClass(string fieldName)
+    {
+        var baseClass = "bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500";
+        
+        if (errors.ContainsKey(fieldName))
+        {
+            baseClass += " border-red-500 bg-red-50 dark:bg-red-900 dark:border-red-700";
+        }
+        else
+        {
+            baseClass += " border-gray-300";
+        }
+        
+        return baseClass;
+    }
+    private async Task HandleSearchEmail(string search)
+    {
+
+    }
+
+    private async Task HandleSubmit()
+    {
+        errors.Clear();
+        
+        // Validate required fields
+        if (string.IsNullOrWhiteSpace(CurrentUser.FirstName))
+        {
+            errors["FirstName"] = "First name is required";
+        }
+        
+        if (string.IsNullOrWhiteSpace(CurrentUser.LastName))
+        {
+            errors["LastName"] = "Last name is required";
+        }
+        
+        if (string.IsNullOrWhiteSpace(CurrentUser.Email))
+        {
+            errors["Email"] = "Email is required";
+        }
+        else if (!CurrentUser.Email.Contains("@"))
+        {
+            errors["Email"] = "Valid email is required";
+        }
+        
+        if (!EditMode && string.IsNullOrWhiteSpace(password))
+        {
+            errors["HashedPassword"] = "Password is required";
+        }
+        else if (!EditMode && password.Length < 8)
+        {
+            errors["HashedPassword"] = "Password must be at least 8 characters";
+        }
+        
+        // Validate phone number format if provided
+        if (string.IsNullOrWhiteSpace(CurrentUser.PhoneNo))
+        {
+            errors["PhoneNo"] = "Phone number must be exactly 11 digits";
+        }
+
+        if (CurrentUser.Role == UserRole.Maintenance 
+        && CurrentUser.MaintenanceSiteId.Equals(Guid.Empty) 
+        || CurrentUser.MaintenanceSiteId is null)        
+        {
+            errors["MaintenanceSiteId"] = "Maintenance Centre is required";
+        }
+        
+        if (errors.Count == 0)
+        {
+            CurrentUser.FirstName = StringConverter.ConvertToTitleCase(CurrentUser.FirstName);
+            CurrentUser.LastName = StringConverter.ConvertToTitleCase(CurrentUser.LastName);
+            if (!EditMode)
+            {
+                // In a real app, you would hash the password here
+                CurrentUser.HashedPassword = Security.Encrypt(password);
+            }
+            if (EditMode)
+                CurrentUser.UpdatedAt = DateTimeOffset.UtcNow;
+            await OnSubmit.InvokeAsync(CurrentUser);
+        }
+    }
+}

@@ -57,12 +57,14 @@ namespace Client
                 await _localStorage.RemoveItemAsync("token");
                 await _localStorage.RemoveItemAsync("uid");
                 await _localStorage.RemoveItemAsync("role");
+                await _localStorage.RemoveItemAsync("shopId");
             }
             else
             {
                 await _localStorage.SetItemAsync("token", response.Token);
                 await _localStorage.SetItemAsync("uid", response.Id);
                 await _localStorage.SetItemAsync("role", response.Role!.ToString());
+                await _localStorage.SetItemAsync("shopId", response.ShopId!);
             }            
             NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
         }

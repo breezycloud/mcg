@@ -66,6 +66,29 @@ public class StationsController : ControllerBase
         return await _context.Stations.ToListAsync();
     }
 
+    // GET: api/Stations
+    [HttpGet("type")]
+    public async Task<ActionResult<IEnumerable<Station>>> GetStations(string type, CancellationToken cancellationToken)
+    {
+        IQueryable<Station> query;
+        List<Station> stations = [];
+        try
+        {
+            query = _context.Stations.Where(x => EF.Functions.ILike(x.Type.ToString(), $"%{type}%")).AsQueryable();
+
+            await foreach (var station in query.AsAsyncEnumerable().WithCancellation(cancellationToken))
+            {
+                stations.Add(station);
+            }
+            return stations;
+        }
+        catch (System.Exception)
+        {
+
+            throw;
+        }
+    }
+
     // GET: api/Stations/5
     [HttpGet("{id}")]
     public async Task<ActionResult<Station>> GetStation(Guid id)

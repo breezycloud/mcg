@@ -1,0 +1,24 @@
+@page "/product-categories"
+@attribute [Authorize]
+
+@code {
+    // Ensure Product enum or class is defined and accessible
+    // Example:
+    // public enum Product { PMS, LPG, ATK, CNG, AGO }
+}
+<section class="bg-white dark:bg-gray-900">
+  <div class="py-8 px-4 mx-auto max-w-screen-xl sm:py-16 lg:px-6">
+    <div class="max-w-screen-md mb-8 lg:mb-16">
+        <div class="grid gap-4">
+            <ProductInfoCard Product="Product.PMS" />
+            <ProductInfoCard Product="Product.LPG" />
+            <ProductInfoCard Product="Product.ATK" />
+            <ProductInfoCard Product="Product.CNG" />
+            <ProductInfoCard Product="Product.AGO" />
+        </div>
+      </div>
+  </div>
+</section>
+
+
+

@@ -1,0 +1,138 @@
+@inject IDashboardService DashboardService
+
+<div class="bg-white p-6 rounded-lg shadow mt-6">
+    <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-semibold">Product Shipments</h3>
+        <div class="flex items-center space-x-2">
+            <span class="text-sm text-gray-500">@TimeRangeLabel</span>
+            <button @onclick="ExportToExcel" 
+                    class="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded">
+                <i class="fas fa-download mr-1"></i> Export
+            </button>
+        </div>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trips</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trend</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                @if (shipments == null)
+                {
+                    <tr>
+                        <td colspan="4" class="px-6 py-4 text-center">Loading...</td>
+                    </tr>
+                }
+                else
+                {                    
+                    @foreach (var item in shipments)
+                    {
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="flex-shrink-0 h-5 w-5 @GetProductColor(item.Product) rounded-full"></div>
+                                    <div class="ml-2">@item.Product</div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">@item.TotalTrips</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                @item.TotalQuantity.ToString("N1") @GetUnitForProduct(item.Product)
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="@GetTrendClass(item.Trend)">
+                                    <i class="@GetTrendIcon(item.Trend) mr-1"></i>
+                                    @item.Trend.ToString("N1")%
+                                </span>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public DateOnly? StartDate { get; set; }
+
+    [Parameter]
+    public DateOnly? EndDate { get; set; }
+
+    private List<ProductShipmentDto>? shipments;
+    private string TimeRangeLabel => GetTimeRangeLabel();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        shipments = await DashboardService.GetProductShipmentsAsync(StartDate, EndDate);
+    }
+
+    private string GetTimeRangeLabel()
+    {
+        if (!StartDate.HasValue || !EndDate.HasValue)
+            return "All Time";
+
+         var diff = (EndDate.Value.ToDateTime(TimeOnly.MinValue) - StartDate.Value.ToDateTime(TimeOnly.MinValue)).TotalDays;
+
+        return diff switch
+        {
+            <= 7 => "This Week",
+            <= 14 => "Last Week",
+            <= 31 => "This Month",
+            <= 62 => "Last Month",
+            _ => $"{StartDate:MMM dd} - {EndDate:MMM dd}"
+        };
+    }
+
+
+    private string GetProductColor(Product product)
+    {
+        return product switch
+        {
+            Product.CNG => "bg-blue-500",
+            Product.PMS => "bg-yellow-500",
+            Product.ATK => "bg-red-500",
+            Product.LPG => "bg-green-500",
+            _ => "bg-gray-500"
+        };
+    }
+
+    private string GetUnitForProduct(Product product)
+    {
+        return product switch
+        {
+            Product.CNG => "SCM",
+            Product.PMS => "LTR",
+            Product.ATK => "MT",
+            Product.LPG => "KG",
+            _ => ""
+        };
+    }
+
+    private string GetTrendClass(decimal trend)
+    {
+        return trend >= 0 ? "text-green-500" : "text-red-500";
+    }
+
+    private string GetTrendIcon(decimal trend)
+    {
+        return trend >= 0 ? "fas fa-arrow-up" : "fas fa-arrow-down";
+    }
+
+    private async Task ExportToExcel()
+    {
+        // Implementation would use EPPlus or similar
+        // to generate an Excel file for download
+    }
+}

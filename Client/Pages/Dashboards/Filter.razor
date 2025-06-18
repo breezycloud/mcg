@@ -19,7 +19,7 @@
 
 @code {
     [Parameter]
-    public EventCallback<(DateTime StartDate, DateTime EndDate)> OnFilterChanged { get; set; }
+    public EventCallback<(DateOnly StartDate, DateOnly EndDate)> OnFilterChanged { get; set; }
 
     private TimeFilter currentFilter = TimeFilter.ThisWeek;
 
@@ -33,15 +33,28 @@
         currentFilter = filter;
         var (startDate, endDate) = filter switch
         {
-            TimeFilter.ThisWeek => (DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek), DateTime.Today),
-            TimeFilter.LastWeek => (DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek - 7), 
-                                 DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek - 1)),
-            TimeFilter.ThisMonth => (new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1), DateTime.Today),
-            TimeFilter.LastMonth => (new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1).AddMonths(-1),
-                                 new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1).AddDays(-1)),
-            _ => (DateTime.Today, DateTime.MaxValue)
+            TimeFilter.ThisWeek => (
+                DateOnly.FromDateTime(DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek)),
+                DateOnly.FromDateTime(DateTime.Today)
+            ),
+            TimeFilter.LastWeek => (
+                DateOnly.FromDateTime(DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek - 7)),
+                DateOnly.FromDateTime(DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek - 1))
+            ),
+            TimeFilter.ThisMonth => (
+                DateOnly.FromDateTime(new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1)),
+                DateOnly.FromDateTime(DateTime.Today)
+            ),
+            TimeFilter.LastMonth => (
+                DateOnly.FromDateTime(new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1).AddMonths(-1)),
+                DateOnly.FromDateTime(new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1).AddDays(-1))
+            ),
+            _ => (
+                DateOnly.FromDateTime(DateTime.Today),
+                DateOnly.MaxValue
+            )
         };
-        
+
         OnFilterChanged.InvokeAsync((startDate, endDate));
     }
 

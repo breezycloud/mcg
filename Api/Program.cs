@@ -2,12 +2,15 @@ using System.Text;
 using Api.Context;
 using Api.Data;
 using Api.Logging;
+using Api.Services.Dashboards;
+using Api.Util;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Npgsql;
+using Shared.Interfaces.Dashboards;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,7 +31,10 @@ builder.Services.AddCors(options =>
                         .AllowAnyMethod();
             });
 });
-builder.Services.AddControllers()
+builder.Services.AddControllers(options =>
+{
+    options.ModelBinderProviders.Insert(0, new MultiDateFormatBinderProvider());
+})
                 .AddNewtonsoftJson(x => x.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore);
 builder.Services.AddRazorPages();
 
@@ -79,9 +85,10 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddHttpClient();
 // builder.Services.AddHostedService<ServerPeriodicJob>();
 builder.Services.AddSingleton<ILoggerProvider, ApplicationLoggerProvider>();
+builder.Services.AddTransient<IDashboardService, DashboardService>();
 
 var app = builder.Build();
-SeedData.EnsureSeeded(app.Services);
+//await SeedData.EnsureSeeded(app.Services);
 
 //app.UseResponseCompression();
 // Configure the HTTP request pipeline.

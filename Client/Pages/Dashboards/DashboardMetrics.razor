@@ -42,10 +42,10 @@
             </div>
             <i class="fas fa-check-circle text-green-500 text-xl"></i>
         </div>
-        <p class="text-3xl font-bold mt-2">@metrics?.CompletedTrips</p>
-        <div class="mt-2 text-sm @GetTrendClass(trends?.CompletedTripsTrend)">
-            <i class="@GetTrendIcon(trends?.CompletedTripsTrend) mr-1"></i>
-            @trends?.CompletedTripsTrend%
+        <p class="text-3xl font-bold mt-2">@metrics?.ClosedTrips</p>
+        <div class="mt-2 text-sm @GetTrendClass(trends?.ClosedTripsTrend)">
+            <i class="@GetTrendIcon(trends?.ClosedTripsTrend) mr-1"></i>
+            @trends?.ClosedTripsTrend%
         </div>
     </div>
 
@@ -68,10 +68,10 @@
 
 @code {
     [Parameter]
-    public DateTime? StartDate { get; set; }
+    public DateOnly? StartDate { get; set; }
 
     [Parameter]
-    public DateTime? EndDate { get; set; }
+    public DateOnly? EndDate { get; set; }
 
     private DashboardMetricsDto? metrics;
     private MetricsTrendDto? trends;
@@ -93,7 +93,7 @@
         if (!StartDate.HasValue || !EndDate.HasValue)
             return "All time";
 
-        var diff = (EndDate.Value - StartDate.Value).TotalDays;
+        var diff = (EndDate.Value.ToDateTime(TimeOnly.MinValue) - StartDate.Value.ToDateTime(TimeOnly.MinValue)).TotalDays;
 
         return diff switch
         {
@@ -105,13 +105,13 @@
         };
     }
 
-    private string GetTrendClass(double? trend)
+    private string GetTrendClass(decimal? trend)
     {
         if (!trend.HasValue) return "text-gray-500";
         return trend.Value >= 0 ? "text-green-500" : "text-red-500";
     }
 
-    private string GetTrendIcon(double? trend)
+    private string GetTrendIcon(decimal? trend)
     {
         if (!trend.HasValue) return "fas fa-minus";
         return trend.Value >= 0 ? "fas fa-arrow-up" : "fas fa-arrow-down";

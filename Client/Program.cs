@@ -21,6 +21,16 @@ using Shared.Interfaces.Shops;
 using Client.Services.Shops;
 using Shared.Interfaces.Stations;
 using Client.Services.Stations;
+using Client.Services.Dashboards;
+using Shared.Interfaces.Users;
+using Client.Services.Users;
+using Shared.Interfaces.AuditLogs;
+using Client.Services.AuditLogs;
+using Client.Services.Messages;
+using Client.Services.Locations;
+using Shared.Interfaces.Locations;
+using Shared.Interfaces.Destinations;
+using Client.Services.Destinations;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
@@ -29,8 +39,6 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 builder.Services.AddOptions();
 builder.Services.AddAuthorizationCore();
 builder.Services.AddBlazoredLocalStorage();
-
-
 
 string uri = string.Empty;
 #if DEBUG
@@ -71,7 +79,15 @@ builder.Services.AddTransient<IDashboardService, DashboardService>();
 builder.Services.AddTransient<IRequestService, RequestService>();
 builder.Services.AddTransient<IMaintenanceService, MaintenanceService>();
 builder.Services.AddTransient<IStationService, StationService>();
+builder.Services.AddTransient<IUserService, UserService>();
+builder.Services.AddTransient<IAuditLogService, AuditLogService>();
+builder.Services.AddTransient<IDestinationService, DestinationService>();
+builder.Services.AddHttpClient<ILocationService, LocationService>(client =>
+{
+    client.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress);
+});
 
 
+builder.Services.AddScoped<ToastService>();
 
 await builder.Build().RunAsync();

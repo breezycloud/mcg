@@ -6,6 +6,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Data\trucks.json"/>
+    <EmbeddedResource Include="Data\drivers.json"/>
+  </ItemGroup>
+
  <ItemGroup>
     <PackageReference Include="RabbitMQ.Client" Version="6.4.0" />
     <PackageReference Include="FluentEmail.Core" Version="3.0.2" />

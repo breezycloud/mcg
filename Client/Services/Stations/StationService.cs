@@ -77,4 +77,34 @@ public class StationService(IHttpClientFactory _httpClient) : IStationService
             throw;
         }
     }
+
+    public async Task<Station[]?> GetAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var response = await _httpClient.CreateClient("AppUrl").GetAsync($"Stations", cancellationToken);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<Station[]?>();
+        }
+        catch (System.Exception)
+        {
+
+            throw;
+        }
+    }
+
+    public async Task<Station[]?> GetAsync(string type, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var response = await _httpClient.CreateClient("AppUrl").GetAsync($"Stations/type?type={type}", cancellationToken);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<Station[]?>();
+        }
+        catch (System.Exception)
+        {
+
+            throw;
+        }
+    }
 }

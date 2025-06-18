@@ -93,6 +93,21 @@ public class TruckService(IHttpClientFactory _httpClient) : ITruckService
         }
     }
 
+    public async Task<Truck[]?> GetAsync(string status, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var response = await _httpClient.CreateClient("AppUrl").GetAsync($"trucks/status?state={status}", cancellationToken);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<Truck[]?>();
+        }
+        catch (System.Exception)
+        {
+
+            throw;
+        }
+    }    
+
     public async ValueTask<bool> ValidateEntry(string type, string value, CancellationToken cancellationToken)
     {
         try

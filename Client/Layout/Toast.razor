@@ -1,44 +1,106 @@
+@implements IDisposable
+@inject ToastService ToastService
 
-<div id="toast-success" class="flex items-center w-full max-w-xs p-4 mb-4 text-gray-500 bg-white rounded-lg shadow-sm dark:text-gray-400 dark:bg-gray-800" role="alert">
-    @if (Icon == ToastIcon.Succees)
-    {
-        <div class="inline-flex items-center justify-center shrink-0 w-8 h-8 text-green-500 bg-green-100 rounded-lg dark:bg-green-800 dark:text-green-200">
-            <svg class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z"/>
-            </svg>
-            <span class="sr-only">Check icon</span>
+<div class="fixed inset-0 flex items-end justify-center px-4 py-6 pointer-events-none sm:p-6 sm:items-start sm:justify-end z-50">
+    <div class="@GetToastClass() @(_toast.IsVisible ? "animate-fade-in-up" : "animate-fade-out") max-w-sm w-full shadow-lg rounded-lg pointer-events-auto overflow-hidden">
+        <div class="p-4">
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    @GetIcon()
+                </div>
+                <div class="ml-3 w-0 flex-1 pt-0.5">
+                    <p class="@GetTitleClass()">@_toast.Title</p>
+                    <p class="@GetMessageClass()">@_toast.Message</p>
+                </div>
+                <div class="ml-4 flex-shrink-0 flex">
+                    <button @onclick="Dismiss" class="@GetCloseButtonClass() rounded-md focus:outline-none">
+                        <span class="sr-only">Close</span>
+                        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
         </div>
-    }
-    @if (Icon == ToastIcon.Error)
-    {
-        <div class="inline-flex items-center justify-center shrink-0 w-8 h-8 text-red-500 bg-red-100 rounded-lg dark:bg-red-800 dark:text-red-200">
-            <svg class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 11.793a1 1 0 1 1-1.414 1.414L10 11.414l-2.293 2.293a1 1 0 0 1-1.414-1.414L8.586 10 6.293 7.707a1 1 0 0 1 1.414-1.414L10 8.586l2.293-2.293a1 1 0 0 1 1.414 1.414L11.414 10l2.293 2.293Z"/>
-            </svg>
-            <span class="sr-only">Error icon</span>
-        </div>
-    }
-    @if (Icon == ToastIcon.Warning)
-    {
-       <div class="inline-flex items-center justify-center shrink-0 w-8 h-8 text-orange-500 bg-orange-100 rounded-lg dark:bg-orange-700 dark:text-orange-200">
-        <svg class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM10 15a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm1-4a1 1 0 0 1-2 0V6a1 1 0 0 1 2 0v5Z"/>
-        </svg>
-        <span class="sr-only">Warning icon</span>
+        @if (_toast.IsVisible)
+        {
+            <div class="@GetProgressBarClass() h-1 w-full" style="animation: progressBar @(_duration/1000)s linear forwards"></div>
+        }
     </div>
-    }
-    <div class="ms-3 text-sm font-normal">@Message</div>
-    <button type="button" class="ms-auto -mx-1.5 -my-1.5 bg-white text-gray-400 hover:text-gray-900 rounded-lg focus:ring-2 focus:ring-gray-300 p-1.5 hover:bg-gray-100 inline-flex items-center justify-center h-8 w-8 dark:text-gray-500 dark:hover:text-white dark:bg-gray-800 dark:hover:bg-gray-700" data-dismiss-target="#toast-success" aria-label="Close">
-        <span class="sr-only">Close</span>
-        <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
-            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
-        </svg>
-    </button>
 </div>
 
-
-
 @code {
-    [Parameter] public string? Message { get; set; }
-    [Parameter] public ToastIcon Icon { get; set; }
+    private ToastMessage _toast = new("", "", ToastType.Info);
+    private int _duration = 5000;
+
+    protected override void OnInitialized()
+    {
+        ToastService.OnShow += ShowToast;
+    }
+
+    private void ShowToast(ToastMessage toast)
+    {
+        _toast = toast;
+        _duration = toast.Type == ToastType.Error ? 8000 : 5000;
+        StateHasChanged();
+    }
+
+    private void Dismiss()
+    {
+        _toast = _toast with { IsVisible = false };
+        StateHasChanged();
+    }
+
+    private string GetToastClass() => _toast.Type switch
+    {
+        ToastType.Success => "bg-green-50",
+        ToastType.Error => "bg-red-50",
+        ToastType.Warning => "bg-yellow-50",
+        _ => "bg-blue-50"
+    };
+
+    private string GetTitleClass() => _toast.Type switch
+    {
+        ToastType.Success => "text-sm font-medium text-green-800",
+        ToastType.Error => "text-sm font-medium text-red-800",
+        ToastType.Warning => "text-sm font-medium text-yellow-800",
+        _ => "text-sm font-medium text-blue-800"
+    };
+
+    private string GetMessageClass() => _toast.Type switch
+    {
+        ToastType.Success => "mt-1 text-sm text-green-600",
+        ToastType.Error => "mt-1 text-sm text-red-600",
+        ToastType.Warning => "mt-1 text-sm text-yellow-600",
+        _ => "mt-1 text-sm text-blue-600"
+    };
+
+    private string GetCloseButtonClass() => _toast.Type switch
+    {
+        ToastType.Success => "bg-green-50 text-green-500 hover:bg-green-100",
+        ToastType.Error => "bg-red-50 text-red-500 hover:bg-red-100",
+        ToastType.Warning => "bg-yellow-50 text-yellow-500 hover:bg-yellow-100",
+        _ => "bg-blue-50 text-blue-500 hover:bg-blue-100"
+    };
+
+    private string GetProgressBarClass() => _toast.Type switch
+    {
+        ToastType.Success => "bg-green-400",
+        ToastType.Error => "bg-red-400",
+        ToastType.Warning => "bg-yellow-400",
+        _ => "bg-blue-400"
+    };
+
+    private MarkupString GetIcon() => _toast.Type switch
+    {
+        ToastType.Success => new MarkupString("<svg class='h-6 w-6 text-green-400' xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M5 13l4 4L19 7' /></svg>"),
+        ToastType.Error => new MarkupString("<svg class='h-6 w-6 text-red-400' xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M6 18L18 6M6 6l12 12' /></svg>"),
+        ToastType.Warning => new MarkupString("<svg class='h-6 w-6 text-yellow-400' xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z' /></svg>"),
+        _ => new MarkupString("<svg class='h-6 w-6 text-blue-400' xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' /></svg>")
+    };
+
+    public void Dispose()
+    {
+        ToastService.OnShow -= ShowToast;
+    }
 }

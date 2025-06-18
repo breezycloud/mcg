@@ -43,8 +43,8 @@
     {
         return status switch
         {
-            TripStatus.InProgress => "px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800",
-            TripStatus.Completed => "px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800",
+            TripStatus.Active => "px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800",
+            TripStatus.Closed => "px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800",
             _ => "px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800"
         };
     }

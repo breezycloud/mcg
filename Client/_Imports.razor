@@ -4,6 +4,8 @@
 @using Microsoft.AspNetCore.Components.Routing
 @using Microsoft.AspNetCore.Components.Web
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.SignalR.Client
 @using Microsoft.AspNetCore.Components.Web.Virtualization
 @using Microsoft.AspNetCore.Components.WebAssembly.Http
 @using Microsoft.JSInterop
@@ -26,6 +28,8 @@
 @using Shared.Models.Trips
 @using Shared.Models.Trucks
 @using Shared.Models.Users
+@using Shared.Models.Logging
+@using Shared.Models.Checkpoints
 
 @using Client.Handlers;
 
@@ -37,9 +41,20 @@
 @using Shared.Interfaces.Stations
 @using Shared.Interfaces.Trips
 @using Shared.Interfaces.Trucks
+@using Shared.Interfaces.Users
+@using Shared.Interfaces.AuditLogs
+@using Shared.Interfaces.Locations
+@using Shared.Interfaces.Destinations
+
+@using Client.Services.Messages
+@using Client.Services.Locations
+@using Client.Services.Destinations
 
 @inject AppState AppState
 
 @inject NavigationManager nav
 
 @inject CustomAuthenticationStateProvider CustomAuthenticationProvider
+
+@using Blazored.LocalStorage
+@inject ILocalStorageService localStorage

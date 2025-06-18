@@ -1,0 +1,104 @@
+<div class="max-w-2xl mx-auto p-4 sm:p-6">
+    <!-- Header -->
+    <div class="flex justify-between items-start mb-6">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">User Details</h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Created: @User.CreatedAt.ToString("dd MMM yyyy")</p>
+        </div>
+        <div class="flex space-x-2">
+            @* <button @onclick="OnEdit" class="px-3 py-1 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-blue-700 dark:hover:bg-blue-800">
+                Edit
+            </button> *@
+            <button @onclick="OnBack" class="px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600">
+                Back
+            </button>
+        </div>
+    </div>
+
+    <!-- User Card -->
+    <div class="bg-white shadow rounded-lg divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+        <!-- Basic Info -->
+        <div class="p-6">
+            <div class="flex items-center space-x-4 mb-4">
+                <div class="flex-shrink-0">
+                    <div class="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-2xl font-bold text-gray-600 dark:text-gray-300">
+                        @User.FirstName?[0]@User.LastName?[0]
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-xl font-medium text-gray-900 dark:text-white">@User.FirstName @User.LastName</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">@User.Role</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Email</p>
+                    <p class="font-medium dark:text-white">@User.Email</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Phone</p>
+                    <p class="font-medium dark:text-white">@User.PhoneNo</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Status</p>
+                    <div class="flex items-center">
+                        <span class="@(User.IsActive ? "text-green-500" : "text-red-500") mr-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                        </span>
+                        <span class="font-medium dark:text-white">@(User.IsActive ? "Active" : "Inactive")</span>
+                    </div>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Verified</p>
+                    <p class="font-medium dark:text-white">@(User.IsVerified == true ? "Yes" : "No")</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Additional Info -->
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Last Updated</p>
+                    <p class="font-medium dark:text-white">
+                        @(User.UpdatedAt?.ToString("g") ?? "Never")
+                    </p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Access Level</p>
+                    <span class="@GetRoleBadgeClass(User.Role) text-xs font-medium px-2.5 py-0.5 rounded-full">
+                        @User.Role
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public User User { get; set; } = new();
+
+    [Parameter]
+    public EventCallback OnBack { get; set; }
+
+    [Parameter]
+    public EventCallback OnEdit { get; set; }
+
+    private string GetRoleBadgeClass(UserRole role)
+    {
+        return role switch
+        {
+            UserRole.Master => "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300",
+            UserRole.Admin => "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
+            UserRole.Supervisor => "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
+            UserRole.Maintenance => "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
+            UserRole.Monitoring => "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300",
+            UserRole.Management => "bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-300",
+            _ => "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300",
+        };
+    }
+}

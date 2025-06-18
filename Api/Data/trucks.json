@@ -1,0 +1,332 @@
+[
+    {
+        "VIN": "LFWSRX9LXRAA23031",
+        "EngineNo": "3124H055616",
+        "TruckNo": "MCC 001",
+        "LicensePlate": "T 29001 LA"
+    },
+    {
+        "VIN": "LFWSRX9L1RAA23029",
+        "EngineNo": "3124H055847",
+        "TruckNo": "MCC 002",
+        "LicensePlate": "T 29002 LA"
+    },
+    {
+        "VIN": "LFWSRX9L3RAB30342",
+        "EngineNo": "3124H055835",
+        "TruckNo": "MCC 003",
+        "LicensePlate": "T 29003 LA"
+    },
+    {
+        "VIN": "LFWSRX9L8RAA23027",
+        "EngineNo": "3124H055611",
+        "TruckNo": "MCC 004",
+        "LicensePlate": "T 29004 LA"
+    },
+    {
+        "VIN": "LFWSRX9L4RAA22991",
+        "EngineNo": "3124H055844",
+        "TruckNo": "MCC 005",
+        "LicensePlate": "T 29005 LA"
+    },
+    {
+        "VIN": "LFWSRX9L8RAB30305",
+        "EngineNo": "3124H055596",
+        "TruckNo": "MCC 006",
+        "LicensePlate": "T 29006 LA"
+    },
+    {
+        "VIN": "LFWSRX9L3RAB30311",
+        "EngineNo": "3124H055610",
+        "TruckNo": "MCC 007",
+        "LicensePlate": "T 29007 LA"
+    },
+    {
+        "VIN": "LFWSRX9LXRAB30337",
+        "EngineNo": "3124H055619",
+        "TruckNo": "MCC 008",
+        "LicensePlate": "T 29008 LA"
+    },
+    {
+        "VIN": "LFWSRX9L6RAA22989",
+        "EngineNo": "3124H055615",
+        "TruckNo": "MCC 009",
+        "LicensePlate": "T 29009 LA"
+    },
+    {
+        "VIN": "LFWSRX9LXRAB30340",
+        "EngineNo": "3124H055833",
+        "TruckNo": "MCC 010",
+        "LicensePlate": "T 29010 LA"
+    },
+    {
+        "VIN": "LFWSRX9LXRAA23028",
+        "EngineNo": "3124H055601",
+        "TruckNo": "MCC 011",
+        "LicensePlate": "T 29011 LA"
+    },
+    {
+        "VIN": "LFWSRX9L5RAB30200",
+        "EngineNo": "3124H055852",
+        "TruckNo": "MCC 012",
+        "LicensePlate": "T 29012 LA"
+    },
+    {
+        "VIN": "LFWSRX9L6RAA22992",
+        "EngineNo": "3124H055848",
+        "TruckNo": "MCC 013",
+        "LicensePlate": "T 29013 LA"
+    },
+    {
+        "VIN": "LFWSRX9L6RAB30206",
+        "EngineNo": "3124H055613",
+        "TruckNo": "MCC 014",
+        "LicensePlate": "T 29014 LA"
+    },
+    {
+        "VIN": "LFWSRX9LXRAA22994",
+        "EngineNo": "3124H055603",
+        "TruckNo": "MCC 015",
+        "LicensePlate": "T 29015 LA"
+    },
+    {
+        "VIN": "LFWSRX9L5RAB30309",
+        "EngineNo": "3124H055621",
+        "TruckNo": "MCC 016",
+        "LicensePlate": "T 29016 LA"
+    },
+    {
+        "VIN": "LFWSRX9L6RAB30304",
+        "EngineNo": "3124H055617",
+        "TruckNo": "MCC 017",
+        "LicensePlate": "T 29017 LA"
+    },
+    {
+        "VIN": "LFWSRX9L1RAB30307",
+        "EngineNo": "3124H055597",
+        "TruckNo": "MCC 018",
+        "LicensePlate": "T 29018 LA"
+    },
+    {
+        "VIN": "LFWSRX9L1RAB30338",
+        "EngineNo": "3124H055839",
+        "TruckNo": "MCC 019",
+        "LicensePlate": "T 29019 LA"
+    },
+    {
+        "VIN": "LFWSRX9L1RAB30209",
+        "EngineNo": "3124H055832",
+        "TruckNo": "MCC 020",
+        "LicensePlate": "T 29020 LA"
+    },
+    {
+        "VIN": "LFWSRX9L5RAB30097",
+        "EngineNo": "3124H055849",
+        "TruckNo": "MCC 021",
+        "LicensePlate": "T 29021 LA"
+    },
+    {
+        "VIN": "LFWSRX9L0RAB30203",
+        "EngineNo": "3124H055834",
+        "TruckNo": "MCC 022",
+        "LicensePlate": "T 29022 LA"
+    },
+    {
+        "VIN": "LFWSRX9L4RAA23025",
+        "EngineNo": "3124H055612",
+        "TruckNo": "MCC 023",
+        "LicensePlate": "T 29023 LA"
+    },
+    {
+        "VIN": "LFWSRX9L3RAA23033",
+        "EngineNo": "3124H055618",
+        "TruckNo": "MCC 024",
+        "LicensePlate": "T 29024 LA"
+    },
+    {
+        "VIN": "LFWSRX9L1RAB30341",
+        "EngineNo": "3124H055609",
+        "TruckNo": "MCC 025",
+        "LicensePlate": "T 29025 LA"
+    },
+    {
+        "VIN": "LFWSRX9L2RAB30204",
+        "EngineNo": "3124H055598",
+        "TruckNo": "MCC 026",
+        "LicensePlate": "T 29026 LA"
+    },
+    {
+        "VIN": "LFWSRX9L8RAB30336",
+        "EngineNo": "3124H055614",
+        "TruckNo": "MCC 027",
+        "LicensePlate": "T 29027 LA"
+    },
+    {
+        "VIN": "LFWSRX9LXRAB30306",
+        "EngineNo": "3124H055593",
+        "TruckNo": "MCC 028",
+        "LicensePlate": "T 29028 LA"
+    },
+    {
+        "VIN": "LFWSRX9L1RAA23032",
+        "EngineNo": "3124H055608",
+        "TruckNo": "MCC 029",
+        "LicensePlate": "T 29029 LA"
+    },
+    {
+        "VIN": "LFWSRX9L5RAB30343",
+        "EngineNo": "3124H055836",
+        "TruckNo": "MCC 030",
+        "LicensePlate": "T 29030 LA"
+    },
+    {
+        "VIN": "LFWSRX9L6RAA23026",
+        "EngineNo": "3124H055599",
+        "TruckNo": "MCC 031",
+        "LicensePlate": "T 29031 LA"
+    },
+    {
+        "VIN": "LFWSRX9L3RAB30339",
+        "EngineNo": "3124H055845",
+        "TruckNo": "MCC 032",
+        "LicensePlate": "T 29032 LA"
+    },
+    {
+        "VIN": "LFWSRX9L7RAB30098",
+        "EngineNo": "3124H055591",
+        "TruckNo": "MCC 033",
+        "LicensePlate": "T 29033 LA"
+    },
+    {
+        "VIN": "LFWSRX9L3RAA22996",
+        "EngineNo": "3124H055607",
+        "TruckNo": "MCC 034",
+        "LicensePlate": "T 29034 LA"
+    },
+    {
+        "VIN": "LFWSRX9L9RAB30202",
+        "EngineNo": "3124H055846",
+        "TruckNo": "MCC 035",
+        "LicensePlate": "T 29035 LA"
+    },
+    {
+        "VIN": "LFWSRX9L8RAA23030",
+        "EngineNo": "3124H055841",
+        "TruckNo": "MCC 036",
+        "LicensePlate": "T 29036 LA"
+    },
+    {
+        "VIN": "LFWSRX9L7RAB30201",
+        "EngineNo": "3124H055838",
+        "TruckNo": "MCC 037",
+        "LicensePlate": "T 29037 LA"
+    },
+    {
+        "VIN": "LFWSRX9L2RAA22990",
+        "EngineNo": "3124H055837",
+        "TruckNo": "MCC 038",
+        "LicensePlate": "T 29038 LA"
+    },
+    {
+        "VIN": "LFWSRX9L2RAB30302",
+        "EngineNo": "3124H055592",
+        "TruckNo": "MCC 039",
+        "LicensePlate": "T 29039 LA"
+    },
+    {
+        "VIN": "LFWSRX9L4RAB30303",
+        "EngineNo": "3124H055831",
+        "TruckNo": "MCC 040",
+        "LicensePlate": "T 29040 LA"
+    },
+    {
+        "VIN": "LFWSRX9L1RAA22995",
+        "EngineNo": "3124H055595",
+        "TruckNo": "MCC 041",
+        "LicensePlate": "T 29041 LA"
+    },
+    {
+        "VIN": "LFWSRX9L9RAB30099",
+        "EngineNo": "3124H055842",
+        "TruckNo": "MCC 042",
+        "LicensePlate": "T 29042 LA"
+    },
+    {
+        "VIN": "LFWSRX9LXRAB30208",
+        "EngineNo": "3124H055843",
+        "TruckNo": "MCC 043",
+        "LicensePlate": "T 29043 LA"
+    },
+    {
+        "VIN": "LFWSRX9L4RAA22988",
+        "EngineNo": "3124H055605",
+        "TruckNo": "MCC 044",
+        "LicensePlate": "T 29044 LA"
+    },
+    {
+        "VIN": "LFWSRX9L1RAB30310",
+        "EngineNo": "3124H055604",
+        "TruckNo": "MCC 045",
+        "LicensePlate": "T 29045 LA"
+    },
+    {
+        "VIN": "LFWSRX9L7RAB30344",
+        "EngineNo": "3124H055602",
+        "TruckNo": "MCC 046",
+        "LicensePlate": "T 29046 LA"
+    },
+    {
+        "VIN": "LFWSRX9L6RAB30335",
+        "EngineNo": "3124H055830",
+        "TruckNo": "MCC 047",
+        "LicensePlate": "T 29047 LA"
+    },
+    {
+        "VIN": "LFWSRX9L3RAB30308",
+        "EngineNo": "3124H055606",
+        "TruckNo": "MCC 048",
+        "LicensePlate": "T 29048 LA"
+    },
+    {
+        "VIN": "LFWSRX9L1RAB30100",
+        "EngineNo": "3124H055840",
+        "TruckNo": "MCC 049",
+        "LicensePlate": "T 29049 LA"
+    },
+    {
+        "VIN": "LFWSRX9L8RAB30207",
+        "EngineNo": "3124H055851",
+        "TruckNo": "MCC 050",
+        "LicensePlate": "T 29050 LA"
+    },
+    {
+        "VIN": "LFWSRX9L4RAB30205",
+        "EngineNo": "3124H055594",
+        "TruckNo": "MCC 051",
+        "LicensePlate": "T 29051 LA"
+    },
+    {
+        "VIN": "LFWSRX9L2RAA22987",
+        "EngineNo": "3124H055850",
+        "TruckNo": "MCC 052",
+        "LicensePlate": "T 29052 LA"
+    },
+    {
+        "VIN": "LFWSRX9L8RAA22993",
+        "EngineNo": "3124H055829",
+        "TruckNo": "MCC 053",
+        "LicensePlate": "T 29053 LA"
+    },
+    {
+        "VIN": "LFWSRX9L5RAA23034",
+        "EngineNo": "3124H055620",
+        "TruckNo": "MCC 054",
+        "LicensePlate": "T 29054 LA"
+    },
+    {
+        "VIN": "LFWSRX9L8RAB29669",
+        "EngineNo": "3124H055600",
+        "TruckNo": "MCC 055",
+        "LicensePlate": "T 29055 LA"
+    }
+]
