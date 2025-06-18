@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using Shared.Enums;
 using Shared.Models.Checkpoints;
 using Shared.Models.Drivers;
+using Shared.Models.TripCheckpoints;
 using Shared.Models.Trucks;
 
 
@@ -35,7 +36,7 @@ public class Trip
     public virtual Truck? Truck { get; set; }
     public virtual Origin? Origin { get; set; }
     public virtual Destination? Destination { get; set; }
-    public virtual ICollection<Checkpoint>? Checkpoints { get; set; } = [];
+    public virtual ICollection<TripCheckpoint>? Checkpoints { get; set; } = [];
    
     public int CalculateTripDuration(DateOnly createdDate, DateOnly? returnDate)
     {

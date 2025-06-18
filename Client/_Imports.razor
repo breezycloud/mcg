@@ -30,6 +30,9 @@
 @using Shared.Models.Users
 @using Shared.Models.Logging
 @using Shared.Models.Checkpoints
+@using Shared.Models.TripCheckpoints
+@using Shared.Models.RefuelInfos
+
 
 @using Client.Handlers;
 
@@ -45,10 +48,17 @@
 @using Shared.Interfaces.AuditLogs
 @using Shared.Interfaces.Locations
 @using Shared.Interfaces.Destinations
+@using Shared.Interfaces.Checkpoints
+@using Shared.Interfaces.TripCheckpoints
+@using Shared.Interfaces.RefuelInfos
 
 @using Client.Services.Messages
 @using Client.Services.Locations
 @using Client.Services.Destinations
+@using Client.Services.Checkpoints
+@using Client.Services.TripCheckpoints
+@using Client.Services.RefuelInfos
+
 
 @inject AppState AppState
 

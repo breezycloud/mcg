@@ -1,25 +1,27 @@
-using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Shared.Models.BaseEntity;
+using Shared.Enums;
 using Shared.Models.Stations;
-using Shared.Models.Trips;
+using Shared.Models.Trucks;
 
-namespace Shared.Models.Checkpoints;
+namespace Shared.Models.RefuelInfos;
 
-public class Checkpoint
+
+public class RefuelInfo
 {
     [Key]
     public Guid Id { get; set; }
+    public DateOnly Date { get; set; }
+    public Guid TruckId { get; set; }
     public Guid? StationId { get; set; }
-    [Required(ErrorMessage = "Checkpoint name is required")]
-    public string? Name { get; set; }
-    [Column(TypeName = "decimal(18,2)")]
-    public decimal? EstimatedArrivalTime { get; set; } 
-    public decimal? Latitude { get; set; }
-    public decimal? Longitude { get; set; }
+    public decimal Quantity { get; set; }
+    public UnitOfMeasure Unit { get; set; }
+    public decimal? Price { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? UpdatedAt { get; set; }
+    [ForeignKey(nameof(TruckId))]
+    public virtual Truck? Truck { get; set; }
     [ForeignKey(nameof(StationId))]
     public virtual Station? Station { get; set; }
+
 }

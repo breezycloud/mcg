@@ -31,6 +31,12 @@ using Client.Services.Locations;
 using Shared.Interfaces.Locations;
 using Shared.Interfaces.Destinations;
 using Client.Services.Destinations;
+using Shared.Interfaces.Checkpoints;
+using Client.Services.Checkpoints;
+using Client.Services.TripCheckpoints;
+using Shared.Interfaces.TripCheckpoints;
+using Shared.Interfaces.RefuelInfos;
+using Client.Services.RefuelInfos;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
@@ -82,6 +88,9 @@ builder.Services.AddTransient<IStationService, StationService>();
 builder.Services.AddTransient<IUserService, UserService>();
 builder.Services.AddTransient<IAuditLogService, AuditLogService>();
 builder.Services.AddTransient<IDestinationService, DestinationService>();
+builder.Services.AddTransient<ICheckpointService, CheckpointService>();
+builder.Services.AddTransient<ITripCheckpointService, TripCheckpointService>();
+builder.Services.AddTransient<IRefuelInfoService, RefuelInfoService>();
 builder.Services.AddHttpClient<ILocationService, LocationService>(client =>
 {
     client.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress);

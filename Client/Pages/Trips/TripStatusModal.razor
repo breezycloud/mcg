@@ -214,7 +214,7 @@
                                                 @checkpoint.Name
                                             </h3> *@
                                             <p class="text-gray-500 dark:text-gray-400 mt-1">
-                                                @checkpoint.Address?.State, @checkpoint.Address?.Location
+                                                @checkpoint!.Checkpoint!.Name
                                             </p>
                                             <div class="mt-2 flex flex-wrap gap-2">
                                                 @* <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-blue-900 dark:text-blue-300">
@@ -464,13 +464,13 @@
 
     public bool EditMode = false;
 
-    private List<Checkpoint>? checkpoints;
+    private List<TripCheckpoint>? checkpoints;
     private string checkpointSearch = string.Empty;
-    private Checkpoint currentCheckpoint = new() { Address = new() };
-    private Checkpoint? editingCheckpoint;
+    private TripCheckpoint currentCheckpoint = new();
+    private TripCheckpoint? editingCheckpoint;
     private bool showCheckpointModal = false;
     private bool showDeleteCheckpointModal = false;
-    private Checkpoint? checkpointToDelete;
+    private TripCheckpoint? checkpointToDelete;
 
     protected override async Task OnInitializedAsync()
     {
@@ -583,9 +583,9 @@
             return;
         }
         Trip.UpdatedAt = DateTimeOffset.UtcNow;
-        if (activeTab == 3)
+        if (activeTab == 4)
         {
-            Trip.Destination.UpdatedAt = DateTimeOffset.UtcNow;
+            Trip.Destination!.UpdatedAt = DateTimeOffset.UtcNow;
             await OnSave.InvokeAsync(Trip);
             await OnUpdateDestination.InvokeAsync(Trip!.Destination);
         }
@@ -598,33 +598,26 @@
 
     private void ShowAddCheckpointModal()
     {
-        currentCheckpoint = new() { Address = new() };
+        currentCheckpoint = new();
         editingCheckpoint = null;
         showCheckpointModal = true;
     }
 
-    private void EditCheckpoint(Checkpoint checkpoint)
+    private void EditCheckpoint(TripCheckpoint checkpoint)
     {
         currentCheckpoint = new()
         {
             Id = checkpoint.Id,
-            Address = new()
-            {
-                State = checkpoint.Address?.State,
-                Location = checkpoint.Address?.Location,
-                ContactAddress = checkpoint.Address?.ContactAddress,
-            },
+            TripId = Trip!.Id,           
             ExpectedDistanceFromPreviousKm = checkpoint.ExpectedDistanceFromPreviousKm,
             EstimatedArrivalTime = checkpoint.EstimatedArrivalTime,
-            Latitude = checkpoint.Latitude,
-            Longitude = checkpoint.Longitude,
             Notes = checkpoint.Notes
         };
         Trip!.Checkpoints.Add(currentCheckpoint);
         CloseCheckpointModal();
     }
 
-    private void ShowDeleteCheckpointModal(Checkpoint checkpoint)
+    private void ShowDeleteCheckpointModal(TripCheckpoint checkpoint)
     {
         checkpointToDelete = checkpoint;
         showDeleteCheckpointModal = true;
@@ -649,7 +642,7 @@
     private void CloseCheckpointModal()
     {
         showCheckpointModal = false;
-        currentCheckpoint = new() { Address = new() };
+        currentCheckpoint = new();
         editingCheckpoint = null;
     }
 }

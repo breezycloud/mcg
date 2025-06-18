@@ -1,0 +1,145 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Api.Context;
+using Shared.Models.Checkpoints;
+using Shared.Helpers;
+
+namespace Api.Controllers;
+
+[Route("api/[controller]")]
+[ApiController]
+public class CheckpointsController : ControllerBase
+{
+    private readonly AppDbContext _context;
+
+    public CheckpointsController(AppDbContext context)
+    {
+        _context = context;
+    }
+
+    // POST: api/Paged
+    [HttpPost("paged")]
+    public async Task<ActionResult<GridDataResponse<Checkpoint>?>> GetPagedDatAsync(GridDataRequest request, CancellationToken cancellationToken = default)
+    {
+        GridDataResponse<Checkpoint> response = new();
+        try
+        {
+            var query = _context.Checkpoints.AsQueryable();
+            
+            if (!string.IsNullOrEmpty(request.SearchTerm))
+            {
+                string pattern = $"%{request.SearchTerm}%";
+                query = query.Include(x => x.Station).Where(x => EF.Functions.ILike(x.Station.Name, pattern) || EF.Functions.ILike(x.Station.Address!.Location, pattern)
+                || EF.Functions.ILike(x.Station.Address!.State, pattern));
+            }
+
+            response.Total = await query.CountAsync();
+            response.Data = [];
+            var pagedQuery = query.OrderByDescending(x => x.CreatedAt).ThenByDescending(x => x.UpdatedAt).Skip(request.Page).Take(request.PageSize).AsAsyncEnumerable();
+
+            await foreach (var item in pagedQuery)
+            {
+                response.Data.Add(item);
+            }
+
+
+            return response;
+
+            
+        }
+        catch (System.Exception)
+        {
+
+            throw;
+        }
+    }
+
+    // GET: api/Checkpoints
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<Checkpoint>>> GetCheckpoints()
+    {
+        return await _context.Checkpoints.ToListAsync();
+    }
+
+    // GET: api/Checkpoints/5
+    [HttpGet("{id}")]
+    public async Task<ActionResult<Checkpoint>> GetCheckpoint(Guid id)
+    {
+        var Checkpoint = await _context.Checkpoints.FindAsync(id);
+
+        if (Checkpoint == null)
+        {
+            return NotFound();
+        }
+
+        return Checkpoint;
+    }
+
+    // PUT: api/Checkpoints/5
+    // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+    [HttpPut("{id}")]
+    public async Task<IActionResult> PutCheckpoint(Guid id, Checkpoint Checkpoint)
+    {
+        if (id != Checkpoint.Id)
+        {
+            return BadRequest();
+        }
+
+        _context.Entry(Checkpoint).State = EntityState.Modified;
+
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            if (!CheckpointExists(id))
+            {
+                return NotFound();
+            }
+            else
+            {
+                throw;
+            }
+        }
+
+        return NoContent();
+    }
+
+    // POST: api/Checkpoints
+    // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+    [HttpPost]
+    public async Task<ActionResult<Checkpoint>> PostCheckpoint(Checkpoint Checkpoint)
+    {
+        _context.Checkpoints.Add(Checkpoint);
+        await _context.SaveChangesAsync();
+
+        return CreatedAtAction("GetCheckpoint", new { id = Checkpoint.Id }, Checkpoint);
+    }
+
+    // DELETE: api/Checkpoints/5
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteCheckpoint(Guid id)
+    {
+        var Checkpoint = await _context.Checkpoints.FindAsync(id);
+        if (Checkpoint == null)
+        {
+            return NotFound();
+        }
+
+        _context.Checkpoints.Remove(Checkpoint);
+        await _context.SaveChangesAsync();
+
+        return NoContent();
+    }
+
+    private bool CheckpointExists(Guid id)
+    {
+        return _context.Checkpoints.Any(e => e.Id == id);
+    }
+}
