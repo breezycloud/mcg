@@ -158,7 +158,7 @@
                         <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["Destination"]</p>
                     }
                 </div> *@
-                <StateSelector Destination="@tripLoading.Destination" Errors="errors" GetInputClass="GetInputClass"/>
+                <StateSelector  OnLocationChanged="@LocationChanged" Destination="@tripLoading.Destination" Errors="errors" GetInputClass="GetInputClass"/>
 
              <!-- Timestamps -->
             @if (Id.HasValue)
@@ -224,13 +224,23 @@
         Destionations = await StationService.GetAsync(StationType.DischargeStation.ToString(), AppState.GetCancellationToken());
         Drivers = await DriverService.GetAsync(AppState.GetCancellationToken());
         if (Id.HasValue)
-            CurrentTrip = await TripService.GetAsync(Id.Value, AppState.GetCancellationToken()) ?? new();                    
+        {
+            CurrentTrip = await TripService.GetAsync(Id.Value, AppState.GetCancellationToken()) ?? new();
+            EditMode = true;
+        }                                
         AppState.IsBusy = false;
     }
 
     private void OnTruckChanged()
     {        
-        tripLoading!.LicensePlate = Trucks?.FirstOrDefault(x => x.Id == tripLoading!.TruckId)?.LicensePlate;               
+        var truck = Trucks?.FirstOrDefault(x => x.Id == tripLoading!.TruckId);
+        tripLoading!.LicensePlate = truck!.LicensePlate;
+        @* tripLoading!.DispatchUnit = truck.Product *@
+        StateHasChanged();
+    }
+    private void LocationChanged(string location)
+    {
+        tripLoading!.Destination = location;
         StateHasChanged();
     }
 

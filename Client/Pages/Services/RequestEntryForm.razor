@@ -188,7 +188,10 @@
         // Load trucks and sites here
         AppState.IsBusy = true;
         if (Id.HasValue)
+        {
             CurrentRequest = await RequestService.GetAsync(Id.Value, AppState.GetCancellationToken()) ?? new();
+            EditMode = true;
+        }
         Trucks = await TruckService.GetAsync(AppState.GetCancellationToken());
         Sites = await SiteService.GetAsync(AppState.GetCancellationToken());
         AppState.IsBusy = false;

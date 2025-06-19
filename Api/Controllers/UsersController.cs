@@ -8,6 +8,9 @@ using Microsoft.EntityFrameworkCore;
 using Api.Context;
 using Shared.Models.Users;
 using Shared.Helpers;
+using Api.Services.Messages;
+using Shared.Models.MessageBroker;
+using Api.Util;
 
 namespace Api.Controllers;
 
@@ -16,10 +19,42 @@ namespace Api.Controllers;
 public class UsersController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly EmailPublisherService _mailPublisher;
 
-    public UsersController(AppDbContext context)
+    public UsersController(AppDbContext context, EmailPublisherService mailPublisher)
     {
         _context = context;
+        _mailPublisher = mailPublisher;
+    }
+
+    // POST: api/Users/SendEmail
+    [HttpPost("send-email")]
+    public async Task<ActionResult<bool>> SendEmailAsync(EmailQueueMessage message, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (message is null || string.IsNullOrEmpty(message.To) || string.IsNullOrEmpty(message.Subject))
+            {
+                return BadRequest("Invalid email message.");
+            }
+
+            message.Template = "AccountDetails";
+            message.TemplateModel = new AccountDetailBody
+            {
+                Email = message.To,
+                Name = "Aminu Aliyu",
+                Password = Security.GenerateRandomPassword(),
+                PortalUrl = "http://myapplication.com"
+            };
+
+            _mailPublisher.QueueEmailAsync(message);
+            return Ok(true);
+        }
+        catch (Exception ex)
+        {
+            // Log the exception (not implemented here)
+            return StatusCode(500, "Internal server error: " + ex.Message);
+        }
     }
 
     // POST: api/Paged
@@ -117,9 +152,26 @@ public class UsersController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<User>> PostUser(User user)
     {
+        var password = Security.GenerateRandomPassword();
+        var hashedPassword = Security.Encrypt(password);
+        user.HashedPassword = hashedPassword;
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
-
+        // Optionally, you can send a welcome email after user creation
+        var emailMessage = new EmailQueueMessage
+        {
+            To = user.Email,
+            Subject = "Your login credentials",
+            Template = "AccountDetails",
+            TemplateModel = new AccountDetailBody
+            {
+                Email = user.Email,
+                Name = user.ToString(),
+                Password = password,
+                PortalUrl = "http://myapplication.com"
+            }
+        };
+        _mailPublisher.QueueEmailAsync(emailMessage);
         return CreatedAtAction("GetUser", new { id = user.Id }, user);
     }
 

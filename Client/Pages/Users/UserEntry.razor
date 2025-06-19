@@ -1,5 +1,6 @@
 @using Shared.Enums
 @using global::Client.Handlers
+@inject IJSRuntime js
 <div class="max-w-2xl mx-auto p-4 sm:p-6">
     <div class="bg-white shadow rounded-lg dark:bg-gray-800">
         <!-- Header -->
@@ -8,7 +9,8 @@
         </div>
 
         <!-- Form -->
-        <form @onsubmit="HandleSubmit" class="p-6 space-y-6">
+        <EditForm Model="@CurrentUser" OnValidSubmit="HandleSubmit" class="p-6 space-y-6">
+            <DataAnnotationsValidator/>
             <!-- Name Fields -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -74,13 +76,37 @@
                     </label>
                     <select id="role" @bind="CurrentUser.Role"
                             class="@GetInputClass("Role")">
-                        @foreach (var role in Enum.GetValues(typeof(UserRole)))
+                        @foreach (UserRole role in Enum.GetValues(typeof(UserRole)))
                         {
+                            if (role == UserRole.Master)
+                                continue;
                             <option value="@role">@role</option>
                         }
                     </select>
                 </div>
-                <div class="flex flex-col justify-center h-full">
+                @if (CurrentUser.Role == UserRole.Maintenance)
+                {
+                    <div>
+                        <label for="maintenanceSite" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            Maintenance Site
+                        </label>
+                        <InputSelect id="maintenanceSite" @bind-Value="CurrentUser.MaintenanceSiteId" class="@GetInputClass("MaintenanceSiteId")">
+                            <option value="">Select site</option>
+                            @if (Sites is not null)
+                            {
+                                @foreach (var site in Sites)
+                                {
+                                    <option value="@site.Id">@site.Name</option>
+                                }
+                            }
+                        </InputSelect>
+                        @if (errors.ContainsKey("MaintenanceSiteId"))
+                        {
+                            <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["MaintenanceSiteId"]</p>
+                        }
+                    </div>
+                }
+                @* <div class="flex flex-col justify-center h-full">
                     <div class="flex flex-row items-center gap-2 px-2 py-3">
                         <div class="flex items-center">
                             <input id="isActive" type="checkbox" @bind="CurrentUser.IsActive"
@@ -95,36 +121,15 @@
                             <label for="isVerified" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">
                                 Verified Account
                             </label>
-                        </div>
+                        </div> 
                     </div>
-                </div>
+                </div> *@
             </div>
 
-            @if (CurrentUser.Role == UserRole.Maintenance)
-            {
-                <div>
-                    <label for="maintenanceSite" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                        Maintenance Site
-                    </label>
-                    <InputSelect id="maintenanceSite" @bind-Value="CurrentUser.MaintenanceSiteId" class="@GetInputClass("MaintenanceSiteId")">
-                        <option value="">Select site</option>
-                        @if (Sites is not null)
-                        {
-                            @foreach (var site in Sites)
-                            {
-                                <option value="@site.Id">@site.Name</option>
-                            }
-                        }
-                    </InputSelect>
-                    @if (errors.ContainsKey("MaintenanceSiteId"))
-                    {
-                        <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["MaintenanceSiteId"]</p>
-                    }
-                </div>
-            }
+            
 
             <!-- Password (only for new users) -->
-            @if (!EditMode)
+            @* @if (!EditMode)
             {
                 <div>
                     <label for="password" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
@@ -139,7 +144,7 @@
                     }
                     <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Minimum 8 characters</p>
                 </div>
-            }
+            } *@
 
             <!-- Form Actions -->
             <div class="flex justify-end pt-6 border-t border-gray-200 dark:border-gray-700 space-x-3">
@@ -152,7 +157,7 @@
                     @(EditMode ? "Update User" : "Create User")
                 </button>
             </div>
-        </form>
+        </EditForm>
     </div>
 </div>
 
@@ -172,7 +177,8 @@
     private Dictionary<string, string> errors = new();
     private string password = string.Empty;
     [Parameter]
-    public MaintenanceSite[]? Sites { get; set; }
+    public MaintenanceSite[]? Sites { get; set; } = [];
+    
 
     private void OnInitialized()
     {
@@ -228,14 +234,6 @@
             errors["Email"] = "Valid email is required";
         }
         
-        if (!EditMode && string.IsNullOrWhiteSpace(password))
-        {
-            errors["HashedPassword"] = "Password is required";
-        }
-        else if (!EditMode && password.Length < 8)
-        {
-            errors["HashedPassword"] = "Password must be at least 8 characters";
-        }
         
         // Validate phone number format if provided
         if (string.IsNullOrWhiteSpace(CurrentUser.PhoneNo))
@@ -243,25 +241,24 @@
             errors["PhoneNo"] = "Phone number must be exactly 11 digits";
         }
 
-        if (CurrentUser.Role == UserRole.Maintenance 
-        && CurrentUser.MaintenanceSiteId.Equals(Guid.Empty) 
-        || CurrentUser.MaintenanceSiteId is null)        
+        if (CurrentUser.Role == UserRole.Maintenance )        
         {
-            errors["MaintenanceSiteId"] = "Maintenance Centre is required";
+            if (CurrentUser.MaintenanceSiteId.Equals(Guid.Empty) || CurrentUser.MaintenanceSiteId is null)
+                errors["MaintenanceSiteId"] = "Maintenance Centre is required";
         }
-        
+        Console.WriteLine(errors.Count);
+        await js.InvokeVoidAsync("console.log", errors, CurrentUser);
         if (errors.Count == 0)
         {
-            CurrentUser.FirstName = StringConverter.ConvertToTitleCase(CurrentUser.FirstName);
-            CurrentUser.LastName = StringConverter.ConvertToTitleCase(CurrentUser.LastName);
-            if (!EditMode)
-            {
-                // In a real app, you would hash the password here
-                CurrentUser.HashedPassword = Security.Encrypt(password);
-            }
+            CurrentUser.FirstName = StringConverter.ConvertToTitleCase(CurrentUser.FirstName!);
+            CurrentUser.LastName = StringConverter.ConvertToTitleCase(CurrentUser.LastName!);            
             if (EditMode)
                 CurrentUser.UpdatedAt = DateTimeOffset.UtcNow;
             await OnSubmit.InvokeAsync(CurrentUser);
+        }
+        else
+        {
+            StateHasChanged();
         }
     }
 }

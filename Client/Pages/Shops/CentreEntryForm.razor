@@ -92,7 +92,10 @@
     {
         AppState.IsBusy = true;
         if (Id.HasValue)
+        {
             CurrentSite = await CentreService.GetAsync(Id.Value, AppState.GetCancellationToken()) ?? new();
+            EditMode = true;
+        }            
         else
             CurrentSite.Address = new();
         AppState.IsBusy = false;

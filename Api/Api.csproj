@@ -4,6 +4,8 @@
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <PreserveCompilationContext>true</PreserveCompilationContext>
+    <PreserveCompilationReferences>true</PreserveCompilationReferences>
   </PropertyGroup>
 
   <ItemGroup>
@@ -11,7 +13,12 @@
     <EmbeddedResource Include="Data\drivers.json"/>
   </ItemGroup>
 
+   <ItemGroup>
+    <EmbeddedResource Include="EmailTemplates\*.cshtml" />
+  </ItemGroup>
+
  <ItemGroup>
+    <PackageReference Include="PuppeteerSharp" Version="20.0.5" />
     <PackageReference Include="RabbitMQ.Client" Version="6.4.0" />
     <PackageReference Include="FluentEmail.Core" Version="3.0.2" />
     <PackageReference Include="FluentEmail.Smtp" Version="3.0.2" />

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using Shared.Enums;
 using Shared.Models.Trips;
 
@@ -34,8 +35,15 @@ public class Truck
 
     public Product? Product { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
-
     public DateTimeOffset? UpdatedAt { get; set; }
-
     public virtual ICollection<Trip>? Trips { get; set; } = [];
+
+    [NotMapped]
+    public string? OriginalTruckNo => TruckNo;
+    [NotMapped]
+    public string? OriginalLicensePlate => LicensePlate;
+    [NotMapped]
+    public string? OriginalVIN => VIN;
+    [NotMapped]
+    public string? OriginalEngineNo => EngineNo;
 }

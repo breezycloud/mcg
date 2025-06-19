@@ -1,0 +1,69 @@
+@inject IDischargeService DischargeService
+
+<div class="fixed inset-0 bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl dark:bg-gray-800">
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
+            <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
+                Discharges
+            </h3>
+            <button @onclick="OnClose" class="text-gray-400 hover:text-gray-500">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        
+        <!-- Modal Body -->
+        <div class="p-6 space-y-4  max-h-[90vh] overflow-y-auto">
+            @foreach (var discharge in Trip!.Discharges)
+            {
+                <DischargeCard Data="discharge" OnDelete="DeleteDischarge"/>
+            }
+        </div>
+         <!-- Modal Footer -->
+        <div class="flex items-center justify-end p-4 gap-5 border-t border-gray-200 dark:border-gray-700">
+            <button @onclick="OnClose" type="button" class="py-2.5 px-5 me-2 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700">
+                Cancel
+            </button>        
+        </div>
+    </div>
+</div>
+
+
+@code
+{
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+    [Parameter] public Trip? Trip { get; set; }
+
+    private async Task DeleteDischarge(Guid id)
+    {
+        try
+        {
+            var deleted = await DischargeService.DeleteAsync(id, AppState.GetCancellationToken());
+            if (deleted)
+            {
+                var dischargeToRemove = Trip!.Discharges.FirstOrDefault(d => d.Id == id);
+                if (dischargeToRemove != null)
+                {
+                    Trip!.Discharges.Remove(dischargeToRemove);
+                }
+            }
+            else
+            {
+                Console.WriteLine("Failed to delete discharge.");
+            }               
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deleting discharge: {ex.Message}");
+        }
+        finally
+        {           
+            StateHasChanged();
+        }
+    }
+
+    
+}

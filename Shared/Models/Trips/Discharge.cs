@@ -26,11 +26,7 @@ public class Discharge
     [StringLength(500)]
     public string? Notes { get; set; }
     
-    // Geo-coordinates
-    public decimal? Latitude { get; set; }
-    public decimal? Longitude { get; set; }
-    
     // Navigation properties
     [ForeignKey(nameof(TripId))]
-    public virtual Trip Trip { get; set; } = null!;
+    public virtual Trip? Trip { get; set; }
 }

@@ -112,7 +112,10 @@
     {
         AppState.IsBusy = true;
         if (Id.HasValue)
+        {
             CurrentStation = await StationService.GetAsync(Id.Value, AppState.GetCancellationToken()) ?? new();
+            EditMode = true;
+        }            
         else
             CurrentStation.Address = new();
         AppState.IsBusy = false;
