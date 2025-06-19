@@ -1,108 +1,154 @@
-<div class="max-w-4xl mx-auto p-4 sm:p-6">
-    <!-- Profile Header -->
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">My Profile</h1>
-            <p class="text-sm text-gray-500 dark:text-gray-400">Member since @User.CreatedAt.ToString("MMMM yyyy")</p>
-        </div>
-        <button @onclick="NavigateToSettings" 
-                class="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-4 focus:ring-gray-200 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600 dark:focus:ring-gray-700">
-            <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
-            </svg>
-            Account Settings
-        </button>
-    </div>
-
-    <!-- Profile Card -->
-    <div class="bg-white shadow rounded-lg overflow-hidden dark:bg-gray-800">
-        <!-- Avatar Section -->
-        <div class="bg-gradient-to-r from-blue-500 to-purple-600 px-6 py-8">
-            <div class="flex flex-col items-center">
-                <div class="w-32 h-32 rounded-full bg-white dark:bg-gray-200 flex items-center justify-center text-5xl font-bold text-blue-600 mb-4">
-                    @User.FirstName?[0]@User.LastName?[0]
-                </div>
-                <h2 class="text-xl font-bold text-white">@User.FirstName @User.LastName</h2>
-                <p class="text-blue-100">@User.Role</p>
-            </div>
-        </div>
-
-        <!-- Profile Details -->
-        <div class="p-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Personal Information -->
+@page "/my-account/{id:guid}"
+@inject IJSRuntime js
+@inject IUserService UsersService
+@if (AppState.IsBusy)
+{
+    <Loader/>
+}
+else
+{
+    @if (showSettings)
+    {
+        <AccountSettings 
+            User="@User" 
+            NavigateToProfile="() => showSettings = false"
+            OnPersonalInfoUpdate="HandlePersonalInfoUpdate"
+            OnPasswordChange="HandlePasswordChange"
+            OnPreferencesUpdate="HandlePreferencesUpdate" />
+    }
+    else
+    {
+        <div class="max-w-4xl mx-auto p-4 sm:p-6">
+            <!-- Profile Header -->
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                 <div>
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
-                        Personal Information
-                    </h3>
-                    <div class="space-y-3">
-                        <div>
-                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Full Name</p>
-                            <p class="text-gray-900 dark:text-white">@User.FirstName @User.LastName</p>
+                    <h1 class="text-2xl font-bold text-gray-900 dark:text-white">My Profile</h1>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Member since @User.CreatedAt.ToString("MMMM yyyy")</p>
+                </div>
+                <button @onclick="() => showSettings = true" 
+                        class="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-4 focus:ring-gray-200 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600 dark:focus:ring-gray-700">
+                    <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
+                    </svg>
+                    Account Settings
+                </button>
+            </div>
+
+            <!-- Profile Card -->
+            <div class="bg-white shadow rounded-lg overflow-hidden dark:bg-gray-800">
+                <!-- Avatar Section -->
+                <div class="bg-gradient-to-r from-blue-500 to-purple-600 px-6 py-8">
+                    <div class="flex flex-col items-center">
+                        <div class="w-32 h-32 rounded-full bg-white dark:bg-gray-200 flex items-center justify-center text-5xl font-bold text-blue-600 mb-4">
+                            @User.FirstName?[0]@User.LastName?[0]
                         </div>
-                        <div>
-                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Email Address</p>
-                            <p class="text-gray-900 dark:text-white flex items-center">
-                                <svg class="w-4 h-4 mr-2 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
-                                    <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
-                                </svg>
-                                @User.Email
-                            </p>
-                        </div>
-                        <div>
-                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Phone Number</p>
-                            <p class="text-gray-900 dark:text-white flex items-center">
-                                <svg class="w-4 h-4 mr-2 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/>
-                                </svg>
-                                @(User.PhoneNo ?? "Not provided")
-                            </p>
-                        </div>
+                        <h2 class="text-xl font-bold text-white">@User.FirstName @User.LastName</h2>
+                        <p class="text-blue-100">@User.Role</p>
                     </div>
                 </div>
 
-                <!-- Account Status -->
-                <div>
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
-                        Account Status
-                    </h3>
-                    <div class="space-y-3">
-                        <div class="flex items-center">
-                            <span class="@(User.IsActive ? "text-green-500" : "text-red-500") mr-2">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                </svg>
-                            </span>
-                            <span class="text-gray-900 dark:text-white">Account is @(User.IsActive ? "active" : "inactive")</span>
-                        </div>
-                        <div class="flex items-center">
-                            <span class="@(User.IsVerified == true ? "text-green-500" : "text-gray-400") mr-2">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                </svg>
-                            </span>
-                            <span class="text-gray-900 dark:text-white">@(User.IsVerified == true ? "Verified account" : "Not verified")</span>
-                        </div>
+                <!-- Profile Details -->
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Personal Information -->
                         <div>
-                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">User Role</p>
-                            <span class="@GetRoleBadgeClass(User.Role) text-sm font-medium px-2.5 py-0.5 rounded-full">
-                                @User.Role
-                            </span>
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
+                                Personal Information
+                            </h3>
+                            <div class="space-y-3">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Full Name</p>
+                                    <p class="text-gray-900 dark:text-white">@User.FirstName @User.LastName</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Email Address</p>
+                                    <p class="text-gray-900 dark:text-white flex items-center">
+                                        <svg class="w-4 h-4 mr-2 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
+                                            <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
+                                        </svg>
+                                        @User.Email
+                                    </p>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Phone Number</p>
+                                    <p class="text-gray-900 dark:text-white flex items-center">
+                                        <svg class="w-4 h-4 mr-2 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/>
+                                        </svg>
+                                        @(User.PhoneNo ?? "Not provided")
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Account Status -->
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
+                                Account Status
+                            </h3>
+                            <div class="space-y-3">
+                                <div class="flex items-center">
+                                    <span class="@(User.IsActive ? "text-green-500" : "text-red-500") mr-2">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                        </svg>
+                                    </span>
+                                    <span class="text-gray-900 dark:text-white">Account is @(User.IsActive ? "active" : "inactive")</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="@(User.IsVerified == true ? "text-green-500" : "text-gray-400") mr-2">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                        </svg>
+                                    </span>
+                                    <span class="text-gray-900 dark:text-white">@(User.IsVerified == true ? "Verified account" : "Not verified")</span>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">User Role</p>
+                                    <span class="@GetRoleBadgeClass(User.Role) text-sm font-medium px-2.5 py-0.5 rounded-full">
+                                        @User.Role
+                                    </span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-</div>
+    }   
+}
 
 @code {
     [Parameter]
-    public User User { get; set; } = new();
+    public Guid id { get; set; }    
+    private bool showSettings { get; set; } = false;
+    public User? User { get; set; } = new();
 
     [Parameter]
     public EventCallback NavigateToSettings { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        AppState.IsBusy = true;
+        try
+        {
+            User = await UsersService.GetAsync(id, AppState.GetCancellationToken());
+            if (User == null)
+            {
+                throw new Exception("User not found");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle exceptions, e.g., show a notification or log the error
+            Console.Error.WriteLine($"Error fetching user data: {ex.Message}");
+        }
+        finally
+        {
+            AppState.IsBusy = false;
+        }
+    }
 
     private string GetRoleBadgeClass(UserRole role)
     {
@@ -116,5 +162,66 @@
             UserRole.Management => "bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-300",
             _ => "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300",
         };
+    }
+
+    private async Task HandlePasswordChange(string password)
+    {
+        try
+        {
+            AppState.IsProcessing = true;
+            User.HashedPassword = Security.Encrypt(password);
+            await HandlePersonalInfoUpdate(User);
+            showSettings = false; // Close settings after password change
+        }
+        catch (Exception ex)
+        {
+            // Handle exceptions, e.g., show a notification or log the error
+            Console.Error.WriteLine($"Error changing password: {ex.Message}");
+        }
+        finally
+        {
+            AppState.IsProcessing = false;
+        }
+    }
+
+    private async Task HandlePersonalInfoUpdate(User user)
+    {
+        try
+        {
+            AppState.IsProcessing = true;
+            await UsersService.UpdateAsync(user, AppState.GetCancellationToken());
+            User = user; // Update local User object
+            showSettings = false; // Close settings after update
+        }
+        catch (Exception ex)
+        {
+            // Handle exceptions, e.g., show a notification or log the error
+            Console.Error.WriteLine($"Error updating personal info: {ex.Message}");
+        }
+        finally
+        {
+            AppState.IsProcessing = false;
+        }
+    }
+
+    private async Task HandlePreferencesUpdate(Dictionary<string, object> preferences)
+    {
+        try
+        {
+            AppState.IsProcessing = true;
+            // Assuming UsersService has a method to update preferences
+            @* await UsersService.UpdatePreferencesAsync(id, preferences, AppState.GetCancellationToken()); *@
+            await js.InvokeVoidAsync("console.log", preferences);
+            showSettings = false; // Close settings after update
+        }
+        catch (Exception ex)
+        {
+            // Handle exceptions, e.g., show a notification or log the error
+            Console.Error.WriteLine($"Error updating preferences: {ex.Message}");
+        }
+        finally
+        {
+            AppState.IsProcessing = false;
+        }
     }
 }

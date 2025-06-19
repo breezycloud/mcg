@@ -130,7 +130,7 @@ builder.Services.AddFluentEmail("nerdyamin@gmail.com")
 
 
 var app = builder.Build();
-//await SeedData.EnsureSeeded(app.Services);
+await SeedData.EnsureSeeded(app.Services);
 
 //app.UseResponseCompression();
 // Configure the HTTP request pipeline.
