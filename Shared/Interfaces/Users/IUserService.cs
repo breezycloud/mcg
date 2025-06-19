@@ -9,6 +9,8 @@ public interface IUserService
     Task<bool> AddAsync(User model, CancellationToken cancellationToken);
     Task<bool> UpdateAsync(User model, CancellationToken cancellationToken);
     Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken);
+    
+
     Task<User?> GetAsync(Guid id, CancellationToken cancellationToken);
     Task<User[]?> GetAsync(CancellationToken cancellationToken);
     Task<User[]?> GetAsync(string status, CancellationToken cancellationToken);

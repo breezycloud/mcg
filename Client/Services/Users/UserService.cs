@@ -36,7 +36,7 @@ public class UserService(IHttpClientFactory _httpClient) : IUserService
 
             throw;
         }
-    }
+    }    
     public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken)
     {
         try
