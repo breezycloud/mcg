@@ -3,13 +3,19 @@ using Api.Context;
 using Api.Data;
 using Api.Logging;
 using Api.Services.Dashboards;
+using Api.Services.Messages;
 using Api.Util;
+using FluentEmail.Core;
+using FluentEmail.Core.Interfaces;
+using FluentEmail.MailKitSmtp;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Npgsql;
+using RazorLight;
+using Shared.Helpers;
 using Shared.Interfaces.Dashboards;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -86,6 +92,42 @@ builder.Services.AddHttpClient();
 // builder.Services.AddHostedService<ServerPeriodicJob>();
 builder.Services.AddSingleton<ILoggerProvider, ApplicationLoggerProvider>();
 builder.Services.AddTransient<IDashboardService, DashboardService>();
+
+builder.Services.AddScoped<EmailPublisherService>();
+builder.Services.AddHostedService<EmailConsumerService>();
+
+builder.Services.AddSingleton(sp =>
+{
+    var assembly = typeof(Program).Assembly;
+    var engine = new RazorLightEngineBuilder()
+        .UseEmbeddedResourcesProject(assembly, "Api.EmailTemplates")
+        .UseMemoryCachingProvider()
+        .Build();
+    return engine;
+});
+
+
+var smtp = builder.Configuration?.GetSection(SmtpOption.Key).Get<SmtpOption>();
+
+var client = new SmtpClientOptions()
+{
+    User = smtp?.Email,
+    Password = smtp?.Password,
+    Port = smtp!.Port,
+    Server = smtp?.Host,
+    RequiresAuthentication = true,
+    UseSsl = false
+
+};
+builder.Services.AddSingleton<ISender>(x => new MailKitSender(client));
+
+builder.Services.AddTransient<IFluentEmailFactory, FluentEmailFactory>();
+builder.Services.AddFluentEmail("nerdyamin@gmail.com")
+    .AddRazorRenderer()
+    .AddMailKitSender(client);
+
+
+
 
 var app = builder.Build();
 //await SeedData.EnsureSeeded(app.Services);

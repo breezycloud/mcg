@@ -17,11 +17,10 @@ public class User
     [EmailAddress]
     public string? Email { get; set; }
     [RegularExpression(@"^\d{11}$", ErrorMessage = "Phone number must be exactly 11 digits.")]
-    public string? PhoneNo { get; set; }
-    [Required]
+    public string? PhoneNo { get; set; }    
     public string? HashedPassword { get; set; }
-    public UserRole Role { get; set; }
-    public bool IsActive { get; set; }
+    public UserRole Role { get; set; } = UserRole.Admin;
+    public bool IsActive { get; set; } = true;
     public bool? IsVerified { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? UpdatedAt { get; set; }

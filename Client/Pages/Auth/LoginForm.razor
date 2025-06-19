@@ -93,7 +93,8 @@
                 await CustomAuthenticationProvider.SetTokenAsync(response);
 
                 var userRole = response.Role;
-                Path(userRole);                
+                var path = Path(userRole);                
+                nav.NavigateTo(path, true);
             }
         }
         catch
@@ -109,22 +110,15 @@
         }
     }
     
-    void Path(UserRole userRole)
+    string Path(UserRole userRole)
     {        
-        switch (userRole)
+        string url = userRole switch
         {
-            case UserRole.Supervisor:
-                nav.NavigateTo("/trucks");
-                break;
-            case UserRole.Maintenance:
-                nav.NavigateTo("/requests");
-                break;
-            case UserRole.Monitoring:
-                nav.NavigateTo("/trips");
-                break;
-            default:
-                nav.NavigateTo("/dashboard");
-                break;
-        }
+            UserRole.Supervisor => "/trucks",
+            UserRole.Maintenance => "/requests",
+            UserRole.Monitoring => "/trips",
+            _ => "/dashboard"
+        };       
+        return url;
     }
 }

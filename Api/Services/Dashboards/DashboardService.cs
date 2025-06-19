@@ -93,22 +93,35 @@ public class DashboardService : IDashboardService
 
     public async Task<List<RecentTripDto>> GetRecentTripsAsync(int count, DateOnly? startDate, DateOnly? endDate)
     {
+        _logger.LogWarning($"Trip Start {startDate} end Date {endDate}");
         var trips = await GetFilteredTripsAsync(startDate, endDate);
-        
+        // if (trips is null || trips.Count == 0)
+        // {
+        //     return [];
+        // }
+        _logger.LogWarning($"Trips {trips.Count}");
+        foreach (var trip in trips)
+        {
+            if (trip.Truck is null || trip.Origin is null || trip.Origin.Station is null)
+            {
+                _logger.LogWarning($"Trip {trip.Id} has missing truck or origin station data.");
+                continue;
+            }
+        }
         return trips
             .OrderByDescending(t => t.Date)
             .Take(count)
             .Select(t => new RecentTripDto
             {
-            TruckNumber = t.Truck!.TruckNo,
-            Product = t.Truck.Product!.Value,
-            LoadingPoint = t.Origin!.Station!.Name,
-            Destination = t.Destination!.Station!.Name,
-            Status = t.Status,
-            LoadingDate = t.Date.ToDateTime(TimeOnly.MinValue),
-            TripDurationDays = t.ReturnDate.HasValue
+                TruckNumber = t.Truck!.TruckNo,
+                Product = t.Truck.Product!.Value,
+                LoadingPoint = t.Origin!.Station!.Name,
+                Destination = t.Destination!.Station?.Name,
+                Status = t.Status,
+                LoadingDate = t.Date.ToDateTime(TimeOnly.MinValue),
+                TripDurationDays = t.ReturnDate.HasValue
                 ? (t.ReturnDate.Value.ToDateTime(TimeOnly.MinValue) - t.Date.ToDateTime(TimeOnly.MinValue)).Days
-                : (int?)null
+                : 0,
             })
             .ToList();
     }
@@ -342,12 +355,16 @@ public class DashboardService : IDashboardService
 
     private async Task<List<Trip>> GetFilteredTripsAsync(DateOnly? startDate, DateOnly? endDate)
     {
-        var query = _context.Trips
-            .Include(t => t.Truck)
-            .Include(t => t.Driver)
-            .Include(t => t.Origin).ThenInclude(o => o!.Station)
-            .Include(t => t.Destination).ThenInclude(d => d!.Station)
-            .AsQueryable();
+        var query = _context.Trips.AsNoTracking()
+                                      .Include(x => x.Driver)
+                                      .Include(x => x.Truck)
+                                      .Include(x => x.Origin)
+                                      .ThenInclude(x => x!.Station)
+                                      .Include(x => x.Destination)
+                                      .ThenInclude(x => x.Station)
+                                      .Include(x => x.Discharges)
+                                      .AsSplitQuery()
+                                        .AsQueryable();
 
         if (startDate.HasValue)
             query = query.Where(t => t.Date >= startDate.Value);

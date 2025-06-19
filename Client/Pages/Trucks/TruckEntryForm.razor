@@ -23,99 +23,109 @@
                 <Toast Icon="@alert.Icon" Message="@alert.Message"/>
             }
 
-            <!-- Truck Number -->
-            <div>
-                <label for="truckNo" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                    Truck Number <span class="text-red-500">*</span>
-                </label>
-                <InputText type="text" id="truckNo" @bind-Value="CurrentTruck.TruckNo"
-                    class="@GetInputClass("TruckNo")"
-                    maxlength="20"
-                    placeholder="Enter truck number"
-                    @onchange="@(e => ValidateEntry("TruckNo", e.Value?.ToString() ?? string.Empty))"/>
-                @if (errors.ContainsKey("TruckNo"))
-                {
-                    <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["TruckNo"]</p>
-                }
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <!-- Truck Number -->
+                <div>
+                    <label for="truckNo" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        Truck Number <span class="text-red-500">*</span>
+                    </label>
+                    <InputText type="text" id="truckNo" @bind-Value="CurrentTruck.TruckNo"
+                        class="@GetInputClass("TruckNo")"
+                        maxlength="20"
+                        placeholder="Enter truck number"
+                        @onchange="@(e => ValidateEntry("TruckNo", e.Value?.ToString() ?? string.Empty))"/>
+                    @if (errors.ContainsKey("TruckNo"))
+                    {
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["TruckNo"]</p>
+                    }
+                </div>
+
+                <!-- License Plate -->
+                <div>
+                    <label for="licensePlate" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        License Plate <span class="text-red-500">*</span>
+                    </label>
+                    <InputText type="text" id="licensePlate" @bind-Value="CurrentTruck.LicensePlate"
+                        class="@GetInputClass("LicensePlate")"
+                        maxlength="15"
+                        placeholder="Enter license plate"
+                            @onchange="@(e => ValidateEntry("LicensePlate", e.Value?.ToString() ?? string.Empty))"/>
+                    @if (errors.ContainsKey("LicensePlate"))
+                    {
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["LicensePlate"]</p>
+                    }
+                </div>
             </div>
 
-            <!-- License Plate -->
-            <div>
-                <label for="licensePlate" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                    License Plate <span class="text-red-500">*</span>
-                </label>
-                <InputText type="text" id="licensePlate" @bind-Value="CurrentTruck.LicensePlate"
-                    class="@GetInputClass("LicensePlate")"
-                    maxlength="15"
-                    placeholder="Enter license plate"
-                        @onchange="@(e => ValidateEntry("LicensePlate", e.Value?.ToString() ?? string.Empty))"/>
-                @if (errors.ContainsKey("LicensePlate"))
-                {
-                    <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["LicensePlate"]</p>
-                }
+           
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <!-- Manufacturer -->
+                <div>
+                    <label for="manufacturer" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        Manufacturer <span class="text-red-500">*</span>
+                    </label>
+                    <InputText type="text" id="manufacturer" @bind-Value="CurrentTruck.Manufacturer"
+                        class="@GetInputClass("Manufacturer")"
+                        maxlength="50"
+                        placeholder="Enter manufacturer"/>
+                    @if (errors.ContainsKey("Manufacturer"))
+                    {
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["Manufacturer"]</p>
+                    }
+                </div>
+
+                <!-- Color -->
+                <div>
+                    <label for="color" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        Color
+                    </label>
+                    <InputText type="text" id="color" @bind-Value="CurrentTruck.Color"
+                        class="@GetInputClass("Color")"
+                        maxlength="20"
+                        placeholder="Enter color"/>
+                    @if (errors.ContainsKey("Color"))
+                    {
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["Color"]</p>
+                    }
+                </div>
             </div>
 
-            <!-- Manufacturer -->
-            <div>
-                <label for="manufacturer" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                    Manufacturer <span class="text-red-500">*</span>
-                </label>
-                <InputText type="text" id="manufacturer" @bind-Value="CurrentTruck.Manufacturer"
-                    class="@GetInputClass("Manufacturer")"
-                    maxlength="50"
-                    placeholder="Enter manufacturer"/>
-                @if (errors.ContainsKey("Manufacturer"))
-                {
-                    <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["Manufacturer"]</p>
-                }
-            </div>
+             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <!-- VIN -->
+                <div>
+                    <label for="vin" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        VIN <span class="text-red-500">*</span>
+                    </label>
+                    <InputText type="text" id="vin" @bind-Value="CurrentTruck.VIN"
+                        class="@GetInputClass("VIN")"
+                        maxlength="30"
+                        placeholder="Enter VIN"
+                        @onchange="@(e => ValidateEntry("VIN", e.Value?.ToString() ?? string.Empty))"/>
+                    @if (errors.ContainsKey("VIN"))
+                    {
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["VIN"]</p>
+                    }
+                </div>
 
-            <!-- Color -->
-            <div>
-                <label for="color" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                    Color
-                </label>
-                <InputText type="text" id="color" @bind-Value="CurrentTruck.Color"
-                    class="@GetInputClass("Color")"
-                    maxlength="20"
-                    placeholder="Enter color"/>
-                @if (errors.ContainsKey("Color"))
-                {
-                    <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["Color"]</p>
-                }
-            </div>
+                <!-- Engine Number -->
+                <div>
+                    <label for="engineNo" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        Engine Number
+                    </label>
+                    <InputText type="text" id="engineNo" @bind-Value="CurrentTruck.EngineNo"
+                        class="@GetInputClass("EngineNo")"
+                        maxlength="30"
+                        placeholder="Enter engine number"
+                        @onchange="@(e => ValidateEntry("EngineNo", e.Value?.ToString() ?? string.Empty))" />
+                    @if (errors.ContainsKey("EngineNo"))
+                    {
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["EngineNo"]</p>
+                    }
+                </div>
+             </div>
+           
 
-            <!-- VIN -->
-            <div>
-                <label for="vin" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                    VIN <span class="text-red-500">*</span>
-                </label>
-                <InputText type="text" id="vin" @bind-Value="CurrentTruck.VIN"
-                    class="@GetInputClass("VIN")"
-                    maxlength="30"
-                    placeholder="Enter VIN"
-                    @onchange="@(e => ValidateEntry("VIN", e.Value?.ToString() ?? string.Empty))"/>
-                @if (errors.ContainsKey("VIN"))
-                {
-                    <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["VIN"]</p>
-                }
-            </div>
-
-            <!-- Engine Number -->
-            <div>
-                <label for="engineNo" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                    Engine Number
-                </label>
-                <InputText type="text" id="engineNo" @bind-Value="CurrentTruck.EngineNo"
-                    class="@GetInputClass("EngineNo")"
-                    maxlength="30"
-                    placeholder="Enter engine number"
-                    @onchange="@(e => ValidateEntry("EngineNo", e.Value?.ToString() ?? string.Empty))" />
-                @if (errors.ContainsKey("EngineNo"))
-                {
-                    <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["EngineNo"]</p>
-                }
-            </div>
+           
 
             <!-- Product Type -->
             <div>
@@ -133,6 +143,10 @@
                 {
                     <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["Type"]</p>
                 }
+            </div>
+
+            <div>
+                <FileUploadView/>
             </div>
 
             <!-- Dates (Display only when editing) -->
@@ -191,7 +205,10 @@
         // Load driver
         AppState.IsBusy = true;
         if (Id.HasValue)        
+        {
             CurrentTruck = await TruckService.GetAsync(Id!.Value, AppState.GetCancellationToken()) ?? new();
+            EditMode = true;
+        }
         AppState.IsBusy = false;
     }
 
@@ -258,20 +275,41 @@
         }
         else
         {
-            await ValidateEntry("TruckNo", CurrentTruck.TruckNo);
+            @if (EditMode)
+            {
+                // If editing, validate the truck number against existing records
+                if (CurrentTruck.TruckNo != CurrentTruck.OriginalTruckNo)
+                {
+                    await ValidateEntry("TruckNo", CurrentTruck.TruckNo);
+                }
+            }
+            else
+            {
+                // If adding a new truck, validate the truck number
+                await ValidateEntry("TruckNo", CurrentTruck.TruckNo);
+            }            
         }
 
         if (string.IsNullOrWhiteSpace(CurrentTruck.LicensePlate))
         {
             errors["LicensePlate"] = "License plate is required";
         }
-        else if (CurrentTruck.LicensePlate.Length > 15)
-        {
-            errors["LicensePlate"] = "License plate cannot exceed 15 characters";
-        }
+    
         else
         {
-            await ValidateEntry("LicensePlate", CurrentTruck.LicensePlate);
+            @if (EditMode)
+            {
+                // If editing, validate the License number against existing records
+                if (CurrentTruck.LicensePlate != CurrentTruck.OriginalLicensePlate)
+                {
+                    await ValidateEntry("LicensePlate", CurrentTruck.LicensePlate);
+                }
+            }
+            else
+            {
+                // If adding a new truck, validate the License number
+                await ValidateEntry("LicensePlate", CurrentTruck.LicensePlate);
+            }        
         }
 
         if (!string.IsNullOrWhiteSpace(CurrentTruck.Manufacturer) && CurrentTruck.Manufacturer.Length > 50)
@@ -290,16 +328,44 @@
         }
         else
         {
-            await ValidateEntry("VIN", CurrentTruck.VIN!);
+            @if (EditMode)
+            {
+                // If editing, validate the VIN against existing records
+                if (CurrentTruck.VIN != CurrentTruck.OriginalVIN)
+                {
+                    await ValidateEntry("VIN", CurrentTruck.VIN);
+                }
+            }
+            else
+            {
+                // If adding a new truck, validate the VIN
+                await ValidateEntry("VIN", CurrentTruck.VIN);
+            }
+        }
+        if (string.IsNullOrWhiteSpace(CurrentTruck.Product.ToString()))
+        {
+            errors["Type"] = "Product type is required";
         }
 
-        if (!string.IsNullOrWhiteSpace(CurrentTruck.EngineNo) && CurrentTruck.EngineNo.Length > 30)
+        if (string.IsNullOrWhiteSpace(CurrentTruck.EngineNo))
         {
             errors["EngineNo"] = "Engine number cannot exceed 30 characters";
         }
         else
         {
-            await ValidateEntry("EngineNo", CurrentTruck.EngineNo!);
+            @if (EditMode)
+            {
+                // If editing, validate the EngineNo against existing records
+                if (CurrentTruck.EngineNo != CurrentTruck.OriginalEngineNo)
+                {
+                    await ValidateEntry("EngineNo", CurrentTruck.EngineNo);
+                }
+            }
+            else
+            {
+                // If adding a new truck, validate the EngineNo
+                await ValidateEntry("EngineNo", CurrentTruck.EngineNo);
+            }
         }
 
         if (errors.Any())

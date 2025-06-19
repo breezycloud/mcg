@@ -36,10 +36,10 @@ public class ProductShipmentDto
 
 public class RecentTripDto
 {
-    public string TruckNumber { get; set; }
+    public string? TruckNumber { get; set; }
     public Product Product { get; set; }
-    public string LoadingPoint { get; set; }
-    public string Destination { get; set; }
+    public string? LoadingPoint { get; set; }
+    public string? Destination { get; set; }
     public TripStatus Status { get; set; }
     public DateTime LoadingDate { get; set; }
     public int? TripDurationDays { get; set; }

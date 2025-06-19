@@ -1,0 +1,149 @@
+<!-- Pure Flowbite Modal Component -->
+<div id="checkpoint-modal" tabindex="-1" aria-hidden="@(!IsVisible)" 
+     class="@(IsVisible ? "flex" : "hidden") fixed top-0 left-0 right-0 z-50 w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full justify-center items-center bg-opacity-50">
+    <div class="relative w-full max-w-2xl max-h-full">
+        <!-- Modal content -->
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <!-- Modal header -->
+            <div class="flex items-start justify-between p-4 border-b rounded-t dark:border-gray-600">
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
+                    @(EditMode  ? "Edit Checkpoint" : "Add New Checkpoint")
+                </h3>
+                <button type="button" @onclick="CloseCheckpointModal"
+                        class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white">
+                    <svg aria-hidden="true" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span class="sr-only">Close modal</span>
+                </button>
+            </div>
+            
+            <!-- Modal body -->
+            <div class="p-6 space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="location" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Location</label>
+                        <input type="text" id="location" maxlength="100" @bind="Data.Location"
+                               class="@GetInputClass(nameof(Data.Location))">
+                        @if (errors.ContainsKey("Location"))
+                        {
+                            <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["Location"]</p>
+                        }
+                    </div>
+                    <div>
+                        <label for="quantity-discharged" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Quantity Discharged</label>
+                        <input type="number" id="quantity-discharged" step="0.01" 
+                            @bind="Data.QuantityDischarged"
+                            max="@InitialQuantity"
+                            class="@GetInputClass(nameof(Data.QuantityDischarged))">
+                        @if (errors.ContainsKey("QuantityDischarged"))
+                        {
+                            <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["QuantityDischarged"]</p>
+                        }
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="discharge-start-time" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Discharge Start Time</label>
+                        <input type="datetime-local" id="discharge-start-time" @bind="Data.DischargeStartTime"
+                               class="@GetInputClass(nameof(Data.DischargeStartTime))">
+                    </div>
+                    <div class="flex items-center space-x-2 mt-6">
+                        <input type="checkbox" id="is-final-discharge" @bind="Data.IsFinalDischarge"
+                               class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                        <label for="is-final-discharge" class="text-sm font-medium text-gray-900 dark:text-white">Final Discharge</label>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="notes" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notes</label>
+                    <textarea id="notes" rows="3" maxlength="500" @bind="Data.Notes"
+                              class="@GetInputClass(nameof(Data.Notes))"></textarea>
+                </div>
+            </div>
+            
+            <!-- Modal footer -->
+            <div class="flex items-center p-6 space-x-2 border-t border-gray-200 rounded-b dark:border-gray-600">
+                <button @onclick="CloseCheckpointModal" type="button"
+                        class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-blue-300 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600">
+                    Cancel
+                </button>
+                <button @onclick="SaveCheckpoint" type="button"
+                        class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                    @(EditMode  ? "Add Checkpoint" : "Save Changes")
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+@code {
+    [Parameter]
+    public bool IsVisible { get; set; } = false;
+    [Parameter]
+    public decimal InitialQuantity { get; set; }
+
+    [Parameter]
+    public bool EditMode { get; set; } = false;
+    [Parameter]
+    public Discharge Data { get; set; } = new();
+    private Discharge? editingDischarge;
+    private bool showDeleteDischargeModal = false;
+    private Discharge? checkpointToDelete;
+    [Parameter]
+    public EventCallback<Discharge> OnSave { get; set; }
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    private Dictionary<string, string> errors = new();
+
+    private string GetInputClass(string fieldName)
+    {
+        var baseClass = "bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500";
+        
+        if (errors.ContainsKey(fieldName))
+        {
+            baseClass += " border-red-500 bg-red-50 dark:bg-red-900 dark:border-red-700";
+        }
+        else
+        {
+            baseClass += " border-gray-300";
+        }
+        
+        return baseClass;
+    }
+
+    private async Task SaveCheckpoint()
+    {
+        errors.Clear();
+        if (string.IsNullOrEmpty(Data.Location))
+        {
+            errors[nameof(Data.Location)] = "Location is required.";
+        }
+        if (Data.QuantityDischarged <= 0)
+        {
+            errors[nameof(Data.QuantityDischarged)] = "Quantity discharged must be greater than zero.";
+        }
+        if (Data.DischargeStartTime == default)
+        {
+            errors[nameof(Data.DischargeStartTime)] = "Discharge start time is required.";
+        }
+        if (errors.Count > 0)
+        {
+            StateHasChanged();
+            await Task.Delay(100); // Allow UI to update before returning
+            return; // Validation failed, do not proceed
+        }
+        Data.Location = StringConverter.ConvertToTitleCase(Data.Location);
+        if (!string.IsNullOrEmpty(Data!.Notes))
+            Data.Notes = StringConverter.ConvertToTitleCase(Data.Notes);
+        await OnSave.InvokeAsync(Data);
+    }
+
+    private async Task CloseCheckpointModal()
+    {
+        IsVisible = false;        
+        EditMode = false;
+        await OnClose.InvokeAsync();
+    }
+}

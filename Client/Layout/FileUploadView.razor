@@ -1,0 +1,228 @@
+@using System.IO
+@using System.Linq
+
+<div>
+    <!-- Label -->
+    <label for="@Model.InputId" 
+           class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+        @Model.Label
+    </label>
+
+    <!-- File Input -->
+    <InputFile 
+           id="@Model.InputId"
+           type="file"
+           class="@GetInputClasses()"
+           multiple="@Model.Multiple"
+           accept="@Model.Accept"
+           OnChange="@HandleFileSelection"
+           disabled="@Model.IsUploading" />
+
+    <!-- Error Message -->
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <p class="mt-1 text-sm text-red-600 dark:text-red-500">@Model.ErrorMessage</p>
+    }
+
+    <!-- Selected Files Preview -->
+    @if (Model.Files.Any())
+    {
+        <div class="mt-4 space-y-2">
+            <h4 class="text-sm font-medium text-gray-900 dark:text-white">
+                Selected Files (@Model.Files.Count)
+            </h4>
+            
+            <ul class="divide-y divide-gray-200 dark:divide-gray-700">
+                @foreach (var file in Model.Files)
+                {
+                    <li class="py-2">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-2">
+                                <!-- File Icon -->
+                                <div class="flex-shrink-0">
+                                    <FileIcon ContentType="@file.ContentType" />
+                                </div>
+                                
+                                <!-- File Info -->
+                                <div>
+                                    <p class="text-sm font-medium text-gray-900 dark:text-white truncate max-w-xs">
+                                        @file.FileName
+                                    </p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                                        @file.FormattedSize
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <!-- Remove Button -->
+                            <button type="button" 
+                                    @onclick="() => RemoveFile(file.Id)"
+                                    class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <!-- Upload Progress -->
+                        @if (Model.IsUploading)
+                        {
+                            <div class="mt-1 w-full bg-gray-200 rounded-full h-1.5 dark:bg-gray-700">
+                                <div class="bg-blue-600 h-1.5 rounded-full" style="width: @(file.Error != null ? "0%" : "50%")"></div>
+                            </div>
+                        }
+                        
+                        <!-- Error Message -->
+                        @if (file.Error != null)
+                        {
+                            <p class="mt-1 text-xs text-red-600 dark:text-red-500">@file.Error</p>
+                        }
+                    </li>
+                }
+            </ul>
+        </div>
+    }
+
+    <!-- Upload Button -->
+    @if (Model.Files.Any() && !Model.IsUploading)
+    {
+        <div class="mt-4">
+            <button type="button"
+                    @onclick="UploadFiles"
+                    class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">
+                Upload @(Model.Files.Count > 1 ? "Files" : "File")
+            </button>
+        </div>
+    }
+</div>
+
+@code {
+    private ElementReference fileInput;
+    
+    [Parameter]
+    public FileUploadModel Model { get; set; } = new();
+
+    // Events
+    public EventCallback<List<UploadedFile>> OnFilesSelected { get; set; }
+    public EventCallback<List<UploadedFile>> OnFilesUploaded { get; set; }
+
+    private string GetInputClasses()
+    {
+        var baseClasses = "block w-full text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400";
+        
+        return Model.Size switch
+        {
+            "small" => $"{baseClasses} text-xs mb-5",
+            "large" => $"{baseClasses} text-lg p-4",
+            _ => $"{baseClasses} text-sm" // default
+        };
+    }
+
+    private async Task HandleFileSelection(InputFileChangeEventArgs e)
+    {
+        Model.ErrorMessage = "";
+        Model.Files.Clear();
+
+        var files = e.GetMultipleFiles(maximumFileCount: Model.Multiple ? 10 : 1);
+        
+        foreach (var file in files)
+        {
+            var uploadedFile = new UploadedFile
+            {
+                FileName = file.Name,
+                ContentType = file.ContentType,
+                Size = file.Size,
+                FileStream = file.OpenReadStream(Model.MaxFileSizeBytes)
+            };
+
+            // Validate file
+            var validationError = ValidateFile(uploadedFile);
+            if (validationError != null)
+            {
+                uploadedFile.Error = validationError;
+            }
+            else if (IsImageFile(file.ContentType))
+            {
+                // Generate preview for images
+                uploadedFile.PreviewUrl = await GenerateImagePreview(file);
+            }
+
+            Model.Files.Add(uploadedFile);
+        }
+
+        await OnFilesSelected.InvokeAsync(Model.Files);
+    }
+
+    private string? ValidateFile(UploadedFile file)
+    {
+        // Check file size
+        if (file.Size > Model.MaxFileSizeBytes)
+        {
+            var maxSizeMb = Model.MaxFileSizeBytes / (1024 * 1024);
+            return $"File exceeds maximum size of {maxSizeMb}MB";
+        }
+
+        // Check file extension
+        if (Model.AllowedExtensions.Any())
+        {
+            var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
+            if (!Model.AllowedExtensions.Contains(fileExtension))
+            {
+                return $"Allowed extensions: {string.Join(", ", Model.AllowedExtensions)}";
+            }
+        }
+
+        return null;
+    }
+
+    private bool IsImageFile(string contentType)
+    {
+        return contentType.StartsWith("image/");
+    }
+
+    private async Task<string> GenerateImagePreview(IBrowserFile file)
+    {
+        var resizedImage = await file.RequestImageFileAsync(file.ContentType, 100, 100);
+        var buffer = new byte[resizedImage.Size];
+        await resizedImage.OpenReadStream().ReadAsync(buffer);
+        return $"data:{file.ContentType};base64,{Convert.ToBase64String(buffer)}";
+    }
+
+    private void RemoveFile(string fileId)
+    {
+        var fileToRemove = Model.Files.FirstOrDefault(f => f.Id == fileId);
+        if (fileToRemove != null)
+        {
+            Model.Files.Remove(fileToRemove);
+        }
+    }
+
+    private async Task UploadFiles()
+    {
+        Model.IsUploading = true;
+        Model.ErrorMessage = "";
+        
+        try
+        {
+            // Here you would typically upload files to your server
+            // For demonstration, we'll just simulate an upload
+            await Task.Delay(1500); // Simulate upload
+            
+            // Clear any previous errors
+            foreach (var file in Model.Files)
+            {
+                file.Error = null;
+            }
+            
+            //await Model.OnFilesUploaded.InvokeAsync(Model.Files);
+        }
+        catch (Exception ex)
+        {
+            Model.ErrorMessage = $"Upload failed: {ex.Message}";
+        }
+        finally
+        {
+            Model.IsUploading = false;
+        }
+    }
+}

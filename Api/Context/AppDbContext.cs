@@ -32,6 +32,7 @@ public class AppDbContext : DbContext
     public virtual DbSet<TripCheckpoint> TripCheckpoints { get; set; } = default!;
     public virtual DbSet<Origin> TripOrigins { get; set; } = default!;
     public virtual DbSet<Destination> TripDestinations { get; set; } = default!;
+    public virtual DbSet<Discharge> Discharges { get; set; } = default!;
     public virtual DbSet<Truck> Trucks { get; set; } = default!;
     public virtual DbSet<IoT> IoTs { get; set; } = default!;
     public virtual DbSet<RefuelInfo> RefuelInfos { get; set; } = default!;

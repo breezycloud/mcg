@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Login Details</title>
+    <style type="text/css">
+        body { 
+            font-family: Arial, sans-serif; 
+            line-height: 1.6; 
+            color: #333; 
+            max-width: 600px; 
+            min-width: 500px;
+            margin: 0 auto; 
+            padding: 20px; 
+        }
+        .container {
+            background-color: #f4f4f4;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .logo {
+            max-width: 200px; 
+            margin: 0 auto 20px;
+            display: block;
+        }
+        .header {
+            background-color: #4CAF50;
+            color: white;
+            text-align: center;
+            padding: 15px;
+            border-radius: 8px 8px 0 0;
+        }
+        .content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 0 0 8px 8px;
+        }
+        .button {
+            display: inline-block;
+            background-color: #4CAF50;
+            color: white !important;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .footer {
+            text-align: center;
+            font-size: 0.8em;
+            color: #777;
+            margin-top: 20px;
+        }
+        .details-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .details-table td {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        .details-table td.label {
+            font-weight: bold;
+            width: 150px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="content">
+            <p>Dear @Model.Name,</p>
+            
+            <p>Your account has been registered. Below are your login details:</p>
+            
+            <table class="details-table">
+                <tr>
+                    <td class="label">Email:</td>
+                    <td>@Model.Email</td>
+                </tr>
+                <tr>
+                    <td class="label">Password:</td>
+                    <td>@Model.Password</td>
+                </tr>
+                <tr>
+                    <td class="label">Portal Link:</td>
+                    <td><a href="@Model.PortalUrl">@Model.PortalUrl</a></td>
+                </tr>
+            </table>
+            
+            <p>Please log in using the above credentials. For security, we recommend changing your password after your first login.</p>
+            
+            <p>If you have any questions or need assistance, please contact our support team at @Model.SupportEmail.</p>
+            
+            <p>Best regards,<br>
+            The MCG Team</p>
+        </div>
+        <div class="footer">
+            <p>&copy; @DateTime.Now.Year MCG. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

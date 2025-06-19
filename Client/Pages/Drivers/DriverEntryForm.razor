@@ -129,7 +129,10 @@
         // Load driver
         AppState.IsBusy = true;
         if (Id.HasValue)        
+        {
             CurrentDriver = await DriverService.GetAsync(Id.Value, AppState.GetCancellationToken());
+            EditMode = true;
+        }
         AppState.IsBusy = false;
     }
 

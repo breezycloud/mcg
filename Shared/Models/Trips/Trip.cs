@@ -26,6 +26,7 @@ public class Trip
     public bool ArrivedAtATV { get; set; } = false;
     public string? LocationAtv { get; set; }
     public DateTimeOffset? ATVArrivalDate { get; set; }
+    public DateTimeOffset? InvoiceDate { get; set; }
     public DateOnly? ReturnDate { get; set; }
     public string? Notes { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
@@ -37,6 +38,7 @@ public class Trip
     public virtual Origin? Origin { get; set; }
     public virtual Destination? Destination { get; set; }
     public virtual ICollection<TripCheckpoint>? Checkpoints { get; set; } = [];
+    public virtual ICollection<Discharge> Discharges { get; set; } = [];
    
     public int CalculateTripDuration(DateOnly createdDate, DateOnly? returnDate)
     {
