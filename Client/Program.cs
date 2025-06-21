@@ -55,10 +55,10 @@ string uri = string.Empty;
 #else
             uri = Constants.ProdBaseAddress;
 #endif
-builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(uri) });
 builder.Services.AddHttpClient(Constants.Url, http =>
 {
-    http.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress);
+    http.BaseAddress = new Uri(uri);
 }).AddHttpMessageHandler<CustomAuthorizationHandler>()
 .AddTransientHttpErrorPolicy(policyBuilder =>
         policyBuilder.WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)))
