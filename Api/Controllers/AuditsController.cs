@@ -40,7 +40,7 @@ public class AuditsController : ControllerBase
 
             response.Total = await query.CountAsync();
             response.Data = [];
-            var pagedQuery = query.OrderByDescending(x => x.Timestamp).Skip(request.Page).Take(request.PageSize).AsAsyncEnumerable();
+            var pagedQuery = query.OrderByDescending(x => x.Timestamp).Skip(request.Paging).Take(request.PageSize).AsAsyncEnumerable();
 
             await foreach (var item in pagedQuery)
             {

@@ -189,7 +189,7 @@
                                         @Trip.Destination.DischargedQuantity @Trip.Destination.DischargedUnit
                                     </p>
                                     <p class="text-xs text-gray-500 dark:text-gray-400">
-                                        @Trip.Destination.DischargeLocation
+                                        @Trip.Destination.Station?.Name
                                     </p>
                                     @if (Trip.Destination.HasShortage ?? false)
                                     {

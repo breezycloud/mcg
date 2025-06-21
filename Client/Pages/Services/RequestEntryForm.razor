@@ -158,9 +158,21 @@
             Cancel
             </button>
             <button type="submit"
-                class="px-5 py-2.5 text-sm font-medium text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
-            @(EditMode ? "Update Request" : "Add Request")
-            </button>
+                    class="px-5 py-2.5 text-sm font-medium text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800 flex items-center justify-center min-w-[120px]"
+                    disabled="@AppState.IsProcessing">
+                    @if (AppState.IsProcessing)
+                    {
+                        <svg class="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                        </svg>
+                        @("Processing...")
+                    }
+                    else
+                    {
+                        @(EditMode ? "Update Request" : "Add Request")
+                    }
+                </button>           
         </div>
     </EditForm>    
    }
@@ -253,12 +265,12 @@
                 CurrentRequest.TreatedById = userId;
                 result = await RequestService.UpdateAsync(CurrentRequest, AppState.GetCancellationToken());
             }
-
-            alert = new($"Request Successfully {(EditMode ? "Updated" : "Added")}", ToastIcon.Succees);
-            if (result)            
+          
+            if (result)
             {
-                Cancel();
-            }
+                ToastService.ShowSuccess($"Request Successfully {(EditMode ? "Updated" : "Added")}", 5);
+                 Cancel();
+            }          
         }
         catch (Exception ex)
         {

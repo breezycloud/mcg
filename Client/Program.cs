@@ -39,6 +39,7 @@ using Shared.Interfaces.RefuelInfos;
 using Client.Services.RefuelInfos;
 using Shared.Interfaces.Discharges;
 using Client.Services.Discharges;
+using ApexCharts;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
@@ -76,6 +77,14 @@ builder.Services.AddTransient<CustomAuthorizationHandler>();
 // });
 
 // builder.Services.AddM
+builder.Services.AddApexCharts(e =>
+{
+    e.GlobalOptions = new ApexChartBaseOptions
+    {
+        Debug = true,
+        Theme = new Theme { Palette = PaletteType.Palette6 }
+    };
+});
 builder.Services.AddScoped<IFlowbiteService, FlowbiteService>();
 builder.Services.AddScoped<AppState>();
 
@@ -100,6 +109,6 @@ builder.Services.AddHttpClient<ILocationService, LocationService>(client =>
 });
 
 
-builder.Services.AddScoped<ToastService>();
+builder.Services.AddSingleton<ToastService>();
 
 await builder.Build().RunAsync();

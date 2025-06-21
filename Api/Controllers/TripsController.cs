@@ -8,6 +8,8 @@ using Microsoft.EntityFrameworkCore;
 using Api.Context;
 using Shared.Models.Trips;
 using Shared.Helpers;
+using Shared.Dtos;
+using System.Text;
 
 namespace Api.Controllers;
 
@@ -20,8 +22,65 @@ public class TripsController : ControllerBase
     public TripsController(AppDbContext context)
     {
         _context = context;
+
     }
 
+    [HttpPost("report")]
+    public async Task<IActionResult> ExportReport([FromBody]ReportFilter request, CancellationToken cancellationToken = default)
+    {
+        // Build date range for selected months in the given year        
+        var query = _context.Trips
+            .Include(x => x.Driver)
+            .Include(x => x.Truck)
+            .Include(x => x.Origin)
+            .ThenInclude(x => x!.Station)
+            .Include(x => x.Destination)
+            .ThenInclude(x => x.Station)
+            .Include(x => x.Discharges)
+            .Where(x => x.Date.Month == request.StartDate.Month && x.Date.Year == request.StartDate.Year)
+            .AsSplitQuery()
+            .AsQueryable();
+
+        if (request.EndDate.HasValue)
+        {
+            query = query.Where(x => x.Date <= request.EndDate.Value);
+        }
+
+        if (request.Id.HasValue)
+        {
+            query = query.Where(x => x.Origin!.StationId == request.Id);
+        }
+
+        var csv = new StringBuilder();
+        csv.AppendLine("Date,Dispatch Id,Truck Number,Product,Status,Loading Point,Waybill No,Dispatch Quantity,Driver Name,Destination,Elock Status,Arrived At ATV,ATV Arrival Date,Arrived At Station,Station Arrival Date,Discharged,Discharge Location,Discharged Date,Discharged Quantity,Discharged Unit,Has Shortage,Shortage Amount,Return Date,Duration Days,Discharge Summary,Notes");
+
+
+
+        var trips = await query.OrderByDescending(x => x.CreatedAt).ToListAsync(cancellationToken);
+
+        var report = TripMapper.ToExportDto(trips);
+        foreach (var s in report)
+        {
+            csv.AppendLine($"{EscapeCsv(s.Date.ToString("dd/MM/yyyy"))},{EscapeCsv(s.DispatchId)},{EscapeCsv(s.TruckPlate)},{EscapeCsv(s.Product)},{EscapeCsv(s.Status)},{EscapeCsv(s.LoadingPoint)},{EscapeCsv(s.WaybillNo)},{EscapeCsv(s.DispatchQuantity.ToString())},{EscapeCsv(s.DriverName)},{EscapeCsv(s.Dest)},{EscapeCsv(s.ElockStatus)},{EscapeCsv(s.ArrivedAtATV)},{EscapeCsv(s.AtvArrivalDate)},{EscapeCsv(s.ArrivedAtStation)},{EscapeCsv(s.StationArrivalDate)},{EscapeCsv(s.Discharged)},{EscapeCsv(s.DischargeLocation)},{EscapeCsv(s.DischargedDate)},{s.DischargedQuantity},{EscapeCsv(s.DischargedUnit)},{EscapeCsv(s.HasShortage)},{s.ShortageAmount},{EscapeCsv(s.ReturnDate)},{s.DurationDays},{EscapeCsv(s.DischargeSummary)},{EscapeCsv(s.Notes)}");
+        }       
+        var bytes = Encoding.UTF8.GetBytes(csv.ToString());
+        var stream = new MemoryStream(bytes);
+
+        return new FileStreamResult(stream, "text/csv")
+        {
+            FileDownloadName = $"Loading from {request.StartDate:MMMM-yyyy} {(request.EndDate.HasValue ? $"to {request.EndDate:MMMM-yyyy}" : "")}.csv"
+        };
+
+        
+    }
+
+    private string EscapeCsv(string? value)
+    {
+        if (string.IsNullOrEmpty(value)) return "";
+        if (value.Contains(',') || value.Contains('"') || value.Contains('\n'))
+            return $"\"{value.Replace("\"", "\"\"")}\"";
+        return value;
+    }
 
      // POST: api/Paged
     [HttpPost("paged")]
@@ -62,7 +121,7 @@ public class TripsController : ControllerBase
 
             response.Total = await query.CountAsync();
             response.Data = [];
-            var pagedQuery = query.OrderByDescending(x => x.CreatedAt).ThenByDescending(x => x.UpdatedAt).Skip(request.Page).Take(request.PageSize).AsAsyncEnumerable();
+            var pagedQuery = query.OrderByDescending(x => x.CreatedAt).ThenByDescending(x => x.UpdatedAt).Skip(request.Paging).Take(request.PageSize).AsAsyncEnumerable();
 
             await foreach (var item in pagedQuery)
             {

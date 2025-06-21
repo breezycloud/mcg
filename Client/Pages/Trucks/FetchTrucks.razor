@@ -95,11 +95,6 @@
                                                 class="font-medium text-blue-600 dark:text-blue-400 hover:underline">
                                                 Edit
                                             </button>
-                                            @* <button 
-                                                @onclick="() => DeleteTruck(truck.Id)" 
-                                                class="font-medium text-red-600 dark:text-red-500 hover:underline">
-                                                Delete
-                                            </button> *@
                                         </div>
                                     </td>
                                 </tr>
@@ -160,8 +155,7 @@
     
 
     protected override async Task OnInitializedAsync()
-    {
-        request = new GridDataRequest { Page = 0, PageSize = 10};
+    {        
         await LoadTrucks();
     }
 
@@ -181,7 +175,7 @@
     {
         AppState.IsBusy = true;
         try 
-        {
+        {            
             response = await TruckService.GetPagedAsync(request, AppState.GetCancellationToken());
         }
         finally

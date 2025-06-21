@@ -282,6 +282,34 @@
             {
                 <!-- Discharge/Shortage Tab -->
                 <div class="space-y-4">
+                     <div class="mb-6 flex flex-col sm:flex-row justify-between gap-4">
+                            <!-- Discharge Count Indicator -->
+                            @if (Trip.Discharges != null && Trip.Discharges.Count > 0)
+                            {
+                                <div class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
+                                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2a4 4 0 0 1 8 0v2M5 11V7a7 7 0 0 1 14 0v4M12 19v2m-6-6h12" />
+                                    </svg>
+                                    <span>@Trip.Discharges.Count discharge@(Trip.Discharges.Count > 1 ? "s" : "")</span>
+                                    <button @onclick="() => viewDischargesModal = true"
+                                            class="ml-2 px-3 py-1 text-xs font-medium text-blue-700 bg-blue-100 rounded hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-300 dark:hover:bg-blue-800">
+                                        View Discharges
+                                    </button>
+                                </div>
+                            }
+                        
+                           @if (!Trip.Discharges!.Any(x=> x.IsFinalDischarge))
+                           {
+                                <button @onclick="ShowAddDischargeModal"
+                                        class="flex items-center justify-center text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">
+                                    <svg class="w-4 h-4 mr-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 18 18">
+                                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 1v16M1 9h16"/>
+                                    </svg>
+                                    Add Discharge
+                                </button>
+                           }
+                        </div>      
+                        
                     <div class="flex items-center">
                         <input id="discharged-checkbox" type="checkbox" @bind="Trip!.Destination!.IsDischarged" 
                                class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
@@ -366,33 +394,7 @@
                             </div> 
                         </div>
 
-                        <div class="mb-6 flex flex-col sm:flex-row justify-between gap-4">
-                            <!-- Discharge Count Indicator -->
-                            @if (Trip.Discharges != null && Trip.Discharges.Count > 0)
-                            {
-                                <div class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
-                                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2a4 4 0 0 1 8 0v2M5 11V7a7 7 0 0 1 14 0v4M12 19v2m-6-6h12" />
-                                    </svg>
-                                    <span>@Trip.Discharges.Count discharge@(Trip.Discharges.Count > 1 ? "s" : "")</span>
-                                    <button @onclick="() => viewDischargesModal = true"
-                                            class="ml-2 px-3 py-1 text-xs font-medium text-blue-700 bg-blue-100 rounded hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-300 dark:hover:bg-blue-800">
-                                        View Discharges
-                                    </button>
-                                </div>
-                            }
-                        
-                           @if (!Trip.Discharges!.Any(x=> x.IsFinalDischarge))
-                           {
-                                <button @onclick="ShowAddDischargeModal"
-                                        class="flex items-center justify-center text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">
-                                    <svg class="w-4 h-4 mr-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 18 18">
-                                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 1v16M1 9h16"/>
-                                    </svg>
-                                    Add Discharge
-                                </button>
-                           }
-                        </div>                                            
+                                                             
                                                 
                         <div class="space-y-2">
                             <div class="flex items-center">
@@ -477,8 +479,19 @@
             <button @onclick="CloseModal" type="button" class="py-2.5 px-5 me-2 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700">
                 Cancel
             </button>
-            <button @onclick="SaveChanges" type="button" class="pr-4 text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">
-                Save Changes
+            <button @onclick="SaveChanges" type="button" class="pr-4 text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800" disabled="@AppState.IsProcessing">
+                @if (AppState.IsProcessing)
+                {
+                    <svg class="animate-spin h-5 w-5 mr-2 inline text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                    </svg>
+                    @("Saving Changes...")
+                }
+                else
+                {
+                    @("Save Changes")
+                }
             </button>
         </div>
     </div>

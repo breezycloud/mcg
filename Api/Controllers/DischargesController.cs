@@ -53,7 +53,7 @@ public class DischargesController : ControllerBase
 
     //         response.Total = await query.CountAsync();
     //         response.Data = [];
-    //         var pagedQuery = query.OrderByDescending(x => x.CreatedAt).ThenByDescending(x => x.UpdatedAt).Skip(request.Page).Take(request.PageSize).AsAsyncEnumerable();
+    //         var pagedQuery = query.OrderByDescending(x => x.CreatedAt).ThenByDescending(x => x.UpdatedAt).Skip(request.Paging).Take(request.PageSize).AsAsyncEnumerable();
 
     //         await foreach (var item in pagedQuery)
     //         {

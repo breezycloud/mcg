@@ -12,5 +12,6 @@ public interface ITripService
     Task<bool> UpdateAsync(Trip model, CancellationToken cancellationToken);
     Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken);
     Task<Trip?> GetAsync(Guid id, CancellationToken cancellationToken);
+    ValueTask ExportToCsvAsync(ReportFilter request, CancellationToken cancellationToken);
     Task<GridDataResponse<Trip>?> GetPagedAsync(GridDataRequest request, CancellationToken cancellationToken);
 }

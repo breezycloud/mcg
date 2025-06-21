@@ -21,9 +21,15 @@ public class DashboardMetricsDto
 
 public class TripStatusDistributionDto
 {
-    public int Active { get; set; }
-    public int Closed { get; set; }
-    public int Overdue { get; set; }      // Trips exceeding expected duration
+    public int Active { get; set; } = 0;
+    public int Closed { get; set; } = 0;
+    public int Overdue { get; set; } = 0;    // Trips exceeding expected duration
+}
+
+public class TripStatusDto
+{
+    public TripStatus Status { get; set; }
+    public int Count { get; set; }  // Number of trips in this status
 }
 
 public class ProductShipmentDto

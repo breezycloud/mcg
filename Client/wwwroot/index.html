@@ -17,11 +17,35 @@
 
 <body>
     <div id="app">
-        <svg class="loading-progress">
-            <circle r="40%" cx="50%" cy="50%" />
-            <circle r="40%" cx="50%" cy="50%" />
-        </svg>
-        <div class="loading-progress-text"></div>
+        <div class="flex flex-col items-center justify-center min-h-screen bg-white">
+            <img src="icon-192.png" alt="App Icon" class="w-24 h-24 mb-8 rounded-lg shadow-lg" />
+            <div class="relative flex items-center justify-center mb-4">
+                <svg class="animate-spin h-10 w-10 text-[#839a83]" viewBox="0 0 50 50">
+                    <circle
+                        class="opacity-20"
+                        cx="25"
+                        cy="25"
+                        r="20"
+                        stroke="currentColor"
+                        stroke-width="6"
+                        fill="none"
+                    />
+                    <circle
+                        class="opacity-80"
+                        cx="25"
+                        cy="25"
+                        r="20"
+                        stroke="currentColor"
+                        stroke-width="6"
+                        fill="none"
+                        stroke-linecap="round"
+                        stroke-dasharray="31.4 94.2"
+                    />
+                </svg>
+            </div>
+            <div class="text-gray-600 text-md font-medium">Loading...</div>
+        </div>
+
     </div>
 
     <div id="blazor-error-ui">
@@ -30,10 +54,12 @@
         <span class="dismiss">🗙</span>
     </div>
     <script src="flowbite-interop.js"></script>
+    <script src="exportHelper.js"></script>
     <script src="_framework/blazor.webassembly.js"></script>
     <script>navigator.serviceWorker.register('service-worker.js');</script>
     <script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
     <script src="../../Client/node_modules/flowbite/dist/flowbite.min.js"></script>
+
 </body>
 
 </html>

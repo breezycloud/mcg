@@ -12,23 +12,66 @@
         <div class="px-4 lg:px-12">
             <div class="bg-white dark:bg-gray-800 relative shadow-md sm:rounded-lg overflow-hidden">
                 <!-- Header with search and add button -->
-                <div class="flex flex-col items-center justify-between p-4 space-y-3 md:flex-row md:space-y-0 md:space-x-4">
-                <div class="w-full flex-auto">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between p-4 space-y-3 md:space-y-0 md:space-x-4">
+                    <!-- Search Bar -->
+                    <div class="w-full md:w-1/2 flex-auto">
                         <label for="trip-search" class="sr-only">Search trips</label>
-                            <div class="relative w-full">
-                                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                                    <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
-                                    </svg>
-                                </div>
-                                <input 
-                                    type="text" 
-                                    id="trip-search" 
-                                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" 
-                                    placeholder="Search trips..." 
-                                    @bind-value="@request.SearchTerm" @bind-value:event="oninput" @onkeyup="async () => await HandleSearch(request.SearchTerm!)" />
+                        <div class="relative w-full">
+                            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+                                </svg>
                             </div>
+                            <input 
+                                type="text" 
+                                id="trip-search" 
+                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" 
+                                placeholder="Search trips..." 
+                                @bind-value="@request.SearchTerm" @bind-value:event="oninput" @onkeyup="async () => await HandleSearch(request.SearchTerm!)" />
+                        </div>
                     </div>
+                    <!-- Date Range Filters -->
+                    <div class="flex flex-col md:flex-row md:items-center md:space-x-3 w-full md:w-auto">
+                        <div>
+                            @* <label for="start-date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Start Date</label> *@
+                            <input 
+                                type="date"
+                                id="start-date" 
+                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" 
+                                @bind="reportFilter.StartDate" />
+                        </div>
+                        @* <div>
+                            <label for="end-date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">End Date</label>
+                            <input 
+                                type="date" 
+                                id="end-date" 
+                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" 
+                                @bind="reportFilter.EndDate" />
+                        </div> *@
+                    </div>
+                    
+                    <!-- Export CSV Button -->
+                   <div class="flex flex-col items-stretch justify-end flex-shrink-0 w-full space-y-2 md:w-auto md:flex-row md:space-y-0 md:items-center md:space-x-3">
+                        <button 
+                            @onclick="ExportCsv"
+                            type="button"
+                            class="flex items-center text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-4 py-2.5 dark:bg-green-700 dark:hover:bg-green-800 focus:outline-none dark:focus:ring-green-900"
+                            disabled="@AppState.IsProcessing">
+                            @if (AppState.IsProcessing)
+                            {
+                                <svg class="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                                </svg>
+                                @* @("Processing...") *@
+                            }
+                            else
+                            {
+                                @("Export CSV")
+                            }
+                        </button>
+                    </div>
+                    <!-- Add Trip Button -->
                     <div class="flex flex-col items-stretch justify-end flex-shrink-0 w-full space-y-2 md:w-auto md:flex-row md:space-y-0 md:items-center md:space-x-3">
                         <button 
                             @onclick="AddTrip" 
@@ -47,7 +90,7 @@
                     <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
                     <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-400">
                             <tr>
-                                <th scope="col" class="px-6 py-3">Loading Date</th>
+                                <th scope="col" class="px-6 py-3">Date</th>
                                 <th scope="col" class="px-6 py-3">Reference</th>
                                 <th scope="col" class="px-6 py-3">Truck</th>
                                 <th scope="col" class="px-6 py-3">Driver</th>                                                      
@@ -227,7 +270,13 @@
     private Trip selectedTrip;
     private string openMenuId;
     private bool showData = true;
-    private bool showStatusModal = false;    
+    private bool showStatusModal = false;
+
+    private ReportFilter reportFilter = new ReportFilter();
+    @* {
+        ,
+        EndDate = DateTime.Now
+    }; *@
 
     protected override async Task OnInitializedAsync()
     {
@@ -246,6 +295,22 @@
             openMenuId = tripId;
         }
     }
+
+    private async Task ExportCsv()
+    {
+        AppState.IsProcessing = true;
+        try
+        {
+            await TripService.ExportToCsvAsync(reportFilter, AppState.GetCancellationToken());
+        }
+        catch
+        {
+            ToastService.ShowError("failed to export report");
+        }
+        AppState.IsProcessing = false;
+        StateHasChanged();
+    }
+
 
     private async Task HandleSearch(string search)
     {
@@ -291,6 +356,8 @@
         try
         {
             result = await TripService.UpdateAsync(trip, AppState.GetCancellationToken());
+            if (result)
+                ToastService.ShowSuccess("Trip updated");
         }
         catch (Exception ex)
         {

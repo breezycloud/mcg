@@ -49,7 +49,7 @@ public class ServiceRequestsController : ControllerBase
 
 
             response.Data = [];
-            var pagedQuery = query.OrderByDescending(x => x.CreatedAt).ThenByDescending(x => x.TreatedAt).Skip(request.Page).Take(request.PageSize).AsAsyncEnumerable();
+            var pagedQuery = query.OrderByDescending(x => x.CreatedAt).ThenByDescending(x => x.TreatedAt).Skip(request.Paging).Take(request.PageSize).AsAsyncEnumerable();
 
             await foreach (var item in pagedQuery)
             {
