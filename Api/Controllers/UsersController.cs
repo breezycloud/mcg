@@ -19,16 +19,21 @@ namespace Api.Controllers;
 public class UsersController : ControllerBase
 {
     private readonly AppDbContext _context;
-    private readonly EmailPublisherService _mailPublisher;
+    // private readonly EmailPublisherService _mailPublisher;
 
-    public UsersController(AppDbContext context, EmailPublisherService mailPublisher)
+    // public UsersController(AppDbContext context, EmailPublisherService mailPublisher)
+    // {
+    //     _context = context;
+    //     _mailPublisher = mailPublisher;
+    // }
+
+    public UsersController(AppDbContext context)
     {
         _context = context;
-        _mailPublisher = mailPublisher;
     }
 
     // POST: api/Users/SendEmail
-    [HttpPost("send-email")]
+        [HttpPost("send-email")]
     public async Task<ActionResult<bool>> SendEmailAsync(EmailQueueMessage message, CancellationToken cancellationToken = default)
     {
         try
@@ -47,7 +52,7 @@ public class UsersController : ControllerBase
                 PortalUrl = "http://myapplication.com"
             };
 
-            _mailPublisher.QueueEmailAsync(message);
+            //_mailPublisher.QueueEmailAsync(message);
             return Ok(true);
         }
         catch (Exception ex)
