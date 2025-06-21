@@ -93,7 +93,7 @@ builder.Services.AddHttpClient();
 builder.Services.AddSingleton<ILoggerProvider, ApplicationLoggerProvider>();
 builder.Services.AddTransient<IDashboardService, DashboardService>();
 
-// builder.Services.AddScoped<EmailPublisherService>();
+builder.Services.AddScoped<EmailPublisherService>();
 // builder.Services.AddHostedService<EmailConsumerService>();
 
 builder.Services.AddSingleton(sp =>
