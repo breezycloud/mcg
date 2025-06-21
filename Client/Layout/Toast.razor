@@ -1,106 +1,71 @@
-@implements IDisposable
 @inject ToastService ToastService
+@implements IDisposable
 
-<div class="fixed inset-0 flex items-end justify-center px-4 py-6 pointer-events-none sm:p-6 sm:items-start sm:justify-end z-50">
-    <div class="@GetToastClass() @(_toast.IsVisible ? "animate-fade-in-up" : "animate-fade-out") max-w-sm w-full shadow-lg rounded-lg pointer-events-auto overflow-hidden">
-        <div class="p-4">
-            <div class="flex items-start">
-                <div class="flex-shrink-0">
-                    @GetIcon()
-                </div>
-                <div class="ml-3 w-0 flex-1 pt-0.5">
-                    <p class="@GetTitleClass()">@_toast.Title</p>
-                    <p class="@GetMessageClass()">@_toast.Message</p>
-                </div>
-                <div class="ml-4 flex-shrink-0 flex">
-                    <button @onclick="Dismiss" class="@GetCloseButtonClass() rounded-md focus:outline-none">
-                        <span class="sr-only">Close</span>
-                        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
-                        </svg>
-                    </button>
-                </div>
+@if (Visible)
+{
+    <div class="fixed top-4 left-1/2 transform -translate-x-1/2 z-50">
+        <div class="@ToastCss">
+            <div class="flex items-center justify-between">
+                <span>@Message</span>
+                <button @onclick="Hide" class="ml-4 text-white font-bold">×</button>
             </div>
         </div>
-        @if (_toast.IsVisible)
-        {
-            <div class="@GetProgressBarClass() h-1 w-full" style="animation: progressBar @(_duration/1000)s linear forwards"></div>
-        }
     </div>
-</div>
+}
 
 @code {
-    private ToastMessage _toast = new("", "", ToastType.Info);
-    private int _duration = 5000;
+    private bool Visible;
+    private string Message = string.Empty;
+    private string Type = "info";
+    private CancellationTokenSource? _cts;
+
+    private string ToastCss => $"p-4 rounded shadow text-white {GetToastCss(Type)}";
 
     protected override void OnInitialized()
-    {
-        ToastService.OnShow += ShowToast;
+    {        
+        ToastService.OnShow += Show;
+        ToastService.OnHide += Hide;
     }
 
-    private void ShowToast(ToastMessage toast)
+    private async void Show(string message, string type, int duration)
     {
-        _toast = toast;
-        _duration = toast.Type == ToastType.Error ? 8000 : 5000;
+        _cts?.Cancel();
+        _cts?.Dispose();
+        _cts = new CancellationTokenSource();
+
+        Message = message;
+        Type = type;
+        Visible = true;
+        StateHasChanged();
+
+        try
+        {
+            await Task.Delay(duration * 1000, _cts.Token);
+            Hide();
+        }
+        catch (TaskCanceledException) { }
+    }
+
+    private void Hide()
+    {
+        if (!Visible) return;
+        Visible = false;
         StateHasChanged();
     }
 
-    private void Dismiss()
+    private string GetToastCss(string type) => type switch
     {
-        _toast = _toast with { IsVisible = false };
-        StateHasChanged();
-    }
-
-    private string GetToastClass() => _toast.Type switch
-    {
-        ToastType.Success => "bg-green-50",
-        ToastType.Error => "bg-red-50",
-        ToastType.Warning => "bg-yellow-50",
-        _ => "bg-blue-50"
-    };
-
-    private string GetTitleClass() => _toast.Type switch
-    {
-        ToastType.Success => "text-sm font-medium text-green-800",
-        ToastType.Error => "text-sm font-medium text-red-800",
-        ToastType.Warning => "text-sm font-medium text-yellow-800",
-        _ => "text-sm font-medium text-blue-800"
-    };
-
-    private string GetMessageClass() => _toast.Type switch
-    {
-        ToastType.Success => "mt-1 text-sm text-green-600",
-        ToastType.Error => "mt-1 text-sm text-red-600",
-        ToastType.Warning => "mt-1 text-sm text-yellow-600",
-        _ => "mt-1 text-sm text-blue-600"
-    };
-
-    private string GetCloseButtonClass() => _toast.Type switch
-    {
-        ToastType.Success => "bg-green-50 text-green-500 hover:bg-green-100",
-        ToastType.Error => "bg-red-50 text-red-500 hover:bg-red-100",
-        ToastType.Warning => "bg-yellow-50 text-yellow-500 hover:bg-yellow-100",
-        _ => "bg-blue-50 text-blue-500 hover:bg-blue-100"
-    };
-
-    private string GetProgressBarClass() => _toast.Type switch
-    {
-        ToastType.Success => "bg-green-400",
-        ToastType.Error => "bg-red-400",
-        ToastType.Warning => "bg-yellow-400",
-        _ => "bg-blue-400"
-    };
-
-    private MarkupString GetIcon() => _toast.Type switch
-    {
-        ToastType.Success => new MarkupString("<svg class='h-6 w-6 text-green-400' xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M5 13l4 4L19 7' /></svg>"),
-        ToastType.Error => new MarkupString("<svg class='h-6 w-6 text-red-400' xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M6 18L18 6M6 6l12 12' /></svg>"),
-        ToastType.Warning => new MarkupString("<svg class='h-6 w-6 text-yellow-400' xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z' /></svg>"),
-        _ => new MarkupString("<svg class='h-6 w-6 text-blue-400' xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' /></svg>")
+        "success" => "bg-green-500",
+        "error" => "bg-red-500",
+        "warning" => "bg-yellow-500",
+        _ => "bg-blue-500"
     };
 
     public void Dispose()
     {
-        ToastService.OnShow -= ShowToast;
+        ToastService.OnShow -= Show;
+        ToastService.OnHide -= Hide;
+        _cts?.Cancel();
+        _cts?.Dispose();
     }
 }

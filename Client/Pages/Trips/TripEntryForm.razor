@@ -188,8 +188,20 @@
                     Cancel
                 </button>
                 <button type="submit"
-                    class="px-5 py-2.5 text-sm font-medium text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
-                    @(EditMode ? "Update Trip" : "Add Trip")
+                    class="px-5 py-2.5 text-sm font-medium text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800 flex items-center justify-center min-w-[120px]"
+                    disabled="@AppState.IsProcessing">
+                    @if (AppState.IsProcessing)
+                    {
+                        <svg class="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                        </svg>
+                        @("Processing...")
+                    }
+                    else
+                    {
+                        @(EditMode ? "Update Trip" : "Add Trip")
+                    }
                 </button>
             </div>
             </div>
@@ -320,14 +332,16 @@
                 result = await TripService.UpdateAsync(CurrentTrip, AppState.GetCancellationToken());
             }
 
-            alert = new($"Trip Successfully {(EditMode ? "Updated" : "Added")}", ToastIcon.Succees);
+            @* alert = new($"Trip Successfully {(EditMode ? "Updated" : "Added")}", ToastIcon.Succees); *@
             if (result)
+            {
+                ToastService.ShowSuccess($"Trip successfully {(EditMode ? "updated" : "added")}", 5);
                 Cancel();
+            }                
         }
         catch (Exception ex)
-        {
-            Console.WriteLine(ex.Message);
-            alert = new($"Operation failed", ToastIcon.Error);
+        {        
+           ToastService.ShowError($"Operation failed");
         }
         finally
         {

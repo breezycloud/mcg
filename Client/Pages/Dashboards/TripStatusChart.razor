@@ -3,39 +3,72 @@
 @using ChartJs.Blazor.Common
 @using ChartJs.Blazor.Common.Enums
 @using ChartJs.Blazor.PieChart *@
-
+@using ApexCharts
 @inject IDashboardService DashboardService
 
 <div class="bg-white p-6 rounded-lg shadow">
     <h3 class="text-lg font-semibold mb-4">Trip Status Distribution</h3>
-    @* <ChartJsPieChart @ref="pieChart" Config="pieConfig" Width="300" Height="300" /> *@
+   <ApexChart TItem="TripStatusDto" 
+             Options="@options"
+             Height="350">
+
+        <ApexPointSeries TItem="TripStatusDto"
+                         Items="Data"
+                         SeriesType="SeriesType.Pie"
+                         XValue="@(e => e.Status.ToString())"
+                         YAggregate="@(e => e.Sum(e => e.Count))"
+                         OrderByDescending="e=>e.Y" 
+                         PointColor="e=> GetPointColor(e.Status)" ShowDataLabels/>
+    </ApexChart>
 </div>
 
-@* @code {
-    private ChartJsPieChart? pieChart;
-    private PieConfig pieConfig = new PieConfig();
+@code {
+    private List<TripStatusDto> Data { get; set; } = new();
+    private TripStatusDistributionDto StatusData { get; set; } = new();
+    private ApexChart<TripStatusDistributionDto>? chart;
+    private ApexChartOptions<TripStatusDto> options { get; set; } = new();
+    private List<int> Series => new() { StatusData.Active, StatusData.Closed, StatusData.Overdue };
+    private List<string> Labels => new() { "Active", "Closed", "Overdue" };
 
+        
     protected override async Task OnInitializedAsync()
     {
+        
         var statusData = await DashboardService.GetTripStatusDistributionAsync();
-
-        pieConfig = new PieConfig
+        if (statusData == null)
         {
-            Options = new PieOptions
-            {
-                Responsive = true,
-                Plugins = new Plugins
+            StatusData = new();
+        }
+        else
+        {
+            Data.AddRange([
+                new TripStatusDto
                 {
-                    Legend = new Legend { Position = PositionType.Right }
-                }
-            }
-        };
-
-        pieConfig.Data.Labels.AddRange(new[] { "In Progress", "Completed", "Overdue" });
-        pieConfig.Data.Datasets.Add(new PieDataset
-        {
-            BackgroundColor = new[] { "#FFCE56", "#36A2EB", "#FF6384" },
-            Data = new List<double> { statusData.InProgress, statusData.Completed, statusData.Overdue }
-        });
+                    Status = TripStatus.Active,
+                    Count = statusData.Active
+                },
+                new TripStatusDto
+                {
+                    Status = TripStatus.Closed,
+                    Count = statusData.Closed
+                }               
+            ]);
+        }
+       options.DataLabels = new DataLabels { DropShadow = new DropShadow { Enabled = false } };       
     }
-} *@
+
+    private string GetPointColor(TripStatus status)
+    {   
+        switch (status)
+        {
+            case TripStatus.Active:
+                return "#28a745"; // Green
+            case TripStatus.Closed:
+                return "#007bff"; // Blue
+            case TripStatus.Overdue:
+                return "#dc3545"; // Red
+            default:
+                return "#6c757d"; // Gray
+        }
+    }        
+}

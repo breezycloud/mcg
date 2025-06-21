@@ -250,21 +250,28 @@
             {
                 result = await UserService.UpdateAsync(user, AppState.GetCancellationToken());
             }
+
+            if (result)
+                ToastService.ShowSuccess($"User successfully {(EditMode ? "updated" : "added")}", 5);
         }
         catch (Exception ex)
         {
-
+            ToastService.ShowError("error occurred");
         }
         finally
         {
-            EntryMode = false;
-            EditMode = false;
-            selectedUser = null;
             if (result)
             {
-                DataMode = true;
-                await LoadUsers();
+                EntryMode = false;
+                EditMode = false;
+                selectedUser = null;
+                if (result)
+                {
+                    DataMode = true;
+                    await LoadUsers();
+                }
             }
+            
         }        
     }
 

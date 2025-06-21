@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using Microsoft.JSInterop;
 using Shared.Dtos;
 using Shared.Helpers;
 using Shared.Models.Trips;
@@ -6,7 +7,7 @@ using Shared.Models.Trips;
 namespace Shared.Interfaces.Trips;
 
 
-public class TripService(IHttpClientFactory _httpClient) : ITripService
+public class TripService(IHttpClientFactory _httpClient, IJSRuntime js) : ITripService
 {
     public Trip MapTripLoadingAsync(TripLoadingDto model, CancellationToken cancellationToken)
     {
@@ -83,7 +84,7 @@ public class TripService(IHttpClientFactory _httpClient) : ITripService
         }
     }
 
-    
+
     public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -113,7 +114,7 @@ public class TripService(IHttpClientFactory _httpClient) : ITripService
         }
     }
 
-    
+
     public async Task<GridDataResponse<Trip>?> GetPagedAsync(GridDataRequest request, CancellationToken cancellationToken)
     {
         try
@@ -121,6 +122,24 @@ public class TripService(IHttpClientFactory _httpClient) : ITripService
             using var response = await _httpClient.CreateClient("AppUrl").PostAsJsonAsync($"Trips/paged", request, cancellationToken);
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<GridDataResponse<Trip>?>();
+        }
+        catch (System.Exception)
+        {
+
+            throw;
+        }
+    }
+
+    public async ValueTask ExportToCsvAsync(ReportFilter request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var response = await _httpClient.CreateClient("AppUrl").PostAsJsonAsync($"Trips/report", request, cancellationToken);
+            response.EnsureSuccessStatusCode();
+            var content = await response.Content.ReadAsByteArrayAsync(cancellationToken);
+            var fileName = $"{request.StartDate:MMMM-yyyy} Trips_{DateTime.Now:yyyyMMddHHmmss}.csv";
+            // In a Blazor WebAssembly app, use JS interop to save the file
+            await js.InvokeVoidAsync("downloadReport", fileName, Convert.ToBase64String(content));
         }
         catch (System.Exception)
         {
