@@ -168,10 +168,10 @@ public class UsersController : ControllerBase
                 Email = user.Email,
                 Name = user.ToString(),
                 Password = password,
-                PortalUrl = "http://myapplication.com"
+                PortalUrl = "https://demo-mcc.onrender.com" // Replace with your actual portal URL
             }
         };
-        _mailPublisher.QueueEmailAsync(emailMessage);
+        //_mailPublisher.QueueEmailAsync(emailMessage);
         return CreatedAtAction("GetUser", new { id = user.Id }, user);
     }
 
