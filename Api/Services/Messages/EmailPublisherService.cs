@@ -21,6 +21,7 @@ public class EmailPublisherService : IDisposable
             Port = config.Value.Port
         };
 
+
         _connection = factory.CreateConnection();
         _channel = _connection.CreateModel();
 
