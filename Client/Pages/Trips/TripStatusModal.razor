@@ -162,17 +162,32 @@
                             Truck has arrived at destination
                         </label>
                     </div>
-                    
-                    @if (Trip.Destination.ArrivedAtStation)
-                    {
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                                Arrival Date & Time
+                                Invoice Date <span class="text-red-500">*</span>
                             </label>
-                            <input type="datetime-local" @bind="Trip.Destination.StationArrivalDate"
-                                   class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
-                        </div>
-                    }
+                            <input type="datetime-local" @bind="Trip.InvoiceDate"
+                                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                            @if (errors.ContainsKey("InvoiceDate"))
+                            {
+                                <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["InvoiceDate"]</p>
+                            }
+                        </div> 
+                        @if (Trip.Destination.ArrivedAtStation)
+                        {
+                            <div>
+                                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                    Arrival Date & Time
+                                </label>
+                                <input type="datetime-local" @bind="Trip.Destination.StationArrivalDate"
+                                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                            </div>
+                        }
+                    </div>
+                    
+                    
                 </div>
 
 
@@ -379,21 +394,7 @@
                                     <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["DischargedQuantity"]</p>
                                 }
                             </div>                            
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                                    Invoice Date <span class="text-red-500">*</span>
-                                </label>
-                                <input type="datetime-local" @bind="Trip.InvoiceDate"
-                                       class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
-                                @if (errors.ContainsKey("InvoiceDate"))
-                                {
-                                    <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["InvoiceDate"]</p>
-                                }
-                            </div> 
-                        </div>
-
+                        </div>                        
                                                              
                                                 
                         <div class="space-y-2">
@@ -546,7 +547,7 @@
 
     public bool EditMode = false;
 
-    public decimal InitialQuantity => Trip.Discharges.Sum(x => x.QuantityDischarged)  - Trip!.Destination!.DischargedQuantity ?? 0;
+    public decimal InitialQuantity => Trip!.Origin!.Quantity  - Trip.Discharges.Sum(x => x.QuantityDischarged) - Trip!.Destination?.DischargedQuantity ?? 0;
 
     private List<TripCheckpoint>? checkpoints;
     private string checkpointSearch = string.Empty;
@@ -610,6 +611,7 @@
     private async Task SaveChanges()
     {
         AppState.IsProcessing = true;
+        Console.WriteLine("Available Qty {0}", InitialQuantity);
         errors.Clear();
 
         // Validate required fields       
@@ -660,6 +662,18 @@
                 {
                     errors["DischargedQuantity"] = "Discharged Quantity is required";
                 }
+                if (Trip!.Destination!.DischargedQuantity <= 0)
+                {
+                    errors["DischargedQuantity"] = "Discharged Quantity must be greater than zero";
+                }
+                if (Trip!.Destination!.IsDischarged && Trip!.Destination.DischargedQuantity is null)
+                {
+                    if (Trip!.Destination!.DischargedQuantity > InitialQuantity)
+                    {
+                        errors["DischargedQuantity"] = $"Amount cannot be greater than {InitialQuantity} {Trip.Origin?.Unit}";
+                    }
+                }
+                
             }
 
              if (Trip!.Destination.HasShortage.HasValue && Trip.Destination.HasShortage.Value)
@@ -668,6 +682,11 @@
                 {
                     errors["ShortageAmount"] = "Shortage Amount is required";
                 }
+
+                if (Trip!.Destination!.ShortageAmount > InitialQuantity)
+                {
+                    errors["ShortageAmount"] = $"Amount cannot be greater than {InitialQuantity} {Trip.Origin?.Unit}";
+                }               
              }
 
             

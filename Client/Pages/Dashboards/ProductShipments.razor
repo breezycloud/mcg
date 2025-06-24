@@ -64,6 +64,8 @@
 
     [Parameter]
     public DateOnly? EndDate { get; set; }
+    [Parameter]
+    public ProductFilter Product { get; set; } = ProductFilter.All;
 
     private List<ProductShipmentDto>? shipments;
     private string TimeRangeLabel => GetTimeRangeLabel();
@@ -74,8 +76,9 @@
     }
 
     private async Task LoadData()
-    {
-        shipments = await DashboardService.GetProductShipmentsAsync(StartDate, EndDate);
+    {        
+        shipments = await DashboardService.GetProductShipmentsAsync(StartDate, EndDate, Product.ToString());
+        StateHasChanged();
     }
 
     private string GetTimeRangeLabel()
@@ -96,26 +99,28 @@
     }
 
 
-    private string GetProductColor(Product product)
+    private string GetProductColor(string? product)
     {
         return product switch
         {
-            Product.CNG => "bg-blue-500",
-            Product.PMS => "bg-yellow-500",
-            Product.ATK => "bg-red-500",
-            Product.LPG => "bg-green-500",
+            "CNG" => "bg-blue-500",
+            "PMS" => "bg-yellow-500",
+            "ATK" => "bg-red-500",
+            "LPG" => "bg-green-500",
+            "AGO" => "bg-purple-500",
             _ => "bg-gray-500"
         };
     }
 
-    private string GetUnitForProduct(Product product)
+    private string GetUnitForProduct(string? ProductFilter)
     {
-        return product switch
+        return ProductFilter switch
         {
-            Product.CNG => "SCM",
-            Product.PMS => "LTR",
-            Product.ATK => "MT",
-            Product.LPG => "KG",
+            "CNG" => "SCM",
+            "PMS" => "LTR",
+            "ATK" => "MT",
+            "LPG" => "KG",
+            "AGO" => "LTR",
             _ => ""
         };
     }

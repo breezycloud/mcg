@@ -33,10 +33,18 @@
 
 @code {
     private List<RecentTripDto> recentTrips = new();
+    [Parameter]
+    public DateOnly? StartDate { get; set; }
 
-    protected override async Task OnInitializedAsync()
+    [Parameter]
+    public DateOnly? EndDate { get; set; }
+    [Parameter]
+    public ProductFilter Product { get; set; } = ProductFilter.All;
+
+    protected override async Task OnParametersSetAsync()
     {
-        recentTrips = await DashboardService.GetRecentTripsAsync(5);
+        recentTrips = await DashboardService.GetRecentTripsAsync(5, StartDate, EndDate, Product.ToString());
+        StateHasChanged();
     }
 
     private string GetStatusBadgeClass(TripStatus status)

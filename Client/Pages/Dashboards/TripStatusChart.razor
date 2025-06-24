@@ -7,54 +7,49 @@
 @inject IDashboardService DashboardService
 
 <div class="bg-white p-6 rounded-lg shadow">
-    <h3 class="text-lg font-semibold mb-4">Trip Status Distribution</h3>
-   <ApexChart TItem="TripStatusDto" 
+    <h3 class="text-lg font-semibold mb-4">Trip Monthly Distribution</h3>
+   <ApexChart @ref="chart" TItem="TripMonthlySummaryDto" 
              Options="@options"
              Height="350">
 
-        <ApexPointSeries TItem="TripStatusDto"
-                         Items="Data"
-                         SeriesType="SeriesType.Pie"
-                         XValue="@(e => e.Status.ToString())"
-                         YAggregate="@(e => e.Sum(e => e.Count))"
-                         OrderByDescending="e=>e.Y" 
-                         PointColor="e=> GetPointColor(e.Status)" ShowDataLabels/>
+        <ApexPointSeries TItem="TripMonthlySummaryDto"
+                 Items="Data"
+                 SeriesType="SeriesType.Bar"
+                 Name="Monthly Trips"
+                 XValue="@(e => e.Format)"
+                 YValue="@(e => e.TotalTrips)"
+                 ShowDataLabels="true" />
     </ApexChart>
 </div>
 
 @code {
-    private List<TripStatusDto> Data { get; set; } = new();
-    private TripStatusDistributionDto StatusData { get; set; } = new();
-    private ApexChart<TripStatusDistributionDto>? chart;
-    private ApexChartOptions<TripStatusDto> options { get; set; } = new();
-    private List<int> Series => new() { StatusData.Active, StatusData.Closed, StatusData.Overdue };
-    private List<string> Labels => new() { "Active", "Closed", "Overdue" };
+    private List<TripMonthlySummaryDto> Data { get; set; } = new();
+    private TripMonthlySummaryDto StatusData { get; set; } = new();
+    private ApexChart<TripMonthlySummaryDto>? chart = new();
+    private ApexChartOptions<TripMonthlySummaryDto> options { get; set; } = new();
+    [Parameter]
+    public ProductFilter Product { get; set; } = ProductFilter.All;    
 
-        
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnParametersSetAsync()
     {
         
-        var statusData = await DashboardService.GetTripStatusDistributionAsync();
+        var statusData = await DashboardService.GetTripMonthlySummaries(Product.ToString());
         if (statusData == null)
         {
             StatusData = new();
         }
         else
         {
-            Data.AddRange([
-                new TripStatusDto
-                {
-                    Status = TripStatus.Active,
-                    Count = statusData.Active
-                },
-                new TripStatusDto
-                {
-                    Status = TripStatus.Closed,
-                    Count = statusData.Closed
-                }               
-            ]);
+            Data = statusData;
         }
-       options.DataLabels = new DataLabels { DropShadow = new DropShadow { Enabled = false } };       
+       options.DataLabels = new DataLabels { DropShadow = new DropShadow { Enabled = false } };
+       StateHasChanged();
+       if (chart is not null)
+       {
+            Console.WriteLine("{0} {1}", "My Chart", chart);
+            await chart.UpdateSeriesAsync(true);
+       }       
+       
     }
 
     private string GetPointColor(TripStatus status)

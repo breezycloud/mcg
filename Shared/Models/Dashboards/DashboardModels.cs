@@ -32,9 +32,20 @@ public class TripStatusDto
     public int Count { get; set; }  // Number of trips in this status
 }
 
+public class TripMonthlySummaryDto
+{
+    public int Month { get; set; }  // Month number (1-12)
+    public int Year { get; set; }   // Year
+    public int TotalTrips { get; set; }  // Total trips in this month
+    public decimal TotalQuantity { get; set; }  // Total quantity shipped in this month
+    public decimal AvgDurationDays { get; set; }  // Average trip duration in days
+    // Average trip duration in days    
+    public string? Format => $"{System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(Month)}-{Year}";  // Format as YYYY-MonthName
+}
+
 public class ProductShipmentDto
 {
-    public Product Product { get; set; }
+    public string? Product { get; set; }
     public int TotalTrips { get; set; }
     public decimal TotalQuantity { get; set; }
     public decimal Trend { get; set; } // % change vs previous period

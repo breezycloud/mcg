@@ -1,57 +1,66 @@
 <div class="mb-4">
-    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-        Select Product
-    </label>
-    <div class="flex flex-wrap gap-2">
-        @foreach (Product product in Enum.GetValues(typeof(Product)))
+    <select class="px-4 py-2 text-sm font-medium rounded-lg border-2"
+            @onchange="OnSelectChanged"
+            value="@SelectedProduct">
+        @foreach (ProductFilter product in Enum.GetValues(typeof(ProductFilter)))
         {
-            <button @onclick="() => OnProductSelected.InvokeAsync(product)"
-                    class="@(SelectedProduct == product ? GetSelectedButtonClass(product) : GetUnselectedButtonClass(product)) px-4 py-2 text-sm font-medium rounded-lg">
-                @GetProductDisplayName(product)
-            </button>
+            <option value="@product">@GetProductDisplayName(product)</option>
         }
-    </div>
+    </select>
 </div>
 
 @code {
+    private async Task OnSelectChanged(ChangeEventArgs e)
+    {
+        if (Enum.TryParse<ProductFilter>(e.Value?.ToString(), out var selected))
+        {
+            await OnProductSelected.InvokeAsync(selected);
+        }
+    }
+}
+
+@code {
     [Parameter]
-    public Product SelectedProduct { get; set; }
+    public ProductFilter SelectedProduct { get; set; }
 
     [Parameter]
-    public EventCallback<Product> OnProductSelected { get; set; }
+    public EventCallback<ProductFilter> OnProductSelected { get; set; }
 
-    private string GetSelectedButtonClass(Product product)
+    private string GetSelectedButtonClass(ProductFilter product)
     {
         return product switch
         {
-            Product.CNG => "bg-blue-600 text-white hover:bg-blue-700",
-            Product.PMS => "bg-green-600 text-white hover:bg-green-700",
-            Product.ATK => "bg-yellow-500 text-white hover:bg-yellow-600",
-            Product.LPG => "bg-red-600 text-white hover:bg-red-700",
+            ProductFilter.CNG => "bg-blue-600 text-white hover:bg-blue-700",
+            ProductFilter.PMS => "bg-green-600 text-white hover:bg-green-700",
+            ProductFilter.ATK => "bg-yellow-500 text-white hover:bg-yellow-600",
+            ProductFilter.LPG => "bg-red-600 text-white hover:bg-red-700",
+            ProductFilter.AGO => "bg-gray-600 text-white hover:bg-gray-700",
             _ => "bg-gray-600 text-white hover:bg-gray-700"
         };
     }
 
-    private string GetUnselectedButtonClass(Product product)
+    private string GetUnselectedButtonClass(ProductFilter product)
     {
         return product switch
         {
-            Product.CNG => "bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-800 dark:text-blue-200 dark:hover:bg-blue-700",
-            Product.PMS => "bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-800 dark:text-green-200 dark:hover:bg-green-700",
-            Product.ATK => "bg-yellow-100 text-yellow-800 hover:bg-yellow-200 dark:bg-yellow-800 dark:text-yellow-200 dark:hover:bg-yellow-700",
-            Product.LPG => "bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-800 dark:text-red-200 dark:hover:bg-red-700",
+            ProductFilter.CNG => "bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-800 dark:text-blue-200 dark:hover:bg-blue-700",
+            ProductFilter.PMS => "bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-800 dark:text-green-200 dark:hover:bg-green-700",
+            ProductFilter.ATK => "bg-yellow-100 text-yellow-800 hover:bg-yellow-200 dark:bg-yellow-800 dark:text-yellow-200 dark:hover:bg-yellow-700",
+            ProductFilter.LPG => "bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-800 dark:text-red-200 dark:hover:bg-red-700",
+            ProductFilter.AGO => "bg-purple-100 text-purple-800 hover:bg-purple-200 dark:bg-purple-800 dark:text-purple-200 dark:hover:bg-purple-700",
             _ => "bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
         };
     }
 
-    private string GetProductDisplayName(Product product)
+    private string GetProductDisplayName(ProductFilter product)
     {
         return product switch
         {
-            Product.CNG => "Compressed Natural Gas (CNG)",
-            Product.PMS => "Premium Motor Spirit (PMS)",
-            Product.ATK => "Automotive Turbine Kerosene (ATK)",
-            Product.LPG => "Liquefied Petroleum Gas (LPG)",
+            ProductFilter.CNG => "Compressed Natural Gas (CNG)",
+            ProductFilter.PMS => "Premium Motor Spirit (PMS)",
+            ProductFilter.ATK => "Automotive Turbine Kerosene (ATK)",
+            ProductFilter.LPG => "Liquefied Petroleum Gas (LPG)",
+            ProductFilter.AGO => "Automotive Gas Oil (AGO)",
             _ => product.ToString()
         };
     }
