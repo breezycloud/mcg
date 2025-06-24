@@ -47,7 +47,7 @@ builder.Services.AddRazorPages();
 string? ConnectionString = string.Empty;
 
 #if DEBUG
-    ConnectionString = builder.Configuration?.GetConnectionString("Production");
+    ConnectionString = builder.Configuration?.GetConnectionString("Local");
 #else
     ConnectionString = builder.Configuration?.GetConnectionString("Production");    
 #endif
@@ -94,7 +94,7 @@ builder.Services.AddSingleton<ILoggerProvider, ApplicationLoggerProvider>();
 builder.Services.AddTransient<IDashboardService, DashboardService>();
 
 builder.Services.AddScoped<EmailPublisherService>();
-// builder.Services.AddHostedService<EmailConsumerService>();
+builder.Services.AddHostedService<EmailConsumerService>();
 
 builder.Services.AddSingleton(sp =>
 {

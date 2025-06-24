@@ -1,6 +1,6 @@
 @inject IDashboardService DashboardService
 
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+<div class="@GridCols">
     <!-- Total Trips Card -->
     <div class="bg-white p-6 rounded-lg shadow">
         <div class="flex items-center justify-between">
@@ -50,20 +50,23 @@
     </div>
 
     <!-- Avg. Duration Card -->
-    <div class="bg-white p-6 rounded-lg shadow">
-        <div class="flex items-center justify-between">
-            <div>
-                <h3 class="text-gray-500 font-medium">Avg. Duration</h3>
-                <p class="text-xs text-gray-400 mt-1">@TimeRangeLabel</p>
+    @if (Product != ProductFilter.All)
+    {
+        <div class="bg-white p-6 rounded-lg shadow">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-gray-500 font-medium">Avg. Duration</h3>
+                    <p class="text-xs text-gray-400 mt-1">@TimeRangeLabel</p>
+                </div>
+                <i class="fas fa-clock text-purple-500 text-xl"></i>
             </div>
-            <i class="fas fa-clock text-purple-500 text-xl"></i>
+            <p class="text-3xl font-bold mt-2">@(metrics?.AvgTripDurationDays.ToString("0.0")) days</p>
+            <div class="mt-2 text-sm @GetTrendClass(trends?.AvgDurationTrend)">
+                <i class="@GetTrendIcon(trends?.AvgDurationTrend) mr-1"></i>
+                @trends?.AvgDurationTrend%
+            </div>
         </div>
-        <p class="text-3xl font-bold mt-2">@(metrics?.AvgTripDurationDays.ToString("0.0")) days</p>
-        <div class="mt-2 text-sm @GetTrendClass(trends?.AvgDurationTrend)">
-            <i class="@GetTrendIcon(trends?.AvgDurationTrend) mr-1"></i>
-            @trends?.AvgDurationTrend%
-        </div>
-    </div>
+    }    
 </div>
 
 @code {
@@ -72,10 +75,14 @@
 
     [Parameter]
     public DateOnly? EndDate { get; set; }
+    [Parameter]
+    public ProductFilter Product { get; set; } = ProductFilter.All;
 
     private DashboardMetricsDto? metrics;
     private MetricsTrendDto? trends;
     private string TimeRangeLabel => GetTimeRangeLabel();
+
+    private string GridCols => Product == ProductFilter.All ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4";
 
     protected override async Task OnParametersSetAsync()
     {
@@ -84,8 +91,9 @@
 
     private async Task LoadData()
     {
-        metrics = await DashboardService.GetMetricsAsync(StartDate, EndDate);
-        trends = await DashboardService.GetMetricsTrendsAsync(StartDate, EndDate);
+        metrics = await DashboardService.GetMetricsAsync(StartDate, EndDate, Product.ToString());
+        trends = await DashboardService.GetMetricsTrendsAsync(StartDate, EndDate, Product.ToString());
+        StateHasChanged();
     }
 
     private string GetTimeRangeLabel()

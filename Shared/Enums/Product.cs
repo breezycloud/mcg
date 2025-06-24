@@ -9,3 +9,13 @@ public enum Product
     LPG,
     AGO
 }
+
+public enum ProductFilter
+{
+    All,
+    CNG,
+    PMS,
+    ATK,
+    LPG,
+    AGO
+}

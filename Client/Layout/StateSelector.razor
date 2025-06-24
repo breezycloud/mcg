@@ -12,7 +12,7 @@
     <option value="">Select State</option>
     @foreach (var state in States)
     {
-        <option value="@state">@state</option>
+        <option value="@StringConverter.ConvertToTitleCase(state)">@StringConverter.ConvertToTitleCase(state)</option>
     }
     </InputSelect>
     @if (Errors!.ContainsKey($"{FieldName}"))
@@ -44,7 +44,7 @@
     }
     private async Task OnValueChanged(string? selectedState)
     {
-        Destination = StringConverter.ConvertToTitleCase(selectedState!);    
+        Destination = selectedState;
         await OnLocationChanged.InvokeAsync(Destination!);
         StateHasChanged();
     }

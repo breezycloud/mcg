@@ -9,12 +9,12 @@ namespace Client.Services.Dashboards;
 public class DashboardService(IHttpClientFactory _httpClient) : IDashboardService
 {
     
-    public async Task<MetricsTrendDto> GetMetricsTrendsAsync(DateOnly? startDate, DateOnly? endDate)
+    public async Task<MetricsTrendDto> GetMetricsTrendsAsync(DateOnly? startDate, DateOnly? endDate, string? product = "All")
     {
         
         try
         {
-            using var response = await _httpClient.CreateClient("AppUrl").GetAsync($"dashboard/metrics/trends?startDate={startDate!.Value}&endDate={endDate!.Value}");
+            using var response = await _httpClient.CreateClient("AppUrl").GetAsync($"dashboard/metrics/trends?startDate={startDate!.Value}&endDate={endDate!.Value}&product={product}");
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<MetricsTrendDto>() ?? new();
         }
@@ -25,11 +25,11 @@ public class DashboardService(IHttpClientFactory _httpClient) : IDashboardServic
         }
     }
 
-    public async Task<DashboardMetricsDto> GetMetricsAsync(DateOnly? startDate = null, DateOnly? endDate = null)
+    public async Task<DashboardMetricsDto> GetMetricsAsync(DateOnly? startDate = null, DateOnly? endDate = null, string? product = "All")
     {
         try
         {
-            using var response = await _httpClient.CreateClient("AppUrl").GetAsync($"dashboard/metrics?startDate={startDate}&endDate={endDate}");
+            using var response = await _httpClient.CreateClient("AppUrl").GetAsync($"dashboard/metrics?startDate={startDate}&endDate={endDate}&product={product}");
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<DashboardMetricsDto>() ?? new();
         }
@@ -39,11 +39,11 @@ public class DashboardService(IHttpClientFactory _httpClient) : IDashboardServic
             throw;
         }
     }
-    public async Task<TripStatusDistributionDto> GetTripStatusDistributionAsync(DateOnly? startDate = null, DateOnly? endDate = null)
+    public async Task<TripStatusDistributionDto> GetTripStatusDistributionAsync(DateOnly? startDate = null, DateOnly? endDate = null, string? product = "All")
     {
         try
         {
-            using var response = await _httpClient.CreateClient("AppUrl").GetAsync($"dashboard/status-distribution?startDate={startDate}&endDate={endDate}");
+            using var response = await _httpClient.CreateClient("AppUrl").GetAsync($"dashboard/status-distribution?startDate={startDate}&endDate={endDate}&product={product}");
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<TripStatusDistributionDto>() ?? new();
         }
@@ -53,11 +53,26 @@ public class DashboardService(IHttpClientFactory _httpClient) : IDashboardServic
             throw;
         }
     }
-    public async Task<List<ProductShipmentDto>> GetProductShipmentsAsync(DateOnly? startDate = null, DateOnly? endDate = null)
+
+    public async Task<List<TripMonthlySummaryDto>> GetTripMonthlySummaries(string? product = "All")
     {
         try
         {
-            using var response = await _httpClient.CreateClient("AppUrl").GetAsync($"dashboard/product-shipments?startDate={startDate}&endDate={endDate}");
+            using var response = await _httpClient.CreateClient("AppUrl").GetAsync($"dashboard/monthly-distribution?product={product}");
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<List<TripMonthlySummaryDto>>() ?? new();
+        }
+        catch (System.Exception)
+        {
+
+            throw;
+        }
+    }
+    public async Task<List<ProductShipmentDto>> GetProductShipmentsAsync(DateOnly? startDate = null, DateOnly? endDate = null, string? product = "All")
+    {
+        try
+        {
+            using var response = await _httpClient.CreateClient("AppUrl").GetAsync($"dashboard/product-shipments?startDate={startDate}&endDate={endDate}&product={product}");
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<List<ProductShipmentDto>>() ?? [];
         }
@@ -67,11 +82,11 @@ public class DashboardService(IHttpClientFactory _httpClient) : IDashboardServic
             throw;
         }
     }
-    public async Task<List<RecentTripDto>> GetRecentTripsAsync(int count = 5, DateOnly? startDate = null, DateOnly? endDate = null)
+    public async Task<List<RecentTripDto>> GetRecentTripsAsync(int count = 5, DateOnly? startDate = null, DateOnly? endDate = null, string? product = "All")
     {
         try
         {
-            using var response = await _httpClient.CreateClient("AppUrl").GetAsync($"dashboard/recent-trips?startDate={startDate}&endDate={endDate}");
+            using var response = await _httpClient.CreateClient("AppUrl").GetAsync($"dashboard/recent-trips?startDate={startDate}&endDate={endDate}&product={product}");
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<List<RecentTripDto>>() ?? [];
         }

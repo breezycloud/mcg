@@ -30,12 +30,13 @@ public class DashboardController : ControllerBase
     [ProducesResponseType(typeof(DashboardMetricsDto), 200)]
     public async Task<IActionResult> GetMetrics(
         [FromQuery, ModelBinder(typeof(MultiDateFormatBinder))] DateOnly? startDate,
-         [FromQuery, ModelBinder(typeof(MultiDateFormatBinder))] DateOnly? endDate)
+        [FromQuery, ModelBinder(typeof(MultiDateFormatBinder))] DateOnly? endDate,
+        [FromQuery] string? product)
     {
         Console.WriteLine("{0} {1}", startDate, endDate);
         try
         {
-            var metrics = await _dashboardService.GetMetricsAsync(startDate, endDate);
+            var metrics = await _dashboardService.GetMetricsAsync(startDate, endDate, product);
             return Ok(metrics);
         }
         catch (Exception ex)
@@ -49,11 +50,12 @@ public class DashboardController : ControllerBase
     [ProducesResponseType(typeof(MetricsTrendDto), 200)]
     public async Task<IActionResult> GetMetricsTrends(
          [FromQuery, ModelBinder(typeof(MultiDateFormatBinder))] DateOnly? startDate,
-         [FromQuery, ModelBinder(typeof(MultiDateFormatBinder))] DateOnly? endDate)
+         [FromQuery, ModelBinder(typeof(MultiDateFormatBinder))] DateOnly? endDate,
+         [FromQuery] string? product)
     {
         try
         {
-            var trends = await _dashboardService.GetMetricsTrendsAsync(startDate, endDate);
+            var trends = await _dashboardService.GetMetricsTrendsAsync(startDate, endDate, product);
             return Ok(trends);
         }
         catch (Exception ex)
@@ -71,11 +73,12 @@ public class DashboardController : ControllerBase
     [ProducesResponseType(typeof(TripStatusDistributionDto), 200)]
     public async Task<IActionResult> GetTripStatusDistribution(
          [FromQuery, ModelBinder(typeof(MultiDateFormatBinder))] DateOnly? startDate,
-         [FromQuery, ModelBinder(typeof(MultiDateFormatBinder))] DateOnly? endDate)
+         [FromQuery, ModelBinder(typeof(MultiDateFormatBinder))] DateOnly? endDate,
+         [FromQuery] string? product)
     {
         try
         {
-            var distribution = await _dashboardService.GetTripStatusDistributionAsync(startDate, endDate);
+            var distribution = await _dashboardService.GetTripStatusDistributionAsync(startDate, endDate, product);
             return Ok(distribution);
         }
         catch (Exception ex)
@@ -85,15 +88,33 @@ public class DashboardController : ControllerBase
         }
     }
 
+    [HttpGet("monthly-distribution")]
+    [ProducesResponseType(typeof(List<TripMonthlySummaryDto>), 200)]
+    public async Task<IActionResult> GetTripMonthlyDistribution(
+         [FromQuery] string? product)
+    {
+        try
+        {
+            var distribution = await _dashboardService.GetTripMonthlySummaries(product);
+            return Ok(distribution);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching trip monthly distribution");
+            return StatusCode(500, "Error retrieving status data");
+        }
+    }
+
     [HttpGet("product-shipments")]
     [ProducesResponseType(typeof(List<ProductShipmentDto>), 200)]
     public async Task<IActionResult> GetProductShipments(
          [FromQuery, ModelBinder(typeof(MultiDateFormatBinder))] DateOnly? startDate,
-         [FromQuery, ModelBinder(typeof(MultiDateFormatBinder))] DateOnly? endDate)
+         [FromQuery, ModelBinder(typeof(MultiDateFormatBinder))] DateOnly? endDate,
+         [FromQuery] string? product)
     {
         try
         {
-            var shipments = await _dashboardService.GetProductShipmentsAsync(startDate, endDate);
+            var shipments = await _dashboardService.GetProductShipmentsAsync(startDate, endDate, product);
             return Ok(shipments);
         }
         catch (Exception ex)
@@ -108,11 +129,12 @@ public class DashboardController : ControllerBase
     public async Task<IActionResult> GetRecentTrips(
          [FromQuery] int count = 5,
          [FromQuery, ModelBinder(typeof(MultiDateFormatBinder))] DateOnly? startDate = null,
-         [FromQuery, ModelBinder(typeof(MultiDateFormatBinder))] DateOnly? endDate = null)
+         [FromQuery, ModelBinder(typeof(MultiDateFormatBinder))] DateOnly? endDate = null,
+         [FromQuery] string? product = "All")
     {
         try
         {
-            var trips = await _dashboardService.GetRecentTripsAsync(count, startDate, endDate);
+            var trips = await _dashboardService.GetRecentTripsAsync(count, startDate, endDate, product);
             return Ok(trips);
         }
         catch (Exception ex)

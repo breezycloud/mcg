@@ -25,9 +25,9 @@ public class DashboardService : IDashboardService
 
     #region Core Metrics
 
-    public async Task<DashboardMetricsDto> GetMetricsAsync(DateOnly? startDate, DateOnly? endDate)
+    public async Task<DashboardMetricsDto> GetMetricsAsync(DateOnly? startDate, DateOnly? endDate, string? product = "All")
     {
-        var trips = await GetFilteredTripsAsync(startDate, endDate);
+        var trips = await GetFilteredTripsAsync(startDate, endDate, product);
         
         return new DashboardMetricsDto
         {
@@ -41,11 +41,11 @@ public class DashboardService : IDashboardService
     }
 
 
-    public async Task<MetricsTrendDto> GetMetricsTrendsAsync(DateOnly? startDate, DateOnly? endDate)
+    public async Task<MetricsTrendDto> GetMetricsTrendsAsync(DateOnly? startDate, DateOnly? endDate, string? product = "All")
     {
-        var currentMetrics = await GetMetricsAsync(startDate, endDate);
+        var currentMetrics = await GetMetricsAsync(startDate, endDate, product);
         var (prevStart, prevEnd) = GetComparisonPeriod(startDate, endDate);
-        var previousMetrics = await GetMetricsAsync(prevStart, prevEnd);
+        var previousMetrics = await GetMetricsAsync(prevStart, prevEnd, product);
 
         return new MetricsTrendDto
         {
@@ -60,9 +60,9 @@ public class DashboardService : IDashboardService
 
     #region Trip Analytics
 
-    public async Task<TripStatusDistributionDto> GetTripStatusDistributionAsync(DateOnly? startDate, DateOnly? endDate)
+    public async Task<TripStatusDistributionDto> GetTripStatusDistributionAsync(DateOnly? startDate, DateOnly? endDate, string? product = "All")
     {
-        var trips = await GetFilteredTripsAsync(startDate, endDate);
+        var trips = await GetFilteredTripsAsync(startDate, endDate, product);
         
         return new TripStatusDistributionDto
         {
@@ -74,15 +74,45 @@ public class DashboardService : IDashboardService
         };
     }
 
-    public async Task<List<ProductShipmentDto>> GetProductShipmentsAsync(DateOnly? startDate, DateOnly? endDate)
+    public async Task<List<TripMonthlySummaryDto>> GetTripMonthlySummaries(string? product = "All")
     {
-        var trips = await GetFilteredTripsAsync(startDate, endDate);
-        
+        var now = DateTime.UtcNow;
+        var startMonth = new DateOnly(now.Year, now.Month, 1).AddMonths(-4); // 5 months including current
+        var endMonth = new DateOnly(now.Year, now.Month, DateTime.DaysInMonth(now.Year, now.Month));
+
+        var trips = await GetFilteredTripsAsync(startMonth, endMonth, product);
+
+        var summaries = trips
+            .GroupBy(t => new { t.Date.Year, t.Date.Month })
+            .OrderByDescending(g => new DateTime(g.Key.Year, g.Key.Month, 1))
+            .Take(5)
+            .Select(g => new TripMonthlySummaryDto
+            {
+            Year = g.Key.Year,
+            Month = g.Key.Month,
+            TotalTrips = g.Count(),
+            TotalQuantity = g.Sum(t => t.Origin!.Quantity!.Value),
+            AvgDurationDays = g.Any(t => t.ReturnDate.HasValue)
+                ? (decimal)g
+                .Where(t => t.ReturnDate.HasValue)
+                .Average(t => (t.ReturnDate!.Value.ToDateTime(TimeOnly.MinValue) - t.Date.ToDateTime(TimeOnly.MinValue)).TotalDays)
+                : 0
+            })
+            .OrderBy(x => x.Year).ThenBy(x => x.Month)
+            .ToList();
+
+        return summaries;
+    }
+
+    public async Task<List<ProductShipmentDto>> GetProductShipmentsAsync(DateOnly? startDate, DateOnly? endDate, string? product = "All")
+    {
+        var trips = await GetFilteredTripsAsync(startDate, endDate, product);
+
         return trips
             .GroupBy(t => t.Truck!.Product!.Value)
             .Select(g => new ProductShipmentDto
             {
-                Product = g.Key,
+                Product = g.Key.ToString(),
                 TotalTrips = g.Count(),
                 TotalQuantity = g.Sum(t => t.Origin!.Quantity!.Value),
                 Trend = CalculateProductTrend(g.Key, startDate, endDate)
@@ -91,10 +121,10 @@ public class DashboardService : IDashboardService
             .ToList();
     }
 
-    public async Task<List<RecentTripDto>> GetRecentTripsAsync(int count, DateOnly? startDate, DateOnly? endDate)
+    public async Task<List<RecentTripDto>> GetRecentTripsAsync(int count, DateOnly? startDate, DateOnly? endDate, string? product = "All")
     {
         _logger.LogWarning($"Trip Start {startDate} end Date {endDate}");
-        var trips = await GetFilteredTripsAsync(startDate, endDate);
+        var trips = await GetFilteredTripsAsync(startDate, endDate, product);
         // if (trips is null || trips.Count == 0)
         // {
         //     return [];
@@ -353,7 +383,7 @@ public class DashboardService : IDashboardService
 
     #region Helper Methods
 
-    private async Task<List<Trip>> GetFilteredTripsAsync(DateOnly? startDate, DateOnly? endDate)
+    private async Task<List<Trip>> GetFilteredTripsAsync(DateOnly? startDate, DateOnly? endDate, string? product = "All")
     {
         var query = _context.Trips.AsNoTracking()
                                       .Include(x => x.Driver)
@@ -371,6 +401,11 @@ public class DashboardService : IDashboardService
 
         if (endDate.HasValue)
             query = query.Where(t => t.Date <= endDate.Value);
+
+
+        if (!product!.Contains("All"))
+            query = query.Where(x => x.Truck!.Product.ToString() == product);
+
 
         return await query.ToListAsync();
     }
