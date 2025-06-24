@@ -34,7 +34,8 @@ public class StationsController : ControllerBase
             if (!string.IsNullOrEmpty(request.SearchTerm))
             {
                 string pattern = $"%{request.SearchTerm}%";
-                query = query.Where(x => EF.Functions.ILike(x.Address!.State, pattern)
+                query = query.Where(x => EF.Functions.ILike(x.Name, pattern)
+                || EF.Functions.ILike(x.Address!.State, pattern)
                 || EF.Functions.ILike(x.Address!.Location, pattern)
                 || EF.Functions.ILike(x.Address!.ContactAddress!, pattern)
                 || EF.Functions.ILike(x.Type.ToString(), pattern));
