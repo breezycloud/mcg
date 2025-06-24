@@ -1,9 +1,9 @@
 <div class="mb-8">
     <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">Our Products</h2>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
         @foreach (Product product in Enum.GetValues(typeof(Product)))
         {
-            <ProductInfoCard Product="product" OnLearnMore="() => OnProductSelected.InvokeAsync(product)" />
+            <ProductInfoCard Product="product" />
         }
     </div>
 </div>

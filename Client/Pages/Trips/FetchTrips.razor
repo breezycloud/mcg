@@ -35,7 +35,7 @@
                         <div>
                             @* <label for="start-date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Start Date</label> *@
                             <input 
-                                type="date"
+                                type="month"
                                 id="start-date" 
                                 class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" 
                                 @bind="reportFilter.StartDate" />
@@ -179,16 +179,16 @@
 
                                     <!-- Actions -->
                                     <td class="px-6 py-4 text-right">
-                                        <div class="flex justify-end space-x-3">
+                                        <div class="flex justify-end space-x-3">                                           
+                                            <button @onclick="() => ViewTrip(trip)" class="font-medium text-green-600 dark:text-green-500 hover:underline">
+                                                View
+                                            </button>                           
                                             @if (trip.Status != TripStatus.Closed)
                                             {
                                                 <button @onclick="() => EditStatus(trip)" class="font-medium text-blue-600 dark:text-blue-500 hover:underline">
-                                                    Edit
+                                                    Update
                                                 </button>
-                                            }
-                                            <button @onclick="() => ViewTrip(trip)" class="font-medium text-green-600 dark:text-green-500 hover:underline">
-                                                View
-                                            </button>                                                                                   
+                                            }                                                        
                                         </div>
                                     </td>                                
                                 </tr>

@@ -34,7 +34,7 @@ public class DestinationsController : ControllerBase
             if (!string.IsNullOrEmpty(request.SearchTerm))
             {
                 string pattern = $"%{request.SearchTerm}%";
-                query = query.Include(x => x.Station).Where(x => EF.Functions.ILike(x.Station.Name, pattern) || EF.Functions.ILike(x.Station.Address!.Location, pattern)
+                query = query.Include(x => x.Station).Where(x => EF.Functions.ILike(x.Station!.Name, pattern) || EF.Functions.ILike(x.Station.Address!.Location, pattern)
                 || EF.Functions.ILike(x.Station.Address!.State, pattern));
             }
 

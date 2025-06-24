@@ -1,4 +1,5 @@
 @page "/requests/{id:guid}"
+@using System.Text
 @inject IRequestService ServiceRequestService
 
 
@@ -282,12 +283,12 @@
 @code {
     [Parameter]
     public Guid Id { get; set; }
-
     private ServiceRequest? serviceRequest;
     private bool showCloseRequestModal = false;
     private bool showAddNotesModal = false;
     private string closeRequestNotes = string.Empty;
     private string technicianNotes = string.Empty;
+    private StringBuilder? notesBuilder = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -344,12 +345,11 @@
             serviceRequest.ClosedAt = DateTimeOffset.UtcNow;
             if (!string.IsNullOrWhiteSpace(serviceRequest.Notes))
             {
-                serviceRequest.Notes += Environment.NewLine;
+                serviceRequest.Notes += "\n";
             }
             serviceRequest.Notes += closeRequestNotes;
             serviceRequest.Status= RequestStatus.Closed;
             await ServiceRequestService.UpdateAsync(serviceRequest, AppState.GetCancellationToken());
-            showCloseRequestModal = false;
             StateHasChanged();
         }
     }
@@ -372,7 +372,8 @@
         {
             if (!string.IsNullOrWhiteSpace(serviceRequest.Notes))
             {
-                serviceRequest.Notes += Environment.NewLine;
+                notesBuilder?.AppendLine(serviceRequest.Notes);
+                serviceRequest.Notes += "\n";
             }
             serviceRequest.Notes += technicianNotes;
             serviceRequest.TreatedAt = DateTimeOffset.UtcNow;

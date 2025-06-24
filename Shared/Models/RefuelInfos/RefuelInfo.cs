@@ -11,7 +11,7 @@ public class RefuelInfo
 {
     [Key]
     public Guid Id { get; set; }
-    public DateOnly Date { get; set; }
+    public DateOnly Date { get; set; } = DateOnly.FromDateTime(DateTime.UtcNow);
     public Guid TruckId { get; set; }
     public Guid? StationId { get; set; }
     public decimal Quantity { get; set; }

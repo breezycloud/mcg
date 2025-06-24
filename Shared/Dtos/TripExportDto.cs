@@ -16,6 +16,7 @@ public class TripExportDto
     public string? ElockStatus { get; set; }
     public string? ArrivedAtATV { get; set; }
     public string? AtvArrivalDate { get; set; }
+    public string? InvoiceDate { get; set; }
     public string? ArrivedAtStation { get; set; }
     public string? StationArrivalDate { get; set; }
     public string? Discharged { get; set; }
