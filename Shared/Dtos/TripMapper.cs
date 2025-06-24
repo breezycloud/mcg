@@ -24,9 +24,10 @@ public static class TripMapper
             DispatchQuantity = trip.Origin?.Quantity ?? 0,
             DriverName = trip.Driver?.ToString() ?? "N/A",
             Dest = trip.Dest,
-            ElockStatus = trip.ElockStatus.ToString(),
+            ElockStatus = trip.ElockStatus.ToString(),            
             ArrivedAtATV = trip.ArrivedAtATV ? "Yes" : "No",
             AtvArrivalDate = trip.ATVArrivalDate.HasValue ? trip.ATVArrivalDate.Value.ToString("dd/MM/yyyy") : "N/A",
+            InvoiceDate = trip.InvoiceDate.HasValue ? trip.InvoiceDate.Value.ToString("dd/MM/yyyy") : "N/A",
             ArrivedAtStation = trip.Destination?.ArrivedAtStation == true ? "Yes" : "No",
             StationArrivalDate = trip.Destination?.StationArrivalDate.HasValue == true
                 ? trip.Destination.StationArrivalDate.Value.ToString("dd/MM/yyyy")

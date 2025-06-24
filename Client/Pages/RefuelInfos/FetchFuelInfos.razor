@@ -1,7 +1,7 @@
 @page "/refuelling"
 @inject IRefuelInfoService RefuellingService
 @attribute [Authorize(Roles = "Supervisor, Admin, Master")]
-<PageTitle>Drivers</PageTitle>
+<PageTitle>Refuelling Info</PageTitle>
 
 
 <section class="bg-gray-50 dark:bg-gray-900 rounded-lg">
@@ -75,7 +75,7 @@
                                         @info.Unit.ToString()
                                     </td>
                                     <td class="px-6 py-4">
-                                        @(info.Price.HasValue ? info.Price.Value.ToString("C") : "-")
+                                        @(info.Price.HasValue ? info.Price.Value.ToString("N2") : "-")
                                     </td>
                                     <td class="px-6 py-4">
                                         @info.CreatedAt.ToString("MMM dd, yyyy")

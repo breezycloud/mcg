@@ -34,8 +34,10 @@ public class StationsController : ControllerBase
             if (!string.IsNullOrEmpty(request.SearchTerm))
             {
                 string pattern = $"%{request.SearchTerm}%";
-                query = query.Include(x => x.Name).Where(x => EF.Functions.ILike(x.Address!.State, pattern) || EF.Functions.ILike(x.Address!.Location, pattern)
-                || EF.Functions.ILike(x.Address!.ContactAddress!, pattern));
+                query = query.Where(x => EF.Functions.ILike(x.Address!.State, pattern)
+                || EF.Functions.ILike(x.Address!.Location, pattern)
+                || EF.Functions.ILike(x.Address!.ContactAddress!, pattern)
+                || EF.Functions.ILike(x.Type.ToString(), pattern));
             }
 
             response.Total = await query.CountAsync();

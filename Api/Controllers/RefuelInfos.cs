@@ -29,12 +29,12 @@ public class RefuelInfosController : ControllerBase
         GridDataResponse<RefuelInfo> response = new();
         try
         {
-            var query = _context.RefuelInfos.AsQueryable();
+            var query = _context.RefuelInfos.Include(x => x.Truck).Include(x => x.Station).AsSplitQuery().AsQueryable();
             
             if (!string.IsNullOrEmpty(request.SearchTerm))
             {
                 string pattern = $"%{request.SearchTerm}%";
-                query = query.Include(x => x.Station).Where(x => EF.Functions.ILike(x.Station!.Name, pattern) );
+                query = query.Where(x => EF.Functions.ILike(x.Station!.Name, pattern) );
             }
 
             response.Total = await query.CountAsync();
