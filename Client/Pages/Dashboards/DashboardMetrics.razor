@@ -2,15 +2,15 @@
 
 <div class="@GridCols">
     <!-- Total Trips Card -->
-    <div class="bg-white p-6 rounded-lg shadow">
+    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
         <div class="flex items-center justify-between">
             <div>
-                <h3 class="text-gray-500 font-medium">Total Trips</h3>
-                <p class="text-xs text-gray-400 mt-1">@TimeRangeLabel</p>
+                <h3 class="text-gray-500 dark:text-gray-300 font-medium">Total Trips</h3>
+                <p class="text-xs text-gray-400 dark:text-gray-400 mt-1">@TimeRangeLabel</p>
             </div>
             <i class="fas fa-truck text-blue-500 text-xl"></i>
         </div>
-        <p class="text-3xl font-bold mt-2">@metrics?.TotalTrips</p>
+        <p class="text-3xl font-bold mt-2 text-gray-900 dark:text-white">@metrics?.TotalTrips</p>
         <div class="mt-2 text-sm @GetTrendClass(trends?.TotalTripsTrend)">
             <i class="@GetTrendIcon(trends?.TotalTripsTrend) mr-1"></i>
             @trends?.TotalTripsTrend%
@@ -18,15 +18,15 @@
     </div>
 
     <!-- Active Trips Card -->
-    <div class="bg-white p-6 rounded-lg shadow">
+    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
         <div class="flex items-center justify-between">
             <div>
-                <h3 class="text-gray-500 font-medium">Active Trips</h3>
-                <p class="text-xs text-gray-400 mt-1">@TimeRangeLabel</p>
+                <h3 class="text-gray-500 dark:text-gray-300 font-medium">Active Trips</h3>
+                <p class="text-xs text-gray-400 dark:text-gray-400 mt-1">@TimeRangeLabel</p>
             </div>
             <i class="fas fa-spinner text-yellow-500 text-xl"></i>
         </div>
-        <p class="text-3xl font-bold mt-2">@metrics?.ActiveTrips</p>
+        <p class="text-3xl font-bold mt-2 text-gray-900 dark:text-white">@metrics?.ActiveTrips</p>
         <div class="mt-2 text-sm @GetTrendClass(trends?.ActiveTripsTrend)">
             <i class="@GetTrendIcon(trends?.ActiveTripsTrend) mr-1"></i>
             @trends?.ActiveTripsTrend%
@@ -34,15 +34,15 @@
     </div>
 
     <!-- Completed Trips Card -->
-    <div class="bg-white p-6 rounded-lg shadow">
+    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
         <div class="flex items-center justify-between">
             <div>
-                <h3 class="text-gray-500 font-medium">Completed Trips</h3>
-                <p class="text-xs text-gray-400 mt-1">@TimeRangeLabel</p>
+                <h3 class="text-gray-500 dark:text-gray-300 font-medium">Completed Trips</h3>
+                <p class="text-xs text-gray-400 dark:text-gray-400 mt-1">@TimeRangeLabel</p>
             </div>
             <i class="fas fa-check-circle text-green-500 text-xl"></i>
         </div>
-        <p class="text-3xl font-bold mt-2">@metrics?.ClosedTrips</p>
+        <p class="text-3xl font-bold mt-2 text-gray-900 dark:text-white">@metrics?.ClosedTrips</p>
         <div class="mt-2 text-sm @GetTrendClass(trends?.ClosedTripsTrend)">
             <i class="@GetTrendIcon(trends?.ClosedTripsTrend) mr-1"></i>
             @trends?.ClosedTripsTrend%
@@ -52,15 +52,15 @@
     <!-- Avg. Duration Card -->
     @if (Product != ProductFilter.All)
     {
-        <div class="bg-white p-6 rounded-lg shadow">
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
             <div class="flex items-center justify-between">
                 <div>
-                    <h3 class="text-gray-500 font-medium">Avg. Duration</h3>
-                    <p class="text-xs text-gray-400 mt-1">@TimeRangeLabel</p>
+                    <h3 class="text-gray-500 dark:text-gray-300 font-medium">Avg. Duration</h3>
+                    <p class="text-xs text-gray-400 dark:text-gray-400 mt-1">@TimeRangeLabel</p>
                 </div>
                 <i class="fas fa-clock text-purple-500 text-xl"></i>
             </div>
-            <p class="text-3xl font-bold mt-2">@(metrics?.AvgTripDurationDays.ToString("0.0")) days</p>
+            <p class="text-3xl font-bold mt-2 text-gray-900 dark:text-white">@(metrics?.AvgTripDurationDays.ToString("0.0")) days</p>
             <div class="mt-2 text-sm @GetTrendClass(trends?.AvgDurationTrend)">
                 <i class="@GetTrendIcon(trends?.AvgDurationTrend) mr-1"></i>
                 @trends?.AvgDurationTrend%

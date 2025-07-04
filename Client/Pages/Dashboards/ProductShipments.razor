@@ -1,32 +1,32 @@
 @inject IDashboardService DashboardService
 
-<div class="bg-white p-6 rounded-lg shadow mt-6">
+<div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow mt-6">
     <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-semibold">Product Shipments</h3>
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Product Shipments</h3>
         <div class="flex items-center space-x-2">
-            <span class="text-sm text-gray-500">@TimeRangeLabel</span>
+            <span class="text-sm text-gray-500 dark:text-gray-400">@TimeRangeLabel</span>
             <button @onclick="ExportToExcel" 
-                    class="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded">
+                    class="px-3 py-1 text-xs bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded text-gray-800 dark:text-gray-200">
                 <i class="fas fa-download mr-1"></i> Export
             </button>
         </div>
     </div>
 
     <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead class="bg-gray-50 dark:bg-gray-700">
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trips</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trend</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Product</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Trips</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Quantity</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Trend</th>
                 </tr>
             </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
+            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 @if (shipments == null)
                 {
                     <tr>
-                        <td colspan="4" class="px-6 py-4 text-center">Loading...</td>
+                        <td colspan="4" class="px-6 py-4 text-center text-gray-700 dark:text-gray-200">Loading...</td>
                     </tr>
                 }
                 else
@@ -37,11 +37,11 @@
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="flex items-center">
                                     <div class="flex-shrink-0 h-5 w-5 @GetProductColor(item.Product) rounded-full"></div>
-                                    <div class="ml-2">@item.Product</div>
+                                    <div class="ml-2 text-gray-900 dark:text-gray-100">@item.Product</div>
                                 </div>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap">@item.TotalTrips</td>
-                            <td class="px-6 py-4 whitespace-nowrap">
+                            <td class="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-gray-100">@item.TotalTrips</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-gray-100">
                                 @item.TotalQuantity.ToString("N1") @GetUnitForProduct(item.Product)
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
