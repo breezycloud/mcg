@@ -6,11 +6,11 @@
 @using ApexCharts
 @inject IDashboardService DashboardService
 
-<div class="bg-white p-6 rounded-lg shadow">
-    <h3 class="text-lg font-semibold mb-4">Trip Monthly Distribution</h3>
-   <ApexChart @ref="chart" TItem="TripMonthlySummaryDto" 
-             Options="@options"
-             Height="350">
+<div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+    <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Trip Monthly Distribution</h3>
+    <ApexChart @ref="chart" TItem="TripMonthlySummaryDto" 
+               Options="@options"
+               Height="350">
 
         <ApexPointSeries TItem="TripMonthlySummaryDto"
                  Items="Data"

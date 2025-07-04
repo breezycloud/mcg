@@ -136,7 +136,7 @@ await SeedData.EnsureSeeded(app.Services);
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.UseWebAssemblyDebugging();
+    // app.UseWebAssemblyDebugging();
 }
 else
 {
@@ -152,7 +152,7 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 
 app.UseHttpsRedirection();
 
-app.UseBlazorFrameworkFiles();
+// app.UseBlazorFrameworkFiles();
 app.MapStaticAssets();
 
 app.UseRouting();
