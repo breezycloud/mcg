@@ -2,19 +2,29 @@
 <div class="max-w-4xl mx-auto">
     @* <h2 class="text-2xl font-bold mb-6 text-gray-800">Compartment Metrics</h2> *@
     <!-- Add New Metric Button -->
-    <div class="flex align-center justify-end">
-        <button data-modal-target="default-modal" data-modal-toggle="default-modal" @onclick="ShowAddModal" class="mb-4 text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center">
-            Add New Metric
-        </button>
-    </div>
+    @if (MetricsList.Count != 3)
+    {
+        <div class="flex align-center justify-end">
+            <button data-modal-target="default-modal" data-modal-toggle="default-modal" @onclick="ShowAddModal" class="mb-4 text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center">
+                Add New Metric
+            </button>
+        </div>
+    }    
 
      <!-- Metrics Table -->
     <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
         <table class="w-full text-sm text-left rtl:text-right text-gray-500">
             <thead class="text-xs text-gray-700 uppercase bg-gray-50">
                 <tr>
-                    <th scope="col" class="px-6 py-3">Item</th>
-                    <th scope="col" class="px-6 py-3">Values</th>
+                    @if (Product == Product.LPG)
+                    {
+                        <th scope="col" class="px-6 py-3">Values</th>                        
+                    }
+                    else
+                    {
+                        <th scope="col" class="px-6 py-3">Item</th>
+                        <th scope="col" class="px-6 py-3">Values</th>                        
+                    }                                        
                     <th scope="col" class="px-6 py-3">Actions</th>
                 </tr>
             </thead>
@@ -22,12 +32,16 @@
                 @foreach (var metric in MetricsList)
                 {
                     <tr class="bg-white border-b hover:bg-gray-50">
-                        <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">@metric.Compartment</td>
+                        @if (Product != Product.LPG || Product != Product.CNG)
+                        {
+                            <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">@metric.Compartment</td>
+                        }
                         <td class="px-6 py-4">
                             @if (Product == Product.LPG)
                             {
                                 <span>Tare: @metric.TareWeight kg</span><br />
-                                <span>Gross: @metric.GrossWeight kg</span>
+                                <span>Gross: @metric.GrossWeight kg</span><br />
+                                <span>Net: @metric.NetWeight kg</span>
                             }
                             else
                             {
@@ -65,23 +79,7 @@
                     <DataAnnotationsValidator />
                     <ValidationSummary />
 
-                    <div class="space-y-4">                    
-                        <!-- Compartment Selection -->
-                        <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Compartment</label>
-                            <InputSelect id="comId"
-                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
-                                @bind-Value="currentMetric.Compartment"
-                                @bind-Value:after="OnChanged">
-                                <option value="">-- Select COM --</option>
-                                @foreach (var compartment in compartments)
-                                {
-                                    <option value="@compartment">@compartment</option>
-                                }
-                            </InputSelect>                        
-                            <ValidationMessage For="@(() => currentMetric.Compartment)" />
-                        </div>
-
+                    <div class="space-y-4">
                         <!-- Dynamic Fields -->
                         @if (Product == Product.LPG)
                         {
@@ -100,17 +98,33 @@
                         else
                         {
                             <div class="mb-4">
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Ullage (mm)</label>
-                                <InputNumber  @bind-Value="currentUllage" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">                                
-                                </InputNumber>
-                                <ValidationMessage For="@(() => currentMetric.Ullage!.Quantity)" />
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Compartment</label>
+                                <InputSelect id="comId"
+                                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+                                    @bind-Value="currentMetric.Compartment"
+                                    @bind-Value:after="OnChanged">
+                                    <option value="">-- Select COM --</option>
+                                    @foreach (var compartment in compartments)
+                                    {
+                                        <option value="@compartment">@compartment</option>
+                                    }
+                                </InputSelect>                        
+                                <ValidationMessage For="@(() => currentMetric.Compartment)" />
                             </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Ullage (mm)</label>
+                                    <InputNumber  @bind-Value="currentUllage" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">                                
+                                    </InputNumber>
+                                    <ValidationMessage For="@(() => currentMetric.Ullage!.Quantity)" />
+                                </div>
 
-                            <div class="mb-4">
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Liquid Height (mm)</label>
-                                <InputNumber @bind-Value="currentLiquidHeight" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" />
-                                <ValidationMessage For="@(() => currentMetric.LiquidHeight!.Quantity)" />
-                            </div>                            
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Liquid Height (mm)</label>
+                                    <InputNumber @bind-Value="currentLiquidHeight" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" />
+                                    <ValidationMessage For="@(() => currentMetric.LiquidHeight!.Quantity)" />
+                                </div>
+                            </div>                                                        
                         } 
                     </div>                
 
@@ -140,7 +154,7 @@
     private Metrics currentMetric = new();
     private bool showModal = false;
     private bool isEditing = false;
-    private List<Compartment> compartments = Enum.GetValues(typeof(Compartment)).Cast<Compartment>().ToList();
+    private List<Compartment> compartments => GetCompartments();
 
     protected override void OnParametersSet()
     {
@@ -149,6 +163,20 @@
             currentUllage = currentMetric.Ullage?.Quantity;
             currentLiquidHeight = currentMetric.LiquidHeight?.Quantity;
         }
+    }
+
+    List<Compartment> GetCompartments()
+    {
+
+        if (MetricsList.Any())
+        {
+            var values = MetricsList.Select(c => c.Compartment).ToList();
+            return Enum.GetValues(typeof(Compartment)).Cast<Compartment>().Where(x => !values.Any(c => c == x)).ToList();
+        }   
+        else
+        {
+            return Enum.GetValues(typeof(Compartment)).Cast<Compartment>().ToList();
+        }     
     }
 
     private async Task NotifyParent()

@@ -1,15 +1,13 @@
-<div class="bg-white rounded-lg shadow-md p-6">
-    <h3 class="text-lg font-semibold mb-4">Quantity Reconciliation (0.29% Tolerance)</h3>
-
+<div class="bg-white rounded-lg p-1">    
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <!-- Initial Loading -->
-        <div class="bg-blue-50 p-4 rounded-lg">
+        <div class="bg-blue-50 p-4 border border-blue-200 rounded-lg">
             <h4 class="text-sm font-medium text-blue-800 mb-1">Initial Loading</h4>
             <p class="text-2xl font-bold text-blue-600">@LoadingQuantity.ToString("N2") @Unit</p>
         </div>
 
          <!-- Total Discharged -->
-        <div class="bg-green-50 p-4 border rounded-lg">
+        <div class="bg-green-50 p-4 border border-green-200 rounded-lg">
             <h4 class="text-sm font-medium text-green-800 mb-1">Total Discharged</h4>
             <p class="text-2xl font-bold text-green-600">@TotalDischarged.ToString("N2") @Unit</p>
         </div>
