@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Shared.Enums;
+using Shared.Models.Drivers;
 using Shared.Models.Trips;
 
 namespace Shared.Models.Trucks;
@@ -31,12 +32,15 @@ public class Truck
     public string? VIN { get; set; }
 
     [StringLength(30)]
-    public string? EngineNo { get; set; }
+    public string? EngineNo { get; set; }    
+    public Guid? DriverId { get; set; }
 
     public Product? Product { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? UpdatedAt { get; set; }
     public virtual ICollection<Trip>? Trips { get; set; } = [];
+    [ForeignKey(nameof(DriverId))]
+    public virtual Driver? Driver { get; set; }
 
     [NotMapped]
     public string? OriginalTruckNo => TruckNo;

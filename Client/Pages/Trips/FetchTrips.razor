@@ -119,7 +119,7 @@
                                         </div>
                                         <div>
                                             <span class="font-semibold">Waybill:</span>
-                                            @trip.WaybillNo
+                                            @trip.LoadingInfo.WaybillNo
                                         </div>
                                     </td>
 
@@ -143,28 +143,14 @@
 
                                     <!-- Origin -->
                                     <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
-                                        @if (trip.Origin?.Station != null)
-                                        {
-                                            <div>@trip.Origin.Station.Name</div>
-                                            <div class="text-xs text-gray-500">@trip.Origin.Quantity @trip.Origin.Unit</div>
-                                        }
-                                        else
-                                        {
-                                            <span class="italic text-gray-400">N/A</span>
-                                        }
+                                        <div>@trip.LoadingDepot?.Name</div>
+                                        <div class="text-xs text-gray-500">@(trip.LoadingInfo.Quantity is null ? "" : $"{trip.LoadingInfo?.Quantity} {trip.GetUnit()}") </div>                                        
                                     </td>
 
                                     <!-- Destination -->
                                     <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
-                                        @if (trip.Destination?.Station != null)
-                                        {
-                                            <div>@trip.Destination.Station.Name</div>
-                                            <div class="text-xs text-gray-500">@trip.Destination.DischargedQuantity @trip.Destination.DischargedUnit</div>
-                                        }
-                                        else
-                                        {
-                                            <span class="italic text-gray-400">N/A</span>
-                                        }
+                                        <div>@trip.LoadingInfo.Destination</div>
+                                        @* <div class="text-xs text-gray-500">@trip @trip.Destination.DischargedUnit</div>                                         *@
                                     </td>
 
                                     <!-- Status -->
@@ -172,7 +158,7 @@
                                         <span class="text-xs font-medium px-2.5 py-0.5 rounded
                                             @(trip.Status == TripStatus.Active
                                                 ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
-                                                : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300")">
+                                                : trip.Status == TripStatus.Closed ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300" : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300")">
                                             @trip.Status
                                         </span>
                                     </td>
@@ -183,7 +169,7 @@
                                             <button @onclick="() => ViewTrip(trip)" class="font-medium text-green-600 dark:text-green-500 hover:underline">
                                                 View
                                             </button>                           
-                                            @if (trip.Status != TripStatus.Closed)
+                                            @if (trip.Status != TripStatus.Completed)
                                             {
                                                 <button @onclick="() => EditStatus(trip)" class="font-medium text-blue-600 dark:text-blue-500 hover:underline">
                                                     Update
@@ -242,9 +228,9 @@
             </div>
         </div>
     }
-    @if (showStatusModal)
+    @* @if (showStatusModal)
     {
-         <TripStatusModal 
+         <EditTrip 
             Trip="selectedTrip" 
             CloseModal="() => showStatusModal = false" 
             OnSave="UpdateTrip"
@@ -258,7 +244,7 @@
             Trip="selectedTrip" 
             OnBack="() => {  selectedTrip = null; showData = true; }" 
             OnEdit="() => EditStatus(selectedTrip)" />
-    }
+    } *@
 </section>
 
 
@@ -397,16 +383,14 @@
 
     private void EditStatus(Trip trip)
     {
-        selectedTrip = trip;
-        showStatusModal = true;
-        showData = true;
+        AppState.Trip = selectedTrip = trip;        
+        nav.NavigateTo($"edit-trip/{trip.Id}");        
     }
 
     private void ViewTrip(Trip trip)
     {
-        selectedTrip = trip;
-        showStatusModal = false;
-        showData = false;
+        AppState.Trip = selectedTrip = trip;
+        nav.NavigateTo($"view-trip/{trip.Id}");
     }
 
 

@@ -1,0 +1,239 @@
+
+<div class="max-w-4xl mx-auto">
+    @* <h2 class="text-2xl font-bold mb-6 text-gray-800">Compartment Metrics</h2> *@
+    <!-- Add New Metric Button -->
+    <div class="flex align-center justify-end">
+        <button data-modal-target="default-modal" data-modal-toggle="default-modal" @onclick="ShowAddModal" class="mb-4 text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center">
+            Add New Metric
+        </button>
+    </div>
+
+     <!-- Metrics Table -->
+    <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
+        <table class="w-full text-sm text-left rtl:text-right text-gray-500">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-6 py-3">Item</th>
+                    <th scope="col" class="px-6 py-3">Values</th>
+                    <th scope="col" class="px-6 py-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var metric in MetricsList)
+                {
+                    <tr class="bg-white border-b hover:bg-gray-50">
+                        <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">@metric.Compartment</td>
+                        <td class="px-6 py-4">
+                            @if (Product == Product.LPG)
+                            {
+                                <span>Tare: @metric.TareWeight kg</span><br />
+                                <span>Gross: @metric.GrossWeight kg</span>
+                            }
+                            else
+                            {
+                                <span>Ullage: @metric.Ullage?.Quantity </span><br />
+                                <span>Height: @metric.LiquidHeight?.Quantity </span><br />
+                                <span>Overall: @metric.Overall</span>
+                            }
+                        </td>
+                        <td class="px-6 py-4">
+                            <button @onclick="() => EditMetric(metric)" class="font-medium text-blue-600 hover:underline mr-3">Edit</button>
+                            <button @onclick="() => DeleteMetric(metric)" class="font-medium text-red-600 hover:underline">Delete</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Add/Edit Modal -->
+    @if (showModal)
+    {
+        <div tabindex="-1" data-modal-backdrop="static" aria-hidden="@(!showModal)" class="@(showModal ? "flex" : "hidden") overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+            <div class="relative top-20 mx-auto p-5 border w-1/2 shadow-lg rounded-md bg-white">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-medium text-gray-900">@(isEditing ? "Edit Metric" : "Add New Metric")</h3>
+                    <button @onclick="CloseModal" class="text-gray-400 hover:text-gray-500">
+                        <span class="sr-only">Close</span>
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <EditForm Model="@currentMetric" OnValidSubmit="@SaveMetric">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+
+                    <div class="space-y-4">                    
+                        <!-- Compartment Selection -->
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Compartment</label>
+                            <InputSelect id="comId"
+                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+                                @bind-Value="currentMetric.Compartment"
+                                @bind-Value:after="OnChanged">
+                                <option value="">-- Select COM --</option>
+                                @foreach (var compartment in compartments)
+                                {
+                                    <option value="@compartment">@compartment</option>
+                                }
+                            </InputSelect>                        
+                            <ValidationMessage For="@(() => currentMetric.Compartment)" />
+                        </div>
+
+                        <!-- Dynamic Fields -->
+                        @if (Product == Product.LPG)
+                        {
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Tare Weight (kg)</label>
+                                <InputNumber @bind-Value="currentMetric.TareWeight" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" />
+                                <ValidationMessage For="@(() => currentMetric.TareWeight)" />
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Gross Weight (kg)</label>
+                                <InputNumber @bind-Value="currentMetric.GrossWeight" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" />
+                                <ValidationMessage For="@(() => currentMetric.GrossWeight)" />
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Ullage (mm)</label>
+                                <InputNumber  @bind-Value="currentUllage" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">                                
+                                </InputNumber>
+                                <ValidationMessage For="@(() => currentMetric.Ullage!.Quantity)" />
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Liquid Height (mm)</label>
+                                <InputNumber @bind-Value="currentLiquidHeight" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" />
+                                <ValidationMessage For="@(() => currentMetric.LiquidHeight!.Quantity)" />
+                            </div>                            
+                        } 
+                    </div>                
+
+                    <div class="flex justify-end space-x-3 mt-6">
+                        <button type="button" @onclick="CloseModal" class="text-gray-700 bg-white hover:bg-gray-100 border border-gray-300 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center">
+                            Cancel
+                        </button>
+                        <button type="submit" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center">
+                            @(isEditing ? "Update" : "Save")
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>            
+    }
+</div>
+
+@code {
+    [Parameter] public Product Product { get; set; }
+
+    [Parameter]
+    public List<Metrics> MetricsList { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<List<Metrics>> MetricsListChanged { get; set; }
+
+    private Metrics currentMetric = new();
+    private bool showModal = false;
+    private bool isEditing = false;
+    private List<Compartment> compartments = Enum.GetValues(typeof(Compartment)).Cast<Compartment>().ToList();
+
+    protected override void OnParametersSet()
+    {
+        if (Product != Product.CNG || Product != Product.LPG)
+        {
+            currentUllage = currentMetric.Ullage?.Quantity;
+            currentLiquidHeight = currentMetric.LiquidHeight?.Quantity;
+        }
+    }
+
+    private async Task NotifyParent()
+    {
+        await MetricsListChanged.InvokeAsync(MetricsList);
+    }
+
+    void OnChanged()
+    {
+
+    }
+
+     private decimal? currentUllage;
+    private decimal? currentLiquidHeight;
+
+    private void ShowAddModal()
+    {
+        currentMetric = new Metrics
+        {
+            Ullage = new(0),
+            LiquidHeight = new(0)
+        };
+        currentUllage = null;
+        currentLiquidHeight = null;
+        isEditing = false;
+        showModal = true;
+    }
+
+    private async Task EditMetric(Metrics metric)
+    {
+        currentMetric = new Metrics
+        {
+            Id = metric.Id,            
+            Compartment = metric.Compartment,
+            TareWeight = metric.TareWeight,
+            GrossWeight = metric.GrossWeight,
+            Ullage = metric.Ullage,
+            LiquidHeight = metric.LiquidHeight,
+            CreatedAt = metric.CreatedAt
+        };
+        
+        currentUllage = currentMetric.Ullage?.Quantity;
+        currentLiquidHeight = currentMetric.LiquidHeight?.Quantity;
+        
+        isEditing = true;
+        showModal = true;
+    }
+
+    private async Task SaveMetric()
+    {
+        // Update the CompartmentQuantity objects with new values
+        if (Product != Product.LPG)
+        {
+            currentMetric.Ullage = new CompartmentQuantity (currentUllage);
+            currentMetric.LiquidHeight = new CompartmentQuantity(currentLiquidHeight);
+        }
+
+        currentMetric.UpdatedAt = DateTime.UtcNow;
+
+        if (isEditing)
+        {
+            var existing = MetricsList.FirstOrDefault(m => m.Id == currentMetric.Id);
+            if (existing != null)
+            {
+                MetricsList.Remove(existing);
+                MetricsList.Add(currentMetric);
+            }
+        }
+        else
+        {
+            MetricsList.Add(currentMetric);
+        }
+
+        await NotifyParent();
+        CloseModal();
+    }
+
+    private async Task DeleteMetric(Metrics metric)
+    {
+        MetricsList.Remove(metric);
+        await NotifyParent();
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+    }
+}

@@ -1,0 +1,756 @@
+@page "/edit-trip/{id:guid}"
+@attribute [Authorize]
+@inject ITripService TripService
+@inject IStationService StationService
+@inject IDischargeService DischargeService
+@using Client.Pages.Checkpoints
+@using Client.Pages.Discharges
+
+<div class="max-w-4xl mx-auto px-4 lg:px-6">
+    @if (AppState.IsBusy)
+    {
+        <Loader/>
+    }
+    else
+    {
+
+        <!-- Header Section -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">        
+            <div class="flex flex-row justify-start">
+                <button @onclick="CloseModal" class="text-gray-400 hover:text-gray-500">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                </button>
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Edit Trip</h2>            
+            </div>            
+        </div>
+        <!-- Trip Info Summary -->        
+
+        <!-- Main Card -->
+        <div class="bg-white shadow rounded-lg divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+            <!-- Basic Info Section -->
+            <div class="space-y-4 p-6">
+                <!-- Tabs -->
+                <div class="border-b border-gray-200 dark:border-gray-700">
+                    <ul class="flex flex-wrap -mb-px">
+                        <li class="mr-2">
+                            <button @onclick="() => SetActiveTab(1)" 
+                                    class="@GetTabClass(1) inline-block p-4 border-b-2 rounded-t-lg">
+                                Loading Information
+                            </button>
+                        </li>
+                        <li class="mr-2">
+                            <button @onclick="() => SetActiveTab(2)" 
+                                    class="@GetTabClass(2) inline-block p-4 border-b-2 rounded-t-lg">
+                                Truck Arrival
+                            </button>
+                        </li>
+                        @* <li class="mr-2">
+                            <button @onclick="() => SetActiveTab(3)" 
+                                    class="@GetTabClass(3) inline-block p-4 border-b-2 rounded-t-lg">
+                                Checkpoints
+                            </button>
+                        </li> *@
+                        <li class="mr-2">
+                            <button @onclick="() => SetActiveTab(3)" 
+                                    class="@GetTabClass(3) inline-block p-4 border-b-2 rounded-t-lg">
+                                Discharge
+                            </button>
+                        </li>
+                        <li>
+                            <button @onclick="() => SetActiveTab(4)" 
+                                    class="@GetTabClass(4) inline-block p-4 border-b-2 rounded-t-lg">
+                                Close Trip
+                            </button>
+                        </li>
+                    </ul>
+                </div>  
+                <div class="space-y-4">
+                    @if (activeTab == 1)
+                    {
+
+                        <!-- Loading Info/E-Lock Status Tab -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">                     
+                            <div>
+                                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                    Loading Date & Time <span class="text-red-500">*</span>
+                                </label>
+                                <input type="datetime-local" @bind="Trip!.LoadingInfo.LoadingDate"
+                                    class="@GetInputClass("LoadingDate")">
+                                @if (errors.ContainsKey("LoadingDate"))
+                                {
+                                    <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["LoadingDate"]</p>
+                                }
+                            </div>
+                            <div>
+                                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                    Quantity <span class="text-red-500">*</span>
+                                </label>
+                                <div class="flex">
+                                    <input type="number" step="0.01" @bind="Trip.LoadingInfo.Quantity"
+                                            class="rounded-l-lg bg-gray-50 border border-gray-300 text-gray-900 focus:ring-blue-500 focus:border-blue-500 block flex-1 min-w-0 w-full text-sm p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                                    <span class="inline-flex items-center px-3 text-sm text-gray-900 bg-gray-200 border border-l-0 border-gray-300 rounded-r-md dark:bg-gray-600 dark:text-gray-400 dark:border-gray-600">
+                                        @(AppState.GetUnitForProduct(Trip.Truck?.Product.ToString()))
+                                    </span>                                   
+                                </div>
+                                @if (errors.ContainsKey("Quantity"))
+                                {
+                                    <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["Quantity"]</p>
+                                }
+                            </div>
+                            <!-- Waybill -->
+                            <div>
+                                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                    Waybill No <span class="text-red-500">*</span>
+                                </label>
+                                <InputText @bind-Value="Trip.LoadingInfo.WaybillNo" id="wayBillNumber" class="@GetInputClass("WaybillNo")"  />
+                                @if (errors.ContainsKey("WaybillNo"))
+                                {
+                                    <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["WaybillNo"]</p>
+                                }
+                            </div>
+                            <div>
+                                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                    Dispatch Type <span class="text-red-500">*</span>
+                                </label>
+                                <select @bind="Trip.LoadingInfo.DispatchType" 
+                                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                                    <option value="@DispatchType.Direct">Direct</option>
+                                    <option value="@DispatchType.Depot">Depot</option>
+                                </select>
+                            </div>
+                                <StateSelector IsRequired="true" Destination="@Trip.LoadingInfo.Destination" OnLocationChanged="@DestinationChanged" FieldName="Destination" Errors="errors" GetInputClass="GetInputClass" />
+                            <div>                                
+                                <FileUploadView Label="Upload Waybill file" Model="@Trip.LoadingInfo.WaybillFile"/>
+                            </div>
+                            <div>
+                                @* <FileUploadView Label="Upload Log Book Params" Model="@Trip.LoadingInfo.LogBook"/> *@
+                            </div>
+                        </div>
+                        @if (Trip.Truck?.Product != Product.CNG)
+                        {                    
+                            <MetricsEditor
+                                Product="@Trip.Truck!.Product!.Value"
+                                MetricsList="@(Trip.LoadingInfo.Metrics)"                         
+                                MetricsListChanged="HandleMetricsChanged" />
+                        }
+
+                        <div>
+                            <div>
+                                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                    E-Lock Status
+                                </label>
+                                <select @bind="Trip!.LoadingInfo.ElockStatus" 
+                                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                                    <option value="@ElockStatus.Normal">Normal</option>
+                                    <option value="@ElockStatus.Abnormal">Abnormal</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                    Comments (Optional)
+                                </label>
+                                <textarea @bind="Trip.LoadingInfo.Remark" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                        rows="3" placeholder="Any notes about the e-lock status..."></textarea>
+                            </div>
+                        </div>
+                    }
+                    else if (activeTab == 2)
+                    {
+                        @if (Trip!.LoadingInfo.DispatchType == DispatchType.Depot)
+                        {
+                            <div class="">
+                                <div class="flex items-center">
+                                    <input id="arrived-checkbox" type="checkbox" @bind="Trip!.ArrivalInfo.ArrivedDepot" 
+                                        class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                                    <label for="arrived-checkbox" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                                        Truck has arrived at depot?
+                                    </label>
+                                </div>
+
+                                <div class="space-y-4 pt-4">
+                                    @if (Trip!.ArrivalInfo.ArrivedDepot)
+                                    {                                
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                                    Arrival Date & Time <span class="text-red-500">*</span>
+                                                </label>
+                                                <input type="datetime-local" @bind="Trip.ArrivalInfo.DepotArrivalDateTime"
+                                                    class="@GetInputClass("DepotArrivalDateTime")">
+                                                    @if (errors.ContainsKey("DepotArrivalDateTime"))
+                                                    {
+                                                        <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["DepotArrivalDateTime"]</p>
+                                                    }
+                                            </div>
+
+                                            <div>
+                                                <StateSelector IsRequired="true" Destination="@Trip.ArrivalInfo.Destination" OnLocationChanged="@ArrivalDestinationChanged" FieldName="Destination" Errors="errors" GetInputClass="GetInputClass" />                                            
+                                            </div>                                            
+
+                                            <div class="flex items-center">
+                                                <input id="invoiced-issued-checkbox" type="checkbox" @bind="Trip!.ArrivalInfo.InvoiceIssued" 
+                                                    class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                                                <label for="invoiced-issued-checkbox" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                                                    Invoice has been issued?
+                                                </label>
+                                            </div>
+                                        </div>                                    
+
+                                    }
+
+                                    @if (Trip!.ArrivalInfo.ArrivedDepot && Trip!.ArrivalInfo.InvoiceIssued)
+                                    {
+                                        <div>
+                                            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                                Invoice Date <span class="text-red-500">*</span>
+                                            </label>
+                                            <input type="datetime-local" @bind="Trip.ArrivalInfo.InvoiceToStationDateTime"
+                                                    class="@GetInputClass("InvoiceToStationDateTime")">
+                                            @if (errors.ContainsKey("InvoiceToStationDateTime"))
+                                            {
+                                                <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["InvoiceToStationDateTime"]</p>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="">
+                                <div class="flex items-center">
+                                    <input id="arrived-checkbox" type="checkbox" @bind="Trip!.ArrivalInfo.ArrivedAtStation" 
+                                        class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                                    <label for="arrived-checkbox" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                                        Truck has arrived at station?
+                                    </label>
+                                </div>
+
+                                <div class="space-y-4 pt-4">
+                                    <div>
+                                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                            Arrival Date & Time <span class="text-red-500">*</span>
+                                        </label>
+                                        <input type="datetime-local" @bind="Trip.ArrivalInfo.StationArrivalDateTime"
+                                            class="@GetInputClass("StationArrivalDateTime")">
+                                        @if (errors.ContainsKey("StationArrivalDateTime"))
+                                        {
+                                            <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["StationArrivalDateTime"]</p>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else if (activeTab == 3)
+                    {
+                        <div class="mb-6 flex flex-col sm:flex-row justify-between gap-4">
+                            <!-- Discharge Count Indicator -->
+                            @if (Trip!.Discharges != null && Trip.Discharges.Count > 0)
+                            {
+                                <div class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
+                                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2a4 4 0 0 1 8 0v2M5 11V7a7 7 0 0 1 14 0v4M12 19v2m-6-6h12" />
+                                    </svg>
+                                    <span>@Trip.Discharges.Count discharge@(Trip.Discharges.Count > 1 ? "s" : "")</span>
+                                    <button @onclick="() => viewDischargesModal = true"
+                                            class="ml-2 px-3 py-1 text-xs font-medium text-blue-700 bg-blue-100 rounded hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-300 dark:hover:bg-blue-800">
+                                        View Discharges
+                                    </button>
+                                </div>                                
+                            }
+                        
+                           @if (!Trip.Discharges!.Any(x=> x.IsFinalDischarge))
+                           {
+                                <button @onclick="ShowAddDischargeModal"
+                                        class="flex items-center justify-center text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">
+                                    <svg class="w-4 h-4 mr-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 18 18">
+                                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 1v16M1 9h16"/>
+                                    </svg>
+                                    Add Discharge
+                                </button>
+                           }
+                        </div>
+
+                        @if (Trip!.Discharges.Any())
+                        {
+                            <div>
+                                <QuantityReconciliation 
+                                    Discharges="@Trip.Discharges.ToList()" 
+                                    LoadingQuantity="@(Trip.LoadingInfo.Quantity ?? 0)"
+                                    Unit="@Trip.GetUnit()"
+                                    TolerancePercentage="0.29m"/>                                        
+                                    
+                            </div>
+                        }
+
+
+                    }
+                    else    
+                    {
+                        <div class="space-y-6">
+                            <!-- Close Trip Tab -->                            
+                            <div class="p-4 mb-4 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-gray-700 dark:text-blue-400" role="alert">
+                                <div class="flex items-center">
+                                    <svg class="flex-shrink-0 w-4 h-4 mr-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z"/>
+                                    </svg>
+                                    <span class="font-medium">Important!</span>
+                                </div>
+                                <p class="mt-2">Closing a trip will mark it as completed and no further changes can be made.</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Return Date/Time <span class="text-red-500">*</span></label>
+                                <InputDate @bind-Value="Trip.CloseInfo.ReturnDateTime" 
+                                        class="@GetInputClass("ReturnDateTime")"/>
+                                    @if (errors.ContainsKey("ReturnDateTime"))
+                                    {
+                                        <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["ReturnDateTime"]</p>
+                                    }
+                            </div>
+
+                            <!-- Trip Remarks -->
+                            <div>                                
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Remarks (Optional)</label>
+                                <InputTextArea @bind-Value="Trip.CloseInfo.TripRemark" rows="3"
+                                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" />
+                                <ValidationMessage For="@(() => Trip.CloseInfo.TripRemark)" />
+                            </div>
+
+                            <!-- Rating -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Trip Rating</label>
+                                <div class="flex items-center space-x-1">
+                                    @for (int i = 1; i <= 5; i++)
+                                    {
+                                        <button type="button" @onclick="() => Trip.CloseInfo.Rating = i"
+                                                class="text-2xl focus:outline-none">
+                                            <span class="@(i <= Trip.CloseInfo.Rating ? "text-yellow-400" : "text-gray-300")">★</span>
+                                        </button>
+                                    }
+                                </div>
+                                <ValidationMessage For="@(() => Trip.CloseInfo.Rating)" />
+                            </div>
+                            @if (Trip!.Status == TripStatus.Active)
+                            {
+                                <div>
+                                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                        Status
+                                    </label>
+                                    <select @bind="Trip.Status" 
+                                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                                        <option value="@TripStatus.Active">Active</option>
+                                        <option value="@TripStatus.Closed">Closed</option>
+                                    </select>
+                                </div>
+                            }
+                            @if (Trip!.Status == TripStatus.Closed)
+                            {
+                                <div>
+                                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                        Final Trip Status
+                                    </label>
+                                    <select @bind="Trip.Status" 
+                                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">                                        
+                                        <option value="@TripStatus.Closed">Closed</option>
+                                        <option value="@TripStatus.Completed">Completed</option>
+                                    </select>
+                                </div>
+                            }                            
+                        </div>
+                    }
+                </div>
+            </div>
+            <div class="flex items-center justify-end p-4 gap-5 border-t border-gray-200 dark:border-gray-700">
+            <button @onclick="CloseModal" type="button" class="py-2.5 px-5 me-2 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700">
+                Cancel
+            </button>
+            <button @onclick="SaveChanges" type="button" class="pr-4 text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800" disabled="@AppState.IsProcessing">
+                @if (AppState.IsProcessing)
+                {
+                    <svg class="animate-spin h-5 w-5 mr-2 inline text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                    </svg>
+                    @("Saving Changes...")
+                }
+                else
+                {
+                    @("Save Changes")
+                }
+            </button>
+        </div>
+        </div>
+        
+    }
+</div>
+
+@if (showDischargeModal)
+{
+    <DischargeModal Data="@currentDischarge"
+        IsVisible="@showDischargeModal"
+        EditMode="false"        
+        InitialQuantity="@InitialQuantity"
+        OnClose="@CloseDischargeModal"
+        OnSave="@EditDischarge"/>
+}
+
+@if (viewDischargesModal)
+{
+    <ViewDischarges 
+        Trip="@Trip"
+        OnClose="@CloseViewDischargeModal"/>
+}
+
+@code {
+    private int activeTab = 1;
+    [CascadingParameter] public Task<AuthenticationState>? authenticationState { get; set; }
+    [Parameter] public Guid id { get; set; }
+    public Trip? Trip { get; set; }
+            
+    private Station[]? Destionations = [];
+
+    private Dictionary<string, string> errors = new();
+
+    public bool EditMode = false;
+
+    public decimal InitialQuantity => Trip!.LoadingInfo.Quantity  - Trip.Discharges.Sum(x => x.QuantityDischarged) ?? 0;
+
+    private List<TripCheckpoint>? checkpoints;
+    private string checkpointSearch = string.Empty;
+    private TripCheckpoint currentCheckpoint = new();
+    private TripCheckpoint? editingCheckpoint;
+    private bool showCheckpointModal = false;
+    private bool showDeleteCheckpointModal = false;
+    private TripCheckpoint? checkpointToDelete;
+
+    private Discharge currentDischarge = new();
+    private Discharge? editingDischarge;
+    private bool showDischargeModal = false;
+    private bool viewDischargesModal = false;
+    private bool showDeleteDischargeModal = false;
+    private Discharge? dischargeToDelete;
+
+    protected override async Task OnInitializedAsync()
+    {
+        AppState.IsBusy = true;                
+        if (Trip is null)
+        {
+            Trip = await TripService.GetAsync(id, AppState.GetCancellationToken());
+        }
+        Destionations = await StationService.GetAsync(StationType.DischargeStation.ToString(), AppState.GetCancellationToken());
+        @* Drivers = await DriverService.GetAsync(AppState.GetCancellationToken());
+        if (Id.HasValue)
+            CurrentTrip = await TripService.GetAsync(Id.Value, AppState.GetCancellationToken()) ?? new();                     *@        
+        AppState.IsBusy = false;
+    }
+
+    private void CloseModal() => nav.NavigateTo("/trips");
+
+    private string GetStatusBadgeClass(TripStatus status)
+    {
+        return status switch
+        {
+            TripStatus.Closed => "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
+            TripStatus.Active => "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
+            _ => "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300",
+        };
+    }    
+
+    private string GetInputClass(string fieldName)
+    {
+        var baseClass = "bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500";        
+        if (errors.ContainsKey(fieldName))
+        {
+            baseClass += " border-red-500 bg-red-50 dark:bg-red-900 dark:border-red-700";
+        }
+        else
+        {
+            baseClass += " border-gray-300";
+        }        
+        return baseClass;
+    }
+    
+    private void SetActiveTab(int tabNumber)
+    {
+        activeTab = tabNumber;
+    }
+    
+    private string GetTabClass(int tabNumber)
+    {
+        return activeTab == tabNumber 
+            ? "text-blue-600 border-blue-600 dark:text-blue-500 dark:border-blue-500" 
+            : "border-transparent hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300";
+    }    
+
+    private void DestinationChanged(string location)
+    {
+        Trip!.LoadingInfo.Destination = location;
+        StateHasChanged();
+    }
+
+    private void ArrivalDestinationChanged(string location)
+    {
+        Trip!.ArrivalInfo.Destination = location;
+        StateHasChanged();
+    }
+    
+    
+    private async Task SaveChanges()
+    {
+        AppState.IsProcessing = true;
+        Console.WriteLine("Available Qty {0}", InitialQuantity);
+        errors.Clear();
+
+        // Validate required fields       
+
+        if (activeTab == 1)
+        {
+            if (Trip!.LoadingInfo.LoadingDate is null)
+            {
+                errors["LoadingDate"] = "Date is required";
+            }
+
+            if (Trip!.LoadingInfo.Quantity is null || Trip!.LoadingInfo.Quantity <= 0)
+            {
+                errors["Quantity"] = "Quantity is required";
+            }
+
+            if (string.IsNullOrWhiteSpace(Trip!.LoadingInfo.WaybillNo))
+            {
+                errors["WaybillNo"] = "WayBill No is required";
+            }
+
+            if (string.IsNullOrWhiteSpace(Trip!.LoadingInfo.Destination))
+            {
+                errors["Destination"] = "WayBill No is required";
+            }
+        }
+
+        if (activeTab == 2)
+        {
+            if (Trip.LoadingInfo.DispatchType == DispatchType.Depot)
+            {
+                if (Trip.ArrivalInfo.ArrivedDepot && Trip?.ArrivalInfo.DepotArrivalDateTime is null)
+                {
+                    errors["DepotArrivalDateTime"] = "Arrival Date/Time is required";
+                }
+                if (Trip.ArrivalInfo.ArrivedDepot && Trip?.ArrivalInfo.Destination is null || string.IsNullOrWhiteSpace(Trip.ArrivalInfo.Destination))
+                {
+                    errors["Destination"] = "Station is required";
+                }
+                if (Trip.ArrivalInfo.InvoiceIssued && Trip?.ArrivalInfo.InvoiceToStationDateTime is null)
+                {
+                    errors["InvoiceToStationDateTime"] = "Arrival Date/Time is required";
+                }
+            }            
+            else
+            {
+                if (Trip.ArrivalInfo.ArrivedAtStation && Trip?.ArrivalInfo.StationArrivalDateTime is null)
+                {
+                    errors["StationArrivalDateTime"] = "Arrival Date/Time is required";
+                }
+            }            
+        }
+        if (activeTab == 4)
+        {
+            if (Trip.CloseInfo.ReturnDateTime is null)
+            {
+                errors["ReturnDateTime"] = "Date is required";                
+            }
+            var uid = await localStorage.GetItemAsync<Guid>("uid");
+            if (Trip!.Status == TripStatus.Completed && !Trip!.Discharges.Any())
+            {
+                ToastService.ShowWarning("Please enter discharge information");
+                await _js.InvokeVoidAsync("alert", errors);
+                return;
+            }                        
+            else
+            {
+                Trip!.ClosedById = uid;
+            }
+            if (Trip!.Status == TripStatus.Closed)
+            {
+                Trip!.CompletedById = uid;
+                Trip!.CloseInfo.CloseDateTime = DateTime.UtcNow;
+            }
+        }        
+        if (errors.Any())
+        {
+            await _js.InvokeVoidAsync("console.log", errors);
+            ToastService.ShowWarning("Fill the required fields to proceed");            
+            AppState.IsProcessing = false;
+            StateHasChanged();
+            return;
+        }
+        Trip!.UpdatedAt = DateTimeOffset.UtcNow;
+        try
+        {
+            var response = await TripService.UpdateAsync(Trip, AppState.GetCancellationToken());
+            if (response)
+            {
+                Notify();
+            }
+        }    
+        finally
+        {
+            AppState.IsProcessing = false;
+        }            
+    }
+
+    private void ShowAddCheckpointModal()
+    {
+        currentCheckpoint = new();
+        editingCheckpoint = null;
+        showCheckpointModal = true;
+    }
+
+    private void EditCheckpoint(TripCheckpoint checkpoint)
+    {
+        currentCheckpoint = new()
+        {
+            Id = checkpoint.Id,
+            TripId = Trip!.Id,           
+            ExpectedDistanceFromPreviousKm = checkpoint.ExpectedDistanceFromPreviousKm,
+            EstimatedArrivalTime = checkpoint.EstimatedArrivalTime,
+            Notes = checkpoint.Notes
+        };
+        Trip!.Checkpoints?.Add(currentCheckpoint);
+        CloseCheckpointModal();
+    }
+
+    private void ShowDeleteCheckpointModal(TripCheckpoint checkpoint)
+    {
+        checkpointToDelete = checkpoint;
+        showDeleteCheckpointModal = true;
+    }
+
+    private async Task DeleteCheckpoint()
+    {
+        if (checkpointToDelete == null) return;
+        
+        try
+        {
+            @* await CheckpointService.DeleteAsync(checkpointToDelete.Id);
+            await LoadCheckpoints(); *@
+            showDeleteCheckpointModal = false;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deleting checkpoint: {ex.Message}");
+        }
+    }
+
+    private void CloseCheckpointModal()
+    {
+        showCheckpointModal = false;
+        currentCheckpoint = new();
+        editingCheckpoint = null;
+    }
+
+    private void ShowAddDischargeModal()
+    {               
+        editingDischarge = null;
+        showDischargeModal = true;
+        if (!Trip.Discharges.Any() && Trip.ArrivalInfo.StationArrivalDateTime is not null)
+            currentDischarge = new() { TruckArrival = Trip.ArrivalInfo.StationArrivalDateTime };
+        else
+            currentDischarge = new();
+
+    }
+
+    private async Task EditDischarge(Discharge discharge)
+    {
+        try
+        {
+            currentDischarge = discharge;
+            currentDischarge.TripId = Trip!.Id;
+            currentDischarge.Station = null;
+            Trip!.Discharges.Add(currentDischarge);
+            var response = await DischargeService.AddAsync(currentDischarge, AppState.GetCancellationToken());
+            await OnInitializedAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error adding discharge: {ex.Message}");
+        }
+        finally
+        {
+            CloseDischargeModal();
+        }
+    }
+
+    private void ShowDeleteDischargeModal(Discharge discharge)
+    {
+        dischargeToDelete = discharge;
+        showDeleteDischargeModal = true;
+    }
+
+    private async Task DeleteDischarge(Guid id)
+    {
+        try
+        {
+            var deleted = await DischargeService.DeleteAsync(id, AppState.GetCancellationToken());
+            if (deleted)
+            {
+                var dischargeToRemove = Trip!.Discharges.FirstOrDefault(d => d.Id == id);
+                if (dischargeToRemove != null)
+                {
+                    Trip!.Discharges.Remove(dischargeToRemove);
+                }
+            }
+            else
+            {
+                Console.WriteLine("Failed to delete discharge.");
+            }               
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deleting discharge: {ex.Message}");
+        }
+        finally
+        {
+            showDeleteDischargeModal = false;
+            dischargeToDelete = null;
+            StateHasChanged();
+        }
+    }
+
+    private void CloseDischargeModal()
+    {
+        showDischargeModal = false;
+        currentDischarge = new();
+        editingDischarge = null;
+    }
+
+    private void CloseViewDischargeModal()
+    {
+        viewDischargesModal = false;
+        StateHasChanged();
+    }
+
+    private async Task HandleMetricsChanged(List<Metrics> updatedMetrics)
+    {        
+        AppState.IsProcessing = true;
+        Trip!.LoadingInfo.Metrics = updatedMetrics;
+        var response = await TripService.UpdateAsync(Trip, AppState.GetCancellationToken());
+        if (response)
+        {
+            ToastService.ShowSuccess("Information updated");
+        }
+        else
+        {
+            ToastService.ShowSuccess("failed to update information");
+        }
+        AppState.IsProcessing = false;
+        StateHasChanged();
+    }
+
+    void Notify()
+    {
+        ToastService.ShowSuccess("Trip Successfully Updated");
+    }
+}
+        

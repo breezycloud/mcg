@@ -3,7 +3,13 @@
 
 @inject ILocationService LocationService
  <div>
-    <label for="Destination" class="block text-sm font-medium text-gray-700 dark:text-white">State</label>
+    <label for="Destination" class="block text-sm font-medium text-gray-700 dark:text-white">
+        @FieldName  
+        @if (IsRequired)
+        {
+            <span class="text-red-500"> *</span>
+        }
+    </label>
     <InputSelect id="Destination" 
         class="@GetInputClass("Destination")"
         ValueExpression="@(() => Destination)"
@@ -24,6 +30,8 @@
 @code {
     [Parameter, EditorRequired]
     public string? Destination { get; set; } = default!;
+    [Parameter, EditorRequired]
+    public bool IsRequired { get; set; } = false;
     [Parameter]
     public string? FieldName { get; set; } = "Destination";
 

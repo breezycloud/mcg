@@ -19,20 +19,10 @@ public class TripService(IHttpClientFactory _httpClient, IJSRuntime js) : ITripS
             DriverId = model.DriverId,
             TruckId = model.TruckId,
             DispatchId = model.DispatchId,
-            WaybillNo = model.WaybillNumber,
+            LoadingDepotId = model.LoadingPointId,
             Status = Enums.TripStatus.Active,
-            Dest = model.Destination,
-            Origin = new Origin
-            {
-                TripId = id,
-                StationId = model.LoadingPointId,
-                Quantity = model.DispatchQuantity,
-                Unit = model.DispatchUnit
-            },
-            Destination = new Destination
-            {
-                TripId = id
-            }
+            
+
         };
     }
     // public Trip MapTripDischargeAsync(TripDischargingDto model, CancellationToken cancellationToken)

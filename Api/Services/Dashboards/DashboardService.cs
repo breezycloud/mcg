@@ -35,8 +35,7 @@ public class DashboardService : IDashboardService
             ActiveTrips = trips.Count(t => t.Status == TripStatus.Active),
             ClosedTrips = trips.Count(t => t.Status == TripStatus.Closed),
             AvgTripDurationDays = CalculateAverageTripDuration(trips),
-            TotalDispatchedQuantity = trips.Sum(t => t.Origin!.Quantity!.Value),
-            TotalShortage = trips.Sum(t => t.Destination!.ShortageAmount ?? 0)
+            TotalDispatchedQuantity = trips.Sum(t => t.LoadingInfo.Quantity ?? 0)
         };
     }
 
@@ -91,11 +90,11 @@ public class DashboardService : IDashboardService
             Year = g.Key.Year,
             Month = g.Key.Month,
             TotalTrips = g.Count(),
-            TotalQuantity = g.Sum(t => t.Origin!.Quantity!.Value),
-            AvgDurationDays = g.Any(t => t.ReturnDate.HasValue)
+            TotalQuantity = g.Sum(t => t.LoadingInfo!.Quantity ?? 0),
+            AvgDurationDays = g.Any(t => t.CloseInfo.ReturnDateTime.HasValue)
                 ? (decimal)g
-                .Where(t => t.ReturnDate.HasValue)
-                .Average(t => (t.ReturnDate!.Value.ToDateTime(TimeOnly.MinValue) - t.Date.ToDateTime(TimeOnly.MinValue)).TotalDays)
+                .Where(t => t.CloseInfo.ReturnDateTime.HasValue)
+                .Average(t => (t.CloseInfo.ReturnDateTime!.Value - t.Date.ToDateTime(TimeOnly.MinValue)).TotalDays)
                 : 0
             })
             .OrderBy(x => x.Year).ThenBy(x => x.Month)
@@ -114,7 +113,7 @@ public class DashboardService : IDashboardService
             {
                 Product = g.Key.ToString(),
                 TotalTrips = g.Count(),
-                TotalQuantity = g.Sum(t => t.Origin!.Quantity!.Value),
+                TotalQuantity = g.Sum(t => t.LoadingInfo?.Quantity ?? 0),
                 Trend = CalculateProductTrend(g.Key, startDate, endDate)
             })
             .OrderByDescending(x => x.TotalQuantity)
@@ -132,7 +131,7 @@ public class DashboardService : IDashboardService
         _logger.LogWarning($"Trips {trips.Count}");
         foreach (var trip in trips)
         {
-            if (trip.Truck is null || trip.Origin is null || trip.Origin.Station is null)
+            if (trip.Truck is null)
             {
                 _logger.LogWarning($"Trip {trip.Id} has missing truck or origin station data.");
                 continue;
@@ -145,12 +144,12 @@ public class DashboardService : IDashboardService
             {
                 TruckNumber = t.Truck!.TruckNo,
                 Product = t.Truck.Product!.Value,
-                LoadingPoint = t.Origin!.Station!.Name,
-                Destination = t.Destination!.Station?.Name,
+                LoadingPoint = t.LoadingDepot?.Name,
+                Destination = t.LoadingInfo.Destination,
                 Status = t.Status,
                 LoadingDate = t.Date.ToDateTime(TimeOnly.MinValue),
-                TripDurationDays = t.ReturnDate.HasValue
-                ? (t.ReturnDate.Value.ToDateTime(TimeOnly.MinValue) - t.Date.ToDateTime(TimeOnly.MinValue)).Days
+                TripDurationDays = t.CloseInfo.ReturnDateTime.HasValue
+                ? (t.CloseInfo.ReturnDateTime.Value - t.Date.ToDateTime(TimeOnly.MinValue)).Days
                 : 0,
             })
             .ToList();
@@ -282,8 +281,7 @@ public class DashboardService : IDashboardService
 
         var trips = await GetFilteredTripsAsync(startDate, endDate);
         var stationTrips = trips
-            .Where(t => t.Origin.StationId == stationId || 
-                       t.Destination.StationId == stationId)
+            .Where(t => t.LoadingDepotId == stationId)
             .ToList();
 
         var throughputData = granularity switch
@@ -386,15 +384,13 @@ public class DashboardService : IDashboardService
     private async Task<List<Trip>> GetFilteredTripsAsync(DateOnly? startDate, DateOnly? endDate, string? product = "All")
     {
         var query = _context.Trips.AsNoTracking()
-                                      .Include(x => x.Driver)
-                                      .Include(x => x.Truck)
-                                      .Include(x => x.Origin)
-                                      .ThenInclude(x => x!.Station)
-                                      .Include(x => x.Destination)
-                                      .ThenInclude(x => x.Station)
-                                      .Include(x => x.Discharges)
-                                      .AsSplitQuery()
-                                        .AsQueryable();
+                                    .Include(x => x.Driver)
+                                    .Include(x => x.Truck)
+                                    .Include(x => x.LoadingDepot)
+                                    .Include(x => x.Discharges)
+                                    .ThenInclude(x => x.Station)
+                                    .AsSplitQuery()
+                                    .AsQueryable();
 
         if (startDate.HasValue)
             query = query.Where(t => t.Date >= startDate.Value);
@@ -443,11 +439,11 @@ public class DashboardService : IDashboardService
         
         var currentTrips = GetFilteredTripsAsync(startDate, endDate).Result
             .Where(t => t.Truck!.Product == product)
-            .Sum(t => t.Origin!.Quantity) ?? 0;
+            .Sum(t => t.LoadingInfo?.Quantity) ?? 0;
 
         var previousTrips = GetFilteredTripsAsync(prevStart, prevEnd).Result
             .Where(t => t.Truck!.Product == product)
-            .Sum(t => t.Origin!.Quantity ?? 0);
+            .Sum(t => t.LoadingInfo?.Quantity ?? 0);
 
         return CalculateTrend(currentTrips, previousTrips);
     }
