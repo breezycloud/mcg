@@ -21,6 +21,7 @@ public class Trip
     public Guid TruckId { get; set; }
     public string? DispatchId { get; set; }
     public Guid LoadingDepotId { get; set; }    
+    public Guid? ReceivingDepotId { get; set; }    
     [Column(TypeName = "jsonb")]
     public LoadingInfo LoadingInfo { get; set; } = new();
     [Column(TypeName = "jsonb")]
@@ -41,6 +42,10 @@ public class Trip
     public virtual ICollection<Discharge> Discharges { get; set; } = [];
     [ForeignKey(nameof(LoadingDepotId))]
     public Station? LoadingDepot { get; set; }
+    
+    [ForeignKey(nameof(ReceivingDepotId))]
+    public Station? ReceivingDepot { get; set; }
+
     [ForeignKey(nameof(ClosedById))]
     public User? ClosedBy { get; set; }
     [ForeignKey(nameof(CompletedById))]

@@ -172,6 +172,20 @@ public class SeedData
                 IsDepot = false,
                 Type = StationType.DischargeStation,
                 CreatedAt = DateTime.UtcNow
+            },
+            new Station
+            {
+                Id = Guid.NewGuid(),
+                Name = "Suleja Depot",
+                Address= new Address
+                {
+                    State = "Niger",
+                    Location = "Suleja",
+                    ContactAddress = "Suleja"
+                },
+                IsDepot = false,
+                Type = StationType.ReceivingDepot,
+                CreatedAt = DateTime.UtcNow
             }
 
         ]);        

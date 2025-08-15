@@ -13,6 +13,7 @@ public class Metrics
     // LPG
     public decimal? TareWeight { get; set; }
     public decimal? GrossWeight { get; set; }
+    public decimal NetWeight => TareWeight + GrossWeight ?? 0;
 
     // AGO/ATK/PMS
 
