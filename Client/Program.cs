@@ -51,9 +51,9 @@ builder.Services.AddBlazoredLocalStorage();
 
 string uri = string.Empty;
 #if DEBUG
-            uri = Constants.DevBaseAddress!;
+    uri = Constants.DevBaseAddress!;
 #else
-            uri = Constants.ProdBaseAddress;
+    uri = Constants.ProdBaseAddress;
 #endif
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(uri) });
 builder.Services.AddHttpClient(Constants.Url, http =>

@@ -5,7 +5,9 @@ using System.Threading.Tasks;
 using Api.Context;
 using Api.Util;
 using Shared.Enums;
+using Shared.Models.BaseEntity;
 using Shared.Models.Drivers;
+using Shared.Models.Stations;
 using Shared.Models.Trucks;
 using Shared.Models.Users;
 
@@ -20,16 +22,16 @@ public class SeedData
         var scopeFactory = services.GetRequiredService<IServiceScopeFactory>();
         using var scope = scopeFactory.CreateScope();
         using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        ///
-        /// db.Database.EnsureDeleted();
+        //db.Database.EnsureDeleted();
        
         if (db.Database.EnsureCreated())
         {
-             stopWatch = new();
+            stopWatch = new();
             stopWatch.Start();
-            AddUsers(db);
-            await AddTrucks(db);
+            AddUsers(db);            
             await AddDrivers(db);
+            await AddTrucks(db);
+            await AddStations(db);
             await db.SaveChangesAsync();
             stopWatch.Stop();
             var ts = stopWatch.Elapsed;
@@ -64,7 +66,7 @@ public class SeedData
         return (firstName, lastName);
     }
     public record Drivers(string fullName, string phoneNo);
-
+    public static List<Driver> KDrivers = [];
     private static async Task AddDrivers(AppDbContext db)
     {
         try
@@ -84,14 +86,15 @@ public class SeedData
                 {
                     var fullName = GetFirstLastName(driver!.fullName);
                     Console.WriteLine("First Name: {0} Last Name: {1}", fullName.firstName, fullName.lastName);
-
-                    await db.Drivers.AddAsync(new Driver
+                    var d = new Driver
                     {
                         Id = Guid.NewGuid(),
                         FirstName = fullName.firstName,
                         LastName = fullName.lastName,
-                        PhoneNo = driver.phoneNo,                        
-                    });
+                        PhoneNo = driver.phoneNo,
+                    };
+                    await db.Drivers.AddAsync(d);
+                    KDrivers.Add(d);
                 }
             }
         }
@@ -113,11 +116,20 @@ public class SeedData
             }
 
             stream.Position = 0;
+            Driver? lastDriver = null;
             await foreach (var truck in JsonSerializer.DeserializeAsyncEnumerable<Truck>(stream, options: null, cancellationToken: new CancellationTokenSource().Token))
             {
                 if (truck != null)
                 {
                     Console.WriteLine("{0} {1} {2}", truck.TruckNo, truck.VIN, truck.EngineNo);
+                    if (lastDriver is null)
+                    {
+                        lastDriver = KDrivers.FirstOrDefault();
+                    }
+                    else
+                        lastDriver = KDrivers.Where(x => x.Id != lastDriver.Id).FirstOrDefault();
+
+                    truck.DriverId = lastDriver?.Id;
                     await db.Trucks.AddAsync(truck);
                 }
             }
@@ -127,6 +139,42 @@ public class SeedData
 
             throw;
         }
+    }
+
+    private static async Task AddStations(AppDbContext db)
+    {
+        await db.Stations.AddRangeAsync(
+        [
+            new Station
+            {
+                Id = Guid.NewGuid(),
+                Name = "Apapa Terminal 1",
+                Address= new Address
+                {
+                    State = "Lagos",
+                    Location = "Apapa",
+                    ContactAddress = "Apapa"
+                },
+                IsDepot = true,
+                Type = StationType.LoadingDepot,
+                CreatedAt = DateTime.UtcNow
+            },
+            new Station
+            {
+                Id = Guid.NewGuid(),
+                Name = "NNPC Mega Stations",
+                Address= new Address
+                {
+                    State = "Abuja",
+                    Location = "AMAC",
+                    ContactAddress = "Abuja"
+                },
+                IsDepot = false,
+                Type = StationType.DischargeStation,
+                CreatedAt = DateTime.UtcNow
+            }
+
+        ]);        
     }
 
     private static void AddUsers(AppDbContext db)

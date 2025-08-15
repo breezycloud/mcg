@@ -4,7 +4,7 @@
     <div class="flex justify-between items-start">
         <div>
             <h5 class="mb-1 text-xl font-medium text-gray-900 dark:text-white">
-                @Data.Location
+                @Data.Station?.Name
             </h5>
         </div>
         <div class="flex space-x-2">
@@ -19,7 +19,15 @@
 
     <div class="mt-4 grid grid-cols-2 gap-4 text-sm">
         <div>
-            <p class="text-gray-500 dark:text-gray-400">Discharge Start</p>
+            <p class="text-gray-500 dark:text-gray-400">Arrival Date/Time</p>
+            <p>@Data.TruckArrival?.ToString("g")</p>
+        </div>
+        <div>
+            <p class="text-gray-500 dark:text-gray-400">Station</p>
+            <p>@Data.Station?.Name</p>
+        </div>
+        <div>
+            <p class="text-gray-500 dark:text-gray-400">Discharge Time</p>
             <p>@Data.DischargeStartTime.ToString("g")</p>
         </div>
         <div>

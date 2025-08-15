@@ -32,11 +32,11 @@ public class TripsController : ControllerBase
         var query = _context.Trips
             .Include(x => x.Driver)
             .Include(x => x.Truck)
-            .Include(x => x.Origin)
-            .ThenInclude(x => x!.Station)
-            .Include(x => x.Destination)
-            .ThenInclude(x => x.Station)
+            .Include(x => x.LoadingDepot)
             .Include(x => x.Discharges)
+            .ThenInclude(x => x.Station)
+            .Include(x => x.ClosedBy)
+            .Include(x => x.CompletedBy)
             .Where(x => x.Date.Month == request.StartDate.Month && x.Date.Year == request.StartDate.Year)
             .AsSplitQuery()
             .AsQueryable();
@@ -45,16 +45,9 @@ public class TripsController : ControllerBase
         {
             query = query.Where(x => x.Date <= request.EndDate.Value);
         }
-
-        if (request.Id.HasValue)
-        {
-            query = query.Where(x => x.Origin!.StationId == request.Id);
-        }
-
+        
         var csv = new StringBuilder();
         csv.AppendLine("Date,Dispatch Id,Truck Number,Product,Status,Loading Point,Waybill No,Dispatch Quantity,Driver Name,Destination,Elock Status,Arrived At ATV,ATV Arrival Date, Invoice Date, Arrived At Station,Station Arrival Date,Discharged,Discharge Location,Discharged Date,Discharged Quantity,Discharged Unit,Has Shortage,Shortage Amount,Return Date,Duration Days,Discharge Summary,Notes");
-
-
 
         var trips = await query.OrderByDescending(x => x.CreatedAt).ToListAsync(cancellationToken);
 
@@ -92,31 +85,27 @@ public class TripsController : ControllerBase
             var query = _context.Trips.AsNoTracking()
                                       .Include(x => x.Driver)
                                       .Include(x => x.Truck)
-                                      .Include(x => x.Origin)
-                                      .ThenInclude(x => x!.Station)
-                                      .Include(x => x.Destination)
-                                      .ThenInclude(x => x.Station)
+                                      .Include(x => x.LoadingDepot)
                                       .Include(x => x.Discharges)
+                                      .ThenInclude(x => x.Station)
+                                      .Include(x => x.ClosedBy)
+                                      .Include(x => x.CompletedBy)
                                       .AsSplitQuery()
                                       .AsQueryable();
-
-            if (request.Id.HasValue)
-            {
-                query = query.Where(x => x.Origin!.Id == request.Id);
-            }
             
             if (!string.IsNullOrEmpty(request.SearchTerm))
                 {
                     string pattern = $"%{request.SearchTerm}%";
-                    query = query.Include(x => x.Truck).Include(x => x.Destination).ThenInclude(x => x!.Station)
+                    query = query.Include(x => x.Truck)
+                                .Include(x => x.Driver)
                                 .AsSplitQuery()
-                                .Where(x => EF.Functions.ILike(x.WaybillNo!, pattern)
-                                || EF.Functions.ILike(x.Origin!.Station!.Address!.State, pattern)
-                                || EF.Functions.ILike(x.Origin!.Station!.Address!.Location, pattern)
-                                || EF.Functions.ILike(x.Origin!.Station!.Address!.ContactAddress!, pattern)
-                                || EF.Functions.ILike(x.Destination!.Station!.Address!.State, pattern)
-                                || EF.Functions.ILike(x.Destination!.Station!.Address!.Location, pattern)
-                                || EF.Functions.ILike(x.Destination!.Station!.Address!.ContactAddress!, pattern));
+                                .Where(x => EF.Functions.ILike(x.LoadingInfo.WaybillNo!, pattern)
+                                || EF.Functions.ILike(x.LoadingDepot.Name, pattern)
+                                || EF.Functions.ILike(x.LoadingInfo.Destination, pattern)
+                                || EF.Functions.ILike(x.Truck.LicensePlate, pattern)
+                                || EF.Functions.ILike(x.Truck.TruckNo, pattern)
+                                || EF.Functions.ILike(x.Driver.LastName, pattern)
+                                || EF.Functions.ILike(x.Driver.FirstName, pattern));
                 }
 
             response.Total = await query.CountAsync();
@@ -151,13 +140,21 @@ public class TripsController : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<Trip>> GetTrip(Guid id)
     {
-        var trip = await _context.Trips.FindAsync(id);
+        var trip = await _context.Trips.AsNoTracking()
+                                .Include(x => x.Driver)
+                                .Include(x => x.Truck)
+                                .Include(x => x.LoadingDepot)
+                                .Include(x => x.Discharges)
+                                .ThenInclude(x => x.Station)
+                                .Include(x => x.ClosedBy)
+                                .Include(x => x.CompletedBy)
+                                .AsSplitQuery()
+                                .FirstOrDefaultAsync(x => x.Id == id);
 
-        if (trip == null)
+        if (trip is null)
         {
             return NotFound();
         }
-
         return trip;
     }
 

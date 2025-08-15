@@ -8,5 +8,6 @@ public enum TripStatus
 {
     Active,
     Closed,
-    Overdue
+    Overdue,
+    Completed
 }

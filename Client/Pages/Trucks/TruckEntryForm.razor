@@ -1,5 +1,6 @@
 @page "/trucks/{Action}/{Id:guid?}"
 @inject ITruckService TruckService
+@inject IDriverService DriverService
 
 
 <div class="max-w-2xl mx-auto p-4 sm:p-6">
@@ -128,22 +129,41 @@
            
 
             <!-- Product Type -->
-            <div>
-                <label for="type" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                    Product Type <span class="text-red-500">*</span>
-                </label>
-                <InputSelect id="type" @bind-Value="CurrentTruck.Product" class="@GetInputClass("Type")">
-                    <option value="">Select type</option>
-                    @foreach (var type in Enum.GetValues<Product>())
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="type" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        Product Type <span class="text-red-500">*</span>
+                    </label>
+                    <InputSelect id="type" @bind-Value="CurrentTruck.Product" class="@GetInputClass("Type")">
+                        <option value="">Select type</option>
+                        @foreach (var type in Enum.GetValues<Product>())
+                        {
+                            <option value="@type">@StringConverter.ToDescription(type)</option>
+                        }
+                    </InputSelect>
+                    @if (errors.ContainsKey("Type"))
                     {
-                        <option value="@type">@StringConverter.ToDescription(type)</option>
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["Type"]</p>
                     }
-                </InputSelect>
-                @if (errors.ContainsKey("Type"))
-                {
-                    <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["Type"]</p>
-                }
-            </div>
+                </div>
+                <!-- Driver -->
+                <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        Driver 
+                    </label>
+                    <InputSelect @bind-Value="CurrentTruck.DriverId" id="driverId" class="@GetInputClass("DriverId")">
+                        <option value="">-- Select Driver --</option>
+                        @foreach (var driver in Drivers!)
+                        {
+                            <option value="@driver.Id">@driver.ToString()</option>
+                        }
+                    </InputSelect>
+                    @if (errors.ContainsKey("DriverId"))
+                    {
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["DriverId"]</p>
+                    }
+                </div>  
+            </div>            
 
             <div>
                 <FileUploadView/>
@@ -212,10 +232,13 @@
 
     private Dictionary<string, string> errors = new();
 
+    private Driver[]? Drivers = [];
+
     protected override async Task OnInitializedAsync()
     {
         // Load driver
         AppState.IsBusy = true;
+        Drivers = await DriverService.GetAsync(AppState.GetCancellationToken());
         if (Id.HasValue)        
         {
             CurrentTruck = await TruckService.GetAsync(Id!.Value, AppState.GetCancellationToken()) ?? new();
@@ -305,8 +328,7 @@
         if (string.IsNullOrWhiteSpace(CurrentTruck.LicensePlate))
         {
             errors["LicensePlate"] = "License plate is required";
-        }
-    
+        }    
         else
         {
             @if (EditMode)
@@ -378,6 +400,11 @@
                 // If adding a new truck, validate the EngineNo
                 await ValidateEntry("EngineNo", CurrentTruck.EngineNo);
             }
+        }
+
+        @if (EditMode && CurrentTruck.DriverId is null)
+        {
+            errors["DriverId"] = "Driver is required";
         }
 
         if (errors.Any())
