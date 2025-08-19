@@ -8,6 +8,7 @@ namespace Shared.Interfaces.Trips;
 public interface ITripService
 {
     Task<bool> AddAsync(Trip model, CancellationToken cancellationToken);
+    Task<Trip?> GetActiveTripForTruckAsync(Guid truckId, CancellationToken cancellationToken);
     Trip MapTripLoadingAsync(TripLoadingDto model, CancellationToken cancellationToken);
     Task<bool> UpdateAsync(Trip model, CancellationToken cancellationToken);
     Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken);

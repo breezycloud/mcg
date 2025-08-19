@@ -81,11 +81,11 @@
                                     </td>
                                     <td class="px-6 py-4 text-right">
                                         <div class="flex justify-end space-x-3">
-                                            @* <button 
-                                                @onclick="() => ViewDriver(driver.Id)" 
-                                                class="font-medium text-blue-600 dark:text-blue-500 hover:underline">
+                                            <button 
+                                                @onclick="(() => ViewDriver(driver.Id))" 
+                                                class="font-medium text-green-600 dark:text-green-500 hover:underline">
                                                 View
-                                            </button> *@
+                                            </button>
                                             <button 
                                                 @onclick="() => EditDriver(driver.Id)" 
                                                 class="font-medium text-blue-600 dark:text-blue-400 hover:underline">
@@ -195,6 +195,10 @@
     private void EditDriver(Guid id)
     {
         nav.NavigateTo($"/drivers/edit/{id}");
+    }
+    private void ViewDriver(Guid id)
+    {
+        nav.NavigateTo($"/driver/{id}");
     }
 
     private async Task DeleteDriver(Guid id)

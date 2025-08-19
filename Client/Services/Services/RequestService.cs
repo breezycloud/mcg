@@ -11,6 +11,7 @@ public class RequestService(IHttpClientFactory _httpClient) : IRequestService
     {
         try
         {
+            model.Truck = null; model.Driver = null; model.Trip = null;
             using var response = await _httpClient.CreateClient("AppUrl").PostAsJsonAsync("servicerequests", model, cancellationToken);
             response.EnsureSuccessStatusCode();
             return response.IsSuccessStatusCode;
@@ -25,6 +26,7 @@ public class RequestService(IHttpClientFactory _httpClient) : IRequestService
     {
         try
         {
+            model.Truck = null; model.Driver = null; model.Trip = null;
             using var response = await _httpClient.CreateClient("AppUrl").PutAsJsonAsync($"servicerequests/{model.Id}", model, cancellationToken);
             response.EnsureSuccessStatusCode();
             return response.IsSuccessStatusCode;

@@ -158,6 +158,19 @@ public class TripsController : ControllerBase
         return trip;
     }
 
+    // GET: api/Trips/5
+    [HttpGet("Active/{id}")]
+    public async Task<ActionResult<Trip>> GetActiveTrip(Guid id)
+    {
+        var trip = await _context.Trips.AsNoTracking().FirstOrDefaultAsync(x => x.TruckId == id);
+
+        if (trip is null)
+        {
+            return NotFound();
+        }
+        return trip;
+    }
+
     // PUT: api/Trips/5
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     [HttpPut("{id}")]
