@@ -1,22 +1,23 @@
 @using System.IO
 @using System.Linq
+@using System.Net.Http.Headers
 
 <div>
     <!-- Label -->
     <label for="@Model.InputId" 
            class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-        @Label
+        @Model.Label
     </label>
 
     <!-- File Input -->
     <InputFile 
-           id="@Model.InputId"
-           type="file"
-           class="@GetInputClasses()"
-           multiple="@Model.Multiple"
-           accept="@Model.Accept"
-           OnChange="@HandleFileSelection"
-           disabled="@Model.IsUploading" />
+        id="@Model.InputId"
+        type="file"
+        class="@GetInputClasses()"
+        multiple="@Model.Multiple"
+        accept="@Model.Accept"
+        OnChange="@HandleFileSelection"
+        disabled="@Model.IsUploading" />
 
     <!-- Error Message -->
     @if (!string.IsNullOrEmpty(Model.ErrorMessage))
@@ -31,19 +32,16 @@
             <h4 class="text-sm font-medium text-gray-900 dark:text-white">
                 Selected Files (@Model.Files.Count)
             </h4>
-            
+
             <ul class="divide-y divide-gray-200 dark:divide-gray-700">
                 @foreach (var file in Model.Files)
                 {
                     <li class="py-2">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center space-x-2">
-                                <!-- File Icon -->
                                 <div class="flex-shrink-0">
                                     <FileIcon ContentType="@file.ContentType" />
                                 </div>
-                                
-                                <!-- File Info -->
                                 <div>
                                     <p class="text-sm font-medium text-gray-900 dark:text-white truncate max-w-xs">
                                         @file.FileName
@@ -53,8 +51,6 @@
                                     </p>
                                 </div>
                             </div>
-                            
-                            <!-- Remove Button -->
                             <button type="button" 
                                     @onclick="() => RemoveFile(file.Id)"
                                     class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">
@@ -63,16 +59,15 @@
                                 </svg>
                             </button>
                         </div>
-                        
+
                         <!-- Upload Progress -->
                         @if (Model.IsUploading)
                         {
                             <div class="mt-1 w-full bg-gray-200 rounded-full h-1.5 dark:bg-gray-700">
-                                <div class="bg-blue-600 h-1.5 rounded-full" style="width: @(file.Error != null ? "0%" : "50%")"></div>
+                                <div class="bg-blue-600 h-1.5 rounded-full" style="width: @(file.Error != null ? "0%" : "100%")"></div>
                             </div>
                         }
-                        
-                        <!-- Error Message -->
+
                         @if (file.Error != null)
                         {
                             <p class="mt-1 text-xs text-red-600 dark:text-red-500">@file.Error</p>
@@ -97,26 +92,23 @@
 </div>
 
 @code {
-    private ElementReference fileInput;
-    [Parameter]
-    public string? Label { get; set; }
-    
-    [Parameter]
-    public FileUploadModel Model { get; set; } = new();
+    [Parameter] public FileUploadModel Model { get; set; } = new();
+
+    [Inject] public HttpClient Http { get; set; } = default!;
 
     // Events
-    public EventCallback<List<UploadedFile>> OnFilesSelected { get; set; }
-    public EventCallback<List<UploadedFile>> OnFilesUploaded { get; set; }
+    [Parameter] public EventCallback<List<UploadedFile>> OnFilesSelected { get; set; }
+    [Parameter] public EventCallback<List<UploadResult>> OnFilesUploaded { get; set; }
 
     private string GetInputClasses()
     {
         var baseClasses = "block w-full text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400";
-        
+
         return Model.Size switch
         {
-            "small" => $"{baseClasses} text-xs mb-5",
+            "small" => $"{baseClasses} text-xs",
             "large" => $"{baseClasses} text-lg p-4",
-            _ => $"{baseClasses} text-sm" // default
+            _ => $"{baseClasses} text-sm"
         };
     }
 
@@ -126,7 +118,7 @@
         Model.Files.Clear();
 
         var files = e.GetMultipleFiles(maximumFileCount: Model.Multiple ? 10 : 1);
-        
+
         foreach (var file in files)
         {
             var uploadedFile = new UploadedFile
@@ -134,10 +126,9 @@
                 FileName = file.Name,
                 ContentType = file.ContentType,
                 Size = file.Size,
-                FileStream = file.OpenReadStream(Model.MaxFileSizeBytes)
+                BrowserFile = file
             };
 
-            // Validate file
             var validationError = ValidateFile(uploadedFile);
             if (validationError != null)
             {
@@ -145,86 +136,119 @@
             }
             else if (IsImageFile(file.ContentType))
             {
-                // Generate preview for images
                 uploadedFile.PreviewUrl = await GenerateImagePreview(file);
             }
 
             Model.Files.Add(uploadedFile);
-        }
-
-        await OnFilesSelected.InvokeAsync(Model.Files);
+        }        
     }
 
     private string? ValidateFile(UploadedFile file)
     {
-        // Check file size
         if (file.Size > Model.MaxFileSizeBytes)
         {
             var maxSizeMb = Model.MaxFileSizeBytes / (1024 * 1024);
-            return $"File exceeds maximum size of {maxSizeMb}MB";
+            return $"File exceeds {maxSizeMb}MB limit.";
         }
 
-        // Check file extension
         if (Model.AllowedExtensions.Any())
         {
-            var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
-            if (!Model.AllowedExtensions.Contains(fileExtension))
-            {
-                return $"Allowed extensions: {string.Join(", ", Model.AllowedExtensions)}";
-            }
+            var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+            if (!Model.AllowedExtensions.Contains(ext))
+                return $"Allowed: {string.Join(", ", Model.AllowedExtensions)}";
         }
 
         return null;
     }
 
-    private bool IsImageFile(string contentType)
-    {
-        return contentType.StartsWith("image/");
-    }
+    private bool IsImageFile(string contentType) => contentType.StartsWith("image/");
 
     private async Task<string> GenerateImagePreview(IBrowserFile file)
     {
-        var resizedImage = await file.RequestImageFileAsync(file.ContentType, 100, 100);
-        var buffer = new byte[resizedImage.Size];
-        await resizedImage.OpenReadStream().ReadAsync(buffer);
+        var resized = await file.RequestImageFileAsync(file.ContentType, 100, 100);
+        var buffer = new byte[resized.Size];
+        await resized.OpenReadStream().ReadAsync(buffer);
         return $"data:{file.ContentType};base64,{Convert.ToBase64String(buffer)}";
     }
 
     private void RemoveFile(string fileId)
     {
-        var fileToRemove = Model.Files.FirstOrDefault(f => f.Id == fileId);
-        if (fileToRemove != null)
-        {
-            Model.Files.Remove(fileToRemove);
-        }
+        var file = Model.Files.FirstOrDefault(f => f.Id == fileId);
+        if (file != null) Model.Files.Remove(file);
     }
-
+    List<UploadResult> successfulUploads = [];
+    List<UploadedFile> failedUploads = [];
     private async Task UploadFiles()
     {
         Model.IsUploading = true;
         Model.ErrorMessage = "";
-        
+
         try
         {
-            // Here you would typically upload files to your server
-            // For demonstration, we'll just simulate an upload
-            await Task.Delay(1500); // Simulate upload
-            
-            // Clear any previous errors
-            foreach (var file in Model.Files)
+            foreach (var uploadedFile in Model.Files.ToList()) // ToList() to avoid mutation issues
             {
-                file.Error = null;
+                if (uploadedFile.Error != null || uploadedFile.BrowserFile == null)
+                    continue;
+
+                try
+                {
+                    using var formData = new MultipartFormDataContent();
+                    using var fileStream = uploadedFile.BrowserFile.OpenReadStream(Model.MaxFileSizeBytes);
+                    using var fileContent = new StreamContent(fileStream);
+
+                    // Set proper content type
+                    fileContent.Headers.ContentType = new MediaTypeHeaderValue(uploadedFile.BrowserFile.ContentType);
+
+                    formData.Add(fileContent, "file", uploadedFile.BrowserFile.Name);
+
+                    var response = await Http.PostAsync("uploads/upload", formData);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var result = await response.Content.ReadFromJsonAsync<UploadResultDto>();
+                        successfulUploads.Add(new UploadResult(result!));
+                        uploadedFile.Error = null;
+                        Console.WriteLine($"Uploaded: {result?.PreviewUrl}");
+                    }
+                    else
+                    {
+                        var errorText = await response.Content.ReadAsStringAsync();
+                        uploadedFile.Error = $"HTTP {response.StatusCode}: {errorText}";
+                        Console.WriteLine($"Error: {uploadedFile.Error}");
+                        failedUploads.Add(uploadedFile);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    uploadedFile.Error = $"Upload failed: {ex.Message}";
+                }
+            }                        
+
+            if (successfulUploads.Any())
+            {
+                await OnFilesUploaded.InvokeAsync(successfulUploads);   
             }
-            
-            //await Model.OnFilesUploaded.InvokeAsync(Model.Files);
+
+            if (failedUploads.Any())
+            {
+                Model.ErrorMessage = $"Failed to upload {failedUploads.Count} file(s).";
+                // Optionally clear all or only failed
+                Model.Files.Clear();
+                Model.Files.AddRange(failedUploads); // Keep failed ones
+            }
         }
         catch (Exception ex)
         {
-            Model.ErrorMessage = $"Upload failed: {ex.Message}";
+            Model.ErrorMessage = $"Unexpected error: {ex.Message}";
         }
         finally
         {
             Model.IsUploading = false;
+            if (Model.Files.Any() && !Model.Files.Any(f => f.Error != null))
+            {
+                // If all files uploaded successfully, clear the list
+                Model.Files.Clear();
+            }                        
         }
-    }
+    }    
 }

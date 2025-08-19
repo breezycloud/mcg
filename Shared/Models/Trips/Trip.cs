@@ -20,7 +20,7 @@ public class Trip
     public Guid? DriverId { get; set; }
     public Guid TruckId { get; set; }
     public string? DispatchId { get; set; }
-    public Guid LoadingDepotId { get; set; }    
+    public Guid? LoadingDepotId { get; set; }    
     public Guid? ReceivingDepotId { get; set; }    
     [Column(TypeName = "jsonb")]
     public LoadingInfo LoadingInfo { get; set; } = new();
@@ -87,11 +87,8 @@ public class Trip
         return Truck?.Product.ToString() switch
         {
             "CNG" => "SCM",
-            "PMS" => "LTR",
-            "ATK" => "MT",
             "LPG" => "KG",
-            "AGO" => "LTR",
-            _ => ""
+            _ => "LTR"
         };
     }
 
@@ -111,7 +108,7 @@ public class Trip
             {
                 LoadingInfo.Metrics.ForEach((index) =>
                 {
-                    LoadingInfo.Quantity = index.TareWeight + index.GrossWeight;
+                    LoadingInfo.Quantity = index.GrossWeight - index.TareWeight;
                 });
             }
             else

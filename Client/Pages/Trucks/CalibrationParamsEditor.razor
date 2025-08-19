@@ -1,0 +1,78 @@
+
+<div class="max-w-4xl mx-auto">
+    @* <h2 class="text-2xl font-bold mb-6 text-gray-800">Compartment Metrics</h2> *@
+    <!-- Add New Metric Button -->    
+
+     <!-- Metrics Table -->
+    <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
+        <table class="w-full text-sm text-left rtl:text-right text-gray-500">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                <tr>
+                    @if (Product == Product.LPG)
+                    {
+                        <th scope="col" class="px-6 py-3">Values</th>
+                        <th scope="col" class="px-6 py-3">Actions</th>
+                    }
+                    else
+                    {
+                        <th scope="col" class="px-6 py-3">Item</th>
+                        <th scope="col" class="px-6 py-3">Values</th>
+                        <th scope="col" class="px-6 py-3">Actions</th>
+                    }                                                            
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var calibration in CalibrationParams)
+                {
+                    <tr class="bg-white border-b hover:bg-gray-50">
+                        @if (Product == Product.LPG)
+                        {
+                            <td class="px-6 py-4">                                                        
+                                <span>Tare: @calibration.TareWeight kg</span><br />
+                                <span>Gross: @calibration.GrossWeight kg</span><br />
+                                <span>Net: @calibration.NetWeight kg</span>
+                            </td>                            
+                        }
+                        else
+                        {        
+                            <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">@calibration.Compartment</td>
+                            <td class="px-6 py-4">
+                                <span>Ullage: @calibration.Ullage?.Quantity </span><br />
+                                <span>Height: @calibration.LiquidHeight?.Quantity </span><br />
+                                <span>Overall: @calibration.Overall</span>
+                            </td>                    
+                        }                        
+                        <td class="px-6 py-4">
+                            <button @onclick="() => Edit(calibration)" class="font-medium text-blue-600 hover:underline mr-3">Edit</button>
+                            <button @onclick="() => Delete(calibration)" class="font-medium text-red-600 hover:underline">Delete</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>    
+</div>
+
+
+@code {
+    [Parameter] public Product Product { get; set; }
+    [Parameter]
+    public List<CalibrationParam> CalibrationParams { get; set; } = [];
+
+    [Parameter]
+    public EventCallback<CalibrationParam> OnEdit { get; set; }
+    [Parameter]
+    public EventCallback<CalibrationParam> OnDelete { get; set; }        
+
+
+
+    private async Task Edit(CalibrationParam param)
+    {
+        await OnEdit.InvokeAsync(param);
+    }
+
+    private async Task Delete(CalibrationParam param)
+    {
+        await OnDelete.InvokeAsync(param);
+    }
+}

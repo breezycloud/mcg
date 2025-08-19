@@ -16,7 +16,7 @@ namespace Api.Data;
 
 public class SeedData
 {
-     private static Stopwatch? stopWatch;
+    private static Stopwatch? stopWatch;
     public static async Task EnsureSeeded(IServiceProvider services)
     {
         var scopeFactory = services.GetRequiredService<IServiceScopeFactory>();

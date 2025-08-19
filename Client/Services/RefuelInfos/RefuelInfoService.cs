@@ -12,6 +12,7 @@ public class RefuelInfoService(IHttpClientFactory _httpClient) : IRefuelInfoServ
     {
         try
         {
+            model.Truck = null; model.Station = null;
             using var response = await _httpClient.CreateClient("AppUrl").PostAsJsonAsync("RefuelInfos", model, cancellationToken);
             response.EnsureSuccessStatusCode();
             return response.IsSuccessStatusCode;

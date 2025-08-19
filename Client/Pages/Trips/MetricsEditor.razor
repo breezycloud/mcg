@@ -18,38 +18,38 @@
                 <tr>
                     @if (Product == Product.LPG)
                     {
-                        <th scope="col" class="px-6 py-3">Values</th>                        
+                        <th scope="col" class="px-6 py-3">Values</th>
+                        <th scope="col" class="px-6 py-3">Actions</th>
                     }
                     else
                     {
                         <th scope="col" class="px-6 py-3">Item</th>
-                        <th scope="col" class="px-6 py-3">Values</th>                        
-                    }                                        
-                    <th scope="col" class="px-6 py-3">Actions</th>
+                        <th scope="col" class="px-6 py-3">Values</th>
+                        <th scope="col" class="px-6 py-3">Actions</th>
+                    }                                                            
                 </tr>
             </thead>
             <tbody>
                 @foreach (var metric in MetricsList)
                 {
                     <tr class="bg-white border-b hover:bg-gray-50">
-                        @if (Product != Product.LPG || Product != Product.CNG)
+                        @if (Product == Product.LPG)
                         {
-                            <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">@metric.Compartment</td>
-                        }
-                        <td class="px-6 py-4">
-                            @if (Product == Product.LPG)
-                            {
+                            <td class="px-6 py-4">                                                        
                                 <span>Tare: @metric.TareWeight kg</span><br />
                                 <span>Gross: @metric.GrossWeight kg</span><br />
                                 <span>Net: @metric.NetWeight kg</span>
-                            }
-                            else
-                            {
+                            </td>                            
+                        }
+                        else
+                        {        
+                            <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">@metric.Compartment</td>
+                            <td class="px-6 py-4">
                                 <span>Ullage: @metric.Ullage?.Quantity </span><br />
                                 <span>Height: @metric.LiquidHeight?.Quantity </span><br />
                                 <span>Overall: @metric.Overall</span>
-                            }
-                        </td>
+                            </td>                    
+                        }                        
                         <td class="px-6 py-4">
                             <button @onclick="() => EditMetric(metric)" class="font-medium text-blue-600 hover:underline mr-3">Edit</button>
                             <button @onclick="() => DeleteMetric(metric)" class="font-medium text-red-600 hover:underline">Delete</button>
@@ -176,7 +176,8 @@
         else
         {
             return Enum.GetValues(typeof(Compartment)).Cast<Compartment>().ToList();
-        }     
+        }  
+        StateHasChanged();   
     }
 
     private async Task NotifyParent()

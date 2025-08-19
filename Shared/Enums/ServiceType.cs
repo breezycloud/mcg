@@ -7,7 +7,8 @@ public enum ServiceType
 {
     Routine,
     Emergency,
-    Unscheduled
+    Unscheduled,
+    Incident
 }
 
 public enum ServiceItem

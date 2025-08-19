@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Shared.Enums;
+using Shared.Helpers;
 using Shared.Models.Drivers;
 using Shared.Models.Trips;
 
@@ -34,8 +35,13 @@ public class Truck
     [StringLength(30)]
     public string? EngineNo { get; set; }    
     public Guid? DriverId { get; set; }
-
     public Product? Product { get; set; }
+    public CalibrationType CalibrationType { get; set; }
+    [Column(TypeName = "jsonb")]
+    public List<CalibrationParam>? CalibrationParams { get; set; } = [];
+    public DateOnly? ExpiryDate { get; set;  }
+    [Column(TypeName = "jsonb")]
+    public List<UploadResult> Files { get; set; } = [];    
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? UpdatedAt { get; set; }
     public virtual ICollection<Trip>? Trips { get; set; } = [];

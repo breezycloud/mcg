@@ -1,11 +1,10 @@
 using Shared.Enums;
+using Shared.Models.Trips;
 
-namespace Shared.Models.Trips;
+namespace Shared.Models.Trucks;
 
 
-public record CompartmentQuantity(decimal? Quantity);
-
-public class Metrics
+public class CalibrationParam
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Compartment Compartment { get; set; }

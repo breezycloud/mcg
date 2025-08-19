@@ -1,5 +1,8 @@
 
-namespace Shared.Helpers;
+using Microsoft.AspNetCore.Components.Forms;
+using Shared.Helpers;
+
+namespace Client.Handlers;
 public class FileUploadModel
 {
     public string Id { get; set; } = Guid.NewGuid().ToString();
@@ -23,17 +26,11 @@ public class FileUploadModel
 
 }
 
-public class UploadedFile
+public class UploadedFile : BaseFile
 {
-    public string Id { get; set; } = Guid.NewGuid().ToString();
-    public string FileName { get; set; } = "";
-    public string ContentType { get; set; } = "";
-    public long Size { get; set; }
-    public DateTime UploadTime { get; set; } = DateTime.UtcNow;
-    public string? PreviewUrl { get; set; }
     public string? Error { get; set; }
-    public Stream? FileStream { get; set; }
-    
+    public IBrowserFile? BrowserFile { get; set; }
+
     // Helper property
     public string FormattedSize => Size switch
     {
@@ -42,3 +39,4 @@ public class UploadedFile
         _ => $"{Size / (1024 * 1024):N1} MB"
     };
 }
+

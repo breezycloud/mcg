@@ -1,6 +1,7 @@
 @page "/requests/{Action}/{Id:guid?}"
 @inject IRequestService RequestService
 @inject IMaintenanceService SiteService
+@inject IDriverService DriverService
 @inject ITruckService TruckService
 
 
@@ -84,6 +85,30 @@
                 <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["TruckId"]</p>
             }
         </div>
+
+        @if (CurrentRequest.Item == ServiceItem.Driver)
+        {
+            <!-- Driver -->
+            <div>
+                <label for="driver" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    Driver <span class="text-red-500">*</span>
+                </label>
+                <InputSelect id="driver" @bind-Value="CurrentRequest.DriverId" class="@GetInputClass("DriverId")">
+                    <option value="">Select Drvier</option>
+                    @if (Drivers is not null)
+                    {
+                        @foreach (var driver in Drivers)
+                        {
+                            <option value="@driver.Id">@driver.ToString()</option>
+                        }
+                    }
+                </InputSelect>
+                @if (errors.ContainsKey("DriverId"))
+                {
+                    <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["DriverId"]</p>
+                }
+            </div>
+        }
 
         <!-- Description -->
         <div>
@@ -193,6 +218,7 @@
 
     // These should be loaded from your service or injected
     private Truck[]? Trucks;
+    private Driver[]? Drivers;
     private MaintenanceSite[]? Sites;
 
     protected override async Task OnInitializedAsync()
@@ -204,6 +230,7 @@
             CurrentRequest = await RequestService.GetAsync(Id.Value, AppState.GetCancellationToken()) ?? new();
             EditMode = true;
         }
+        Drivers = await DriverService.GetAsync(AppState.GetCancellationToken());
         Trucks = await TruckService.GetAsync(AppState.GetCancellationToken());
         Sites = await SiteService.GetAsync(AppState.GetCancellationToken());
         AppState.IsBusy = false;
@@ -238,6 +265,10 @@
         if (CurrentRequest.MaintenanceSiteId.Equals(Guid.Empty) || CurrentRequest.TruckId is null)
         {
             errors["MaintenanceSiteId"] = "Maintenance Site is required";
+        }
+        if (CurrentRequest.Item == ServiceItem.Driver && CurrentRequest.DriverId is null)
+        {
+            errors["DriverId"] = "Driver is required";
         }
         if (string.IsNullOrWhiteSpace(CurrentRequest.Description))
         {

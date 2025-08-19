@@ -18,11 +18,9 @@ public class TripService(IHttpClientFactory _httpClient, IJSRuntime js) : ITripS
             Date = DateOnly.FromDateTime(model.LoadingDate!.Value),
             DriverId = model.DriverId,
             TruckId = model.TruckId,
-            DispatchId = model.DispatchId,
-            LoadingDepotId = model.LoadingPointId,
+            DispatchId = model.DispatchId,     
+            LoadingDepotId = model.LoadingPointId,       
             Status = Enums.TripStatus.Active,
-            
-
         };
     }
     // public Trip MapTripDischargeAsync(TripDischargingDto model, CancellationToken cancellationToken)
