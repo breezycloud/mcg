@@ -4,6 +4,7 @@ using Shared.Enums;
 using Shared.Helpers;
 using Shared.Models.Checkpoints;
 using Shared.Models.Drivers;
+using Shared.Models.Services;
 using Shared.Models.Stations;
 using Shared.Models.TripCheckpoints;
 using Shared.Models.Trucks;
@@ -39,6 +40,7 @@ public class Trip
     [ForeignKey(nameof(TruckId))]
     public virtual Truck? Truck { get; set; }
     public virtual ICollection<TripCheckpoint>? Checkpoints { get; set; } = [];
+    public virtual ICollection<ServiceRequest> Requests { get; set; } = [];
     public virtual ICollection<Discharge> Discharges { get; set; } = [];
     [ForeignKey(nameof(LoadingDepotId))]
     public Station? LoadingDepot { get; set; }

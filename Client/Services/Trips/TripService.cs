@@ -57,6 +57,21 @@ public class TripService(IHttpClientFactory _httpClient, IJSRuntime js) : ITripS
             throw;
         }
     }
+
+    public async Task<Trip?> GetActiveTripForTruckAsync(Guid truckId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var response = await _httpClient.CreateClient("AppUrl").GetAsync($"Trips/active/{truckId}", cancellationToken);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<Trip?>();
+        }
+        catch (System.Exception)
+        {
+
+            throw;
+        }
+    }
     public async Task<bool> UpdateAsync(Trip model, CancellationToken cancellationToken)
     {
         try
