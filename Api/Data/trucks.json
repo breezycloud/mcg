@@ -384,5 +384,909 @@
         "TruckNo": "MCC 055",
         "LicensePlate": "T 29055 LA",
         "Product": 0
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY37S4050839",
+        "EngineNo": "K3SD6R30679",
+        "TruckNo": "MCC 056",
+        "LicensePlate": "T 29056 LA",
+        "Product": 0
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY30S4050116",
+        "EngineNo": "K3SD6R30362",
+        "TruckNo": "MCC 057",
+        "LicensePlate": "T 29057 LA",
+        "Product": 0
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY32S4050103",
+        "EngineNo": "K3SD6R30223",
+        "TruckNo": "MCC 058",
+        "LicensePlate": "T 29058 LA",
+        "Product": 0
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY34S4050197",
+        "EngineNo": "K3SD6R30319",
+        "TruckNo": "MCC 059",
+        "LicensePlate": "T 29059 LA",
+        "Product": 0
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY38S4050879",
+        "EngineNo": "K3SD6R30570",
+        "TruckNo": "MCC 060",
+        "LicensePlate": "T 29060 LA",
+        "Product": 0
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY39S4050146",
+        "EngineNo": "K3SD6R30467",
+        "TruckNo": "MCC 061",
+        "LicensePlate": "T 29061 LA",
+        "Product": 0
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY35S4050970",
+        "EngineNo": "K3SD6R30877",
+        "TruckNo": "MCC 062",
+        "LicensePlate": "T 29062 LA",
+        "Product": 0
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY37S4050209",
+        "EngineNo": "K3SD6R30314",
+        "TruckNo": "MCC 063",
+        "LicensePlate": "T 29063 LA",
+        "Product": 0
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY39S4050874",
+        "EngineNo": "K3SD6R30565",
+        "TruckNo": "MCC 064",
+        "LicensePlate": "T 29064 LA",
+        "Product": 0
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY34S4050832",
+        "EngineNo": "K3SD6R30510",
+        "TruckNo": "MCC 065",
+        "LicensePlate": "T 29065 LA",
+        "Product": 0
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY32S4050117",
+        "EngineNo": "K3SD6R30399",
+        "TruckNo": "MCC 101",
+        "LicensePlate": "T 29101 LA",
+        "Product": 2
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY37S4050064",
+        "EngineNo": "K3SD6R30287",
+        "TruckNo": "MCC 102",
+        "LicensePlate": "T 29102 LA",
+        "Product": 2
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY39S4050065",
+        "EngineNo": "K3SD6R30263",
+        "TruckNo": "MCC 103",
+        "LicensePlate": "T 29103 LA",
+        "Product": 2
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY30S4050083",
+        "EngineNo": "K3SD6R30391",
+        "TruckNo": "MCC 104",
+        "LicensePlate": "T 29104 LA",
+        "Product": 2
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY36S4050086",
+        "EngineNo": "K3SD6R30297",
+        "TruckNo": "MCC 105",
+        "LicensePlate": "T 29105 LA",
+        "Product": 2
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY31S4050089",
+        "EngineNo": "K3SD6R30295",
+        "TruckNo": "MCC 106",
+        "LicensePlate": "T 29106 LA",
+        "Product": 2
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY31S4050092",
+        "EngineNo": "K3SD6R30294",
+        "TruckNo": "MCC 107",
+        "LicensePlate": "T 29107 LA",
+        "Product": 2
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY33S4050093",
+        "EngineNo": "K3SD6R30442",
+        "TruckNo": "MCC 108",
+        "LicensePlate": "T 29108 LA",
+        "Product": 2
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY34S4050099",
+        "EngineNo": "K3SD6R30438",
+        "TruckNo": "MCC 109",
+        "LicensePlate": "T 29109 LA",
+        "Product": 2
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY34S4050104",
+        "EngineNo": "K3SD6R30244",
+        "TruckNo": "MCC 110",
+        "LicensePlate": "T 29110 LA",
+        "Product": 2
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY38S4050106",
+        "EngineNo": "K3SD6R30350",
+        "TruckNo": "MCC 111",
+        "LicensePlate": "T 29111 LA",
+        "Product": 2
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY3XS4050107",
+        "EngineNo": "K3SD6R30328",
+        "TruckNo": "MCC 112",
+        "LicensePlate": "T 29112 LA",
+        "Product": 2
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY35S4050113",
+        "EngineNo": "K3SD6R30258",
+        "TruckNo": "MCC 113",
+        "LicensePlate": "T 29113 LA",
+        "Product": 2
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY34S4050118",
+        "EngineNo": "K3SD6R30322",
+        "TruckNo": "MCC 114",
+        "LicensePlate": "T 29114 LA",
+        "Product": 2
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY36S4050119",
+        "EngineNo": "K3SD6R30254",
+        "TruckNo": "MCC 115",
+        "LicensePlate": "T 29115 LA",
+        "Product": 2
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY32S4050120",
+        "EngineNo": "K3SD6R30352",
+        "TruckNo": "MCC 116",
+        "LicensePlate": "T 29116 LA",
+        "Product": 2
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY34S4050121",
+        "EngineNo": "K3SD6R30406",
+        "TruckNo": "MCC 117",
+        "LicensePlate": "T 29117 LA",
+        "Product": 2
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY3XS4050124",
+        "EngineNo": "K3SD6R30298",
+        "TruckNo": "MCC 118",
+        "LicensePlate": "T 29118 LA",
+        "Product": 2
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY39S4050129",
+        "EngineNo": "K3SD6R30416",
+        "TruckNo": "MCC 119",
+        "LicensePlate": "T 29119 LA",
+        "Product": 2
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY35S4050130",
+        "EngineNo": "K3SD6R30346",
+        "TruckNo": "MCC 120",
+        "LicensePlate": "T 29120 LA",
+        "Product": 2
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY31S4050139",
+        "EngineNo": "K3SD6R30323",
+        "TruckNo": "MCC 121",
+        "LicensePlate": "T 29121 LA",
+        "Product": 2
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY38S4050140",
+        "EngineNo": "K3SD6R30313",
+        "TruckNo": "MCC 122",
+        "LicensePlate": "T 29122 LA",
+        "Product": 2
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY31S4050142",
+        "EngineNo": "K3SD6R30296",
+        "TruckNo": "MCC 123",
+        "LicensePlate": "T 29123 LA",
+        "Product": 2
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY30S4050150",
+        "EngineNo": "K3SD6R30468",
+        "TruckNo": "MCC 124",
+        "LicensePlate": "T 29124 LA",
+        "Product": 2
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY3XS4050155",
+        "EngineNo": "K3SD6R30474",
+        "TruckNo": "MCC 125",
+        "LicensePlate": "T 29125 LA",
+        "Product": 2
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY33S4050157",
+        "EngineNo": "K3SD6R30482",
+        "TruckNo": "MCC 126",
+        "LicensePlate": "T 29126 LA",
+        "Product": 2
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY37S4050159",
+        "EngineNo": "K3SD6R30470",
+        "TruckNo": "MCC 127",
+        "LicensePlate": "T 29127 LA",
+        "Product": 2
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY33S4050160",
+        "EngineNo": "K3SD6R30434",
+        "TruckNo": "MCC 128",
+        "LicensePlate": "T 29128 LA",
+        "Product": 2
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY36S4050170",
+        "EngineNo": "K3SD6R30256",
+        "TruckNo": "MCC 129",
+        "LicensePlate": "T 29129 LA",
+        "Product": 2
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY3XS4050172",
+        "EngineNo": "K3SD6R30462",
+        "TruckNo": "MCC 130",
+        "LicensePlate": "T 29130 LA",
+        "Product": 2
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY31S4050982",
+        "EngineNo": "K3SD6R30977",
+        "TruckNo": "MCC 141",
+        "LicensePlate": "T 29141 LA",
+        "Product": 4
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY37S4050985",
+        "EngineNo": "K3SD6R30974",
+        "TruckNo": "MCC 142",
+        "LicensePlate": "T 29142 LA",
+        "Product": 4
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY35S4050063",
+        "EngineNo": "K3SD6R30196",
+        "TruckNo": "MCC 143",
+        "LicensePlate": "T 29143 LA",
+        "Product": 4
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY36S4050203",
+        "EngineNo": "K3SD6R30363",
+        "TruckNo": "MCC 144",
+        "LicensePlate": "T 29144 LA",
+        "Product": 4
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY30S4050133",
+        "EngineNo": "K3SD6R30339",
+        "TruckNo": "MCC 145",
+        "LicensePlate": "T 29145 LA",
+        "Product": 4
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY36S4050914",
+        "EngineNo": "K3SD6R30636",
+        "TruckNo": "MCC 146",
+        "LicensePlate": "T 29146 LA",
+        "Product": 4
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY38S4050171",
+        "EngineNo": "K3SD6R30395",
+        "TruckNo": "MCC 147",
+        "LicensePlate": "T 29147 LA",
+        "Product": 4
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY30S4050990",
+        "EngineNo": "K3SD6R30917",
+        "TruckNo": "MCC 148",
+        "LicensePlate": "T 29148 LA",
+        "Product": 4
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY39S4050180",
+        "EngineNo": "K3SD6R30333",
+        "TruckNo": "MCC 149",
+        "LicensePlate": "T 29149 LA",
+        "Product": 4
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY35S4050192",
+        "EngineNo": "K3SD6R30475",
+        "TruckNo": "MCC 150",
+        "LicensePlate": "T 29150 LA",
+        "Product": 4
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY32S4050196",
+        "EngineNo": "K3SD6R30325",
+        "TruckNo": "MCC 151",
+        "LicensePlate": "T 29151 LA",
+        "Product": 4
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY3XS4050205",
+        "EngineNo": "K3SD6R30326",
+        "TruckNo": "MCC 152",
+        "LicensePlate": "T 29152 LA",
+        "Product": 4
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY31S4050206",
+        "EngineNo": "K3SD6R30394",
+        "TruckNo": "MCC 153",
+        "LicensePlate": "T 29153 LA",
+        "Product": 4
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY32S4050828",
+        "EngineNo": "K3SD6R30670",
+        "TruckNo": "MCC 154",
+        "LicensePlate": "T 29154 LA",
+        "Product": 4
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY34S4050829",
+        "EngineNo": "K3SD6R30672",
+        "TruckNo": "MCC 155",
+        "LicensePlate": "T 29155 LA",
+        "Product": 4
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY30S4050830",
+        "EngineNo": "K3SD6R30667",
+        "TruckNo": "MCC 156",
+        "LicensePlate": "T 29156 LA",
+        "Product": 4
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY31S4050836",
+        "EngineNo": "K3SD6R30486",
+        "TruckNo": "MCC 157",
+        "LicensePlate": "T 29157 LA",
+        "Product": 4
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY38S4050851",
+        "EngineNo": "K3SD6R30674",
+        "TruckNo": "MCC 158",
+        "LicensePlate": "T 29158 LA",
+        "Product": 4
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY33S4050854",
+        "EngineNo": "K3SD6R30612",
+        "TruckNo": "MCC 159",
+        "LicensePlate": "T 29159 LA",
+        "Product": 4
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY39S4050857",
+        "EngineNo": "K3SD6R30540",
+        "TruckNo": "MCC 160",
+        "LicensePlate": "T 29160 LA",
+        "Product": 4
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY32S4050084",
+        "EngineNo": "K3SD6R30451",
+        "TruckNo": "MCC 191",
+        "LicensePlate": "T 29191 LA",
+        "Product": 1
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY32S4050148",
+        "EngineNo": "K3SD6R30471",
+        "TruckNo": "MCC 192",
+        "LicensePlate": "T 29192 LA",
+        "Product": 1
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY38S4050915",
+        "EngineNo": "K3SD6R30742",
+        "TruckNo": "MCC 193",
+        "LicensePlate": "T 29193 LA",
+        "Product": 1
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY32S4050909",
+        "EngineNo": "K3SD6R30644",
+        "TruckNo": "MCC 194",
+        "LicensePlate": "T 29194 LA",
+        "Product": 1
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY3XS4050978",
+        "EngineNo": "K3SD6R30798",
+        "TruckNo": "MCC 195",
+        "LicensePlate": "T 29195 LA",
+        "Product": 1
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY31S4050870",
+        "EngineNo": "K3SD6R30569",
+        "TruckNo": "MCC 196",
+        "LicensePlate": "T 29196 LA",
+        "Product": 1
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY36S4050881",
+        "EngineNo": "K3SD6R30573",
+        "TruckNo": "MCC 197",
+        "LicensePlate": "T 29197 LA",
+        "Product": 1
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY31S4050898",
+        "EngineNo": "K3SD6R30512",
+        "TruckNo": "MCC 198",
+        "LicensePlate": "T 29198 LA",
+        "Product": 1
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY37S4050999",
+        "EngineNo": "K3SD6R30967",
+        "TruckNo": "MCC 471",
+        "LicensePlate": "T 29471 LA",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY3XS4050818",
+        "EngineNo": "K3SD6R30513",
+        "TruckNo": "MCC 472",
+        "LicensePlate": "T 29472 LA",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY33S4050885",
+        "EngineNo": "K3SD6R30537",
+        "TruckNo": "MCC 473",
+        "LicensePlate": "T 29473 LA",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY36S4050847",
+        "EngineNo": "K3SD6R30694",
+        "TruckNo": "MCC 474",
+        "LicensePlate": "T 29474 LA",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY35S4050208",
+        "EngineNo": "K3SD6R30270",
+        "TruckNo": "MCC 475",
+        "LicensePlate": "T 29475 LA",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY30S4050097",
+        "EngineNo": "K3SD6R30195",
+        "TruckNo": "MCC 476",
+        "LicensePlate": "T 29476 LA",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY33S4051003",
+        "EngineNo": "K3SD6R30972",
+        "TruckNo": "MCC 477",
+        "LicensePlate": "T 29477 LA",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY34S4051009",
+        "EngineNo": "K3SD6R30925",
+        "TruckNo": "MCC 478",
+        "LicensePlate": "T 29478 LA",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY35S4050886",
+        "EngineNo": "K3SD6R30549",
+        "TruckNo": "MCC 479",
+        "LicensePlate": "T 29479 LA",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY36S4050864",
+        "EngineNo": "K3SD6R30543",
+        "TruckNo": "MCC 480",
+        "LicensePlate": "T 29480 LA",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY32S4050201",
+        "EngineNo": "K3SD6R30327",
+        "TruckNo": "MCC 481",
+        "LicensePlate": "T 29481 LA",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY33S4050188",
+        "EngineNo": "K3SD6R30436",
+        "TruckNo": "MCC 482",
+        "LicensePlate": "T 29482 LA",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY36S4050153",
+        "EngineNo": "K3SD6R30466",
+        "TruckNo": "MCC 483",
+        "LicensePlate": "T 29483 LA",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY34S4050166",
+        "EngineNo": "K3SD6R30252",
+        "TruckNo": "MCC 484",
+        "LicensePlate": "T 29484 LA",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY30S4050066",
+        "EngineNo": "K3SD6R30227",
+        "TruckNo": "MCC 485",
+        "LicensePlate": "T 29485 LA",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY39S4050163",
+        "EngineNo": "K3SD6R30433",
+        "TruckNo": "MCC 486",
+        "LicensePlate": "T 29486 LA",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY39S4050969",
+        "EngineNo": "K3SD6R30883",
+        "TruckNo": "MCC 487",
+        "LicensePlate": "T 29487 LA",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY39S4050115",
+        "EngineNo": "K3SD6R30398",
+        "TruckNo": "MCC 488",
+        "LicensePlate": "T 29488 LA",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY35S4050161",
+        "EngineNo": "K3SD6R30310",
+        "TruckNo": "MCC 489",
+        "LicensePlate": "T 29489 LA",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY35S4050189",
+        "EngineNo": "K3SD6R30452",
+        "TruckNo": "MCC 490",
+        "LicensePlate": "T 29490 LA",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY38S4050123",
+        "EngineNo": "K3SD6R30264",
+        "TruckNo": "MCC 491",
+        "LicensePlate": "T 29491 LA",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY38S4050882",
+        "EngineNo": "K3SD6R30535",
+        "TruckNo": "MCC 492",
+        "LicensePlate": "T 29492 LA",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY34S4050202",
+        "EngineNo": "K3SD6R30309",
+        "TruckNo": "MCC 493",
+        "LicensePlate": "T 29493 LA",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY38S4050199",
+        "EngineNo": "K3SD6R30305",
+        "TruckNo": "MCC 494",
+        "LicensePlate": "T 29494 LA",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY38S4050204",
+        "EngineNo": "K3SD6R30330",
+        "TruckNo": "MCC 495",
+        "LicensePlate": "T 29495 LA",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY39S4050910",
+        "EngineNo": "K3SD6R30724",
+        "TruckNo": "MCC 496",
+        "LicensePlate": "T 29496 LA",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY38S4050980",
+        "EngineNo": "K3SD6R30976",
+        "TruckNo": "MCC 497",
+        "LicensePlate": "T 29497 LA",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY32S4050988",
+        "EngineNo": "K3SD6R30930",
+        "TruckNo": "MCC 498",
+        "LicensePlate": "T 29498 LA",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY34S4050992",
+        "EngineNo": "K3SD6R30966",
+        "TruckNo": "MCC 499",
+        "LicensePlate": "T 29499 LA",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY30S4051007",
+        "EngineNo": "K3SD6R30905",
+        "TruckNo": "MCC 500",
+        "LicensePlate": "T 29500 LA",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "FAW",
+        "VIN": "LGAX4DY36RT828832",
+        "EngineNo": "",
+        "TruckNo": "MCC 28614",
+        "LicensePlate": "T28614LA",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY31N4030221",
+        "EngineNo": "",
+        "TruckNo": "MCC 19807",
+        "LicensePlate": "T19807LA",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "FAW",
+        "VIN": "LGAX4DY30N9829479",
+        "EngineNo": "",
+        "TruckNo": "MCC 630",
+        "LicensePlate": "AGL630YH",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "FAW",
+        "VIN": "LFWSRXRJ1P1F18410",
+        "EngineNo": "",
+        "TruckNo": "MCC 23567",
+        "LicensePlate": "T23567LA",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY38N4056959",
+        "EngineNo": "",
+        "TruckNo": "MCC 19795",
+        "LicensePlate": "T19795LA",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4EY2XR4054904",
+        "EngineNo": "",
+        "TruckNo": "MCC 30151",
+        "LicensePlate": "T30151LA",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4EY20N4030329",
+        "EngineNo": "",
+        "TruckNo": "MCC 981",
+        "LicensePlate": "T28981LA",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4NY31N4056964",
+        "EngineNo": "",
+        "TruckNo": "MCC 978",
+        "LicensePlate": "T28978LA",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4FY26P4054837",
+        "EngineNo": "",
+        "TruckNo": "MCC 28979",
+        "LicensePlate": "T28979LA",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4EY26R4054903",
+        "EngineNo": "",
+        "TruckNo": "MCC 30156",
+        "LicensePlate": "T30156LA",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4EY25R4054907",
+        "EngineNo": "",
+        "TruckNo": "MCC 30155",
+        "LicensePlate": "T30155LA",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4EY27R4054908",
+        "EngineNo": "",
+        "TruckNo": "MCC 30152",
+        "LicensePlate": "T30152LA",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4RY28R4054903",
+        "EngineNo": "",
+        "TruckNo": "MCC 30154",
+        "LicensePlate": "T30154LA",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4EY24R4054901",
+        "EngineNo": "",
+        "TruckNo": "MCC 30153",
+        "LicensePlate": "T30153LA",
+        "Product": 3
+    },
+    {
+        "Manufacturer": "DONGFENG",
+        "VIN": "LXUG4FY2XP4056381",
+        "EngineNo": "",
+        "TruckNo": "MCC 980",
+        "LicensePlate": "T28980LA",
+        "Product": 3
     }
 ]
