@@ -33,7 +33,7 @@ public class Truck
     public string? VIN { get; set; }
 
     [StringLength(30)]
-    public string? EngineNo { get; set; }    
+    public string? EngineNo { get; set; } = "Nil";
     public Guid? DriverId { get; set; }
     public Product? Product { get; set; }
     public CalibrationType CalibrationType { get; set; }

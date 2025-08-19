@@ -17,38 +17,36 @@
 
         <!-- Driver Form -->
         <EditForm Model="@CurrentDriver" OnValidSubmit="HandleSubmit" class="space-y-6">
-            @if (alert is not null)
-            {
-                <Toast Icon="@alert.Icon" Message="@alert.Message"/>
-            }
-            <!-- First Name -->
-            <div>
-                <label for="firstName" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                    First Name <span class="text-red-500">*</span>
-                </label>
-                <InputText type="text" id="firstName" @bind-Value="CurrentDriver.FirstName"
-                    class="@GetInputClass("FirstName")"
-                    placeholder="John"/>            
-                @if (errors.ContainsKey("FirstName"))
-                {
-                    <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["FirstName"]</p>
-                }
-            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- First Name -->
+                <div>
+                    <label for="firstName" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        First Name <span class="text-red-500">*</span>
+                    </label>
+                    <InputText type="text" id="firstName" @bind-Value="CurrentDriver.FirstName"
+                        class="@GetInputClass("FirstName")"
+                        placeholder="John"/>            
+                    @if (errors.ContainsKey("FirstName"))
+                    {
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["FirstName"]</p>
+                    }
+                </div>
 
-            <!-- Last Name -->
-            <div>
-                <label for="lastName" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                    Last Name <span class="text-red-500">*</span>
-                </label>
-                <InputText type="text" id="lastName" @bind-Value="CurrentDriver.LastName"
-                    class="@GetInputClass("LastName")"
-                    placeholder="Doe"/>
-                @if (errors.ContainsKey("LastName"))
-                {
-                    <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["LastName"]</p>
-                }
+                <!-- Last Name -->
+                <div>
+                    <label for="lastName" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        Last Name <span class="text-red-500">*</span>
+                    </label>
+                    <InputText type="text" id="lastName" @bind-Value="CurrentDriver.LastName"
+                        class="@GetInputClass("LastName")"
+                        placeholder="Doe"/>
+                    @if (errors.ContainsKey("LastName"))
+                    {
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["LastName"]</p>
+                    }
+                </div>
             </div>
-
+            
             <!-- Phone Number -->
             <div>
                 <label for="phoneNo" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
@@ -71,6 +69,36 @@
                 }
                 <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Must be exactly 11 digits</p>
             </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- License Number -->
+                <div>
+                    <label for="licenseNo" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        License Number <span class="text-red-500">*</span>
+                    </label>
+                    <InputText type="text" id="licenseNo" @bind-Value="CurrentDriver.LicenseNo"
+                        class="@GetInputClass("LicenseNo")"
+                        placeholder="Enter license number"/>
+                    @if (errors.ContainsKey("LicenseNo"))
+                    {
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["LicenseNo"]</p>
+                    }
+                </div>
+
+                <!-- Expiry Date -->
+                <div>
+                    <label for="expiryDate" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        Expiry Date <span class="text-red-500">*</span>
+                    </label>
+                    <InputDate id="expiryDate" @bind-Value="CurrentDriver.ExpiryDate"
+                        class="@GetInputClass("ExpiryDate")"/>
+                    @if (errors.ContainsKey("ExpiryDate"))
+                    {
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["ExpiryDate"]</p>
+                    }
+                </div>
+            </div>
+        
 
             <div>
                 <FileUploadView OnFilesUploaded="@OnUploadComplete"/>
@@ -196,7 +224,19 @@
             errors["PhoneNo"] = "Phone number must be exactly 11 digits";
         }
 
-        Console.WriteLine(CurrentDriver.PhoneNo);
+        if (string.IsNullOrWhiteSpace(CurrentDriver.LicenseNo))
+        {
+            errors["LicenseNo"] = "License number is required";
+        }
+        if (CurrentDriver.ExpiryDate == default)
+        {
+            errors["ExpiryDate"] = "Expiry date is required";
+        }
+        if (CurrentDriver.ExpiryDate.HasValue && CurrentDriver.ExpiryDate.Value <= DateOnly.FromDateTime(DateTime.Now))
+        {
+            errors["ExpiryDate"] = "Expiry date cannot be in the past";
+        }
+
 
         if (errors!.Any())
         {

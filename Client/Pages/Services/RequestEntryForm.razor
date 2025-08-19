@@ -3,7 +3,7 @@
 @inject IMaintenanceService SiteService
 @inject IDriverService DriverService
 @inject ITruckService TruckService
-
+@inject ITripService TripService
 
 <div class="max-w-2xl mx-auto p-4 sm:p-6">
     @if (AppState.IsBusy)
@@ -68,9 +68,10 @@
         <!-- Truck -->
         <div>
             <label for="truck" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                Truck
+                Truck @(CurrentRequest.Trip is not null ? $"(Active Trip: {CurrentRequest.Trip?.DispatchId})" : "")
             </label>
-            <InputSelect id="truck" @bind-Value="CurrentRequest.TruckId" class="@GetInputClass("TruckId")">
+            <InputSelect id="truck" @bind-Value="CurrentRequest.TruckId" class="@GetInputClass("TruckId")"
+                    @bind-Value:after="OnTruckChanged">
                 <option value="">Select truck</option>
                 @if (Trucks is not null)
                 {
@@ -311,6 +312,36 @@
         {
             AppState.IsProcessing = false;
         }
+    }
+
+    private async Task OnTruckChanged()
+    {
+        if (CurrentRequest.TruckId is not null && CurrentRequest.TruckId != Guid.Empty)
+        {
+            var truck = Trucks?.FirstOrDefault(t => t.Id == CurrentRequest.TruckId);
+            if (truck != null)
+            {
+                CurrentRequest.Truck = truck;
+                CurrentRequest.DriverId = truck.DriverId; // Automatically set driver if truck has one
+                var trip = await TripService.GetActiveTripForTruckAsync(truck.Id, AppState.GetCancellationToken());
+                if (trip != null)
+                {
+                    CurrentRequest.TripId = trip.Id;
+                    CurrentRequest.Trip = trip;
+                }
+                else
+                {
+                    CurrentRequest.TripId = null; // Clear trip if no active trip found
+                    CurrentRequest.Trip = null;
+                }
+            }
+        }
+        else
+        {
+            CurrentRequest.Truck = null;
+            CurrentRequest.DriverId = null; // Clear driver if no truck selected
+        }        
+        StateHasChanged();
     }
     
     private void Cancel()

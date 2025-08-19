@@ -54,7 +54,7 @@
                                 <label for="truck" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                                     Truck <span class="text-red-500">*</span>
                                 </label>
-                                <InputText id="truck" @bind-Value="CurrentRefuelInfo.Truck!.LicensePlate" class="@GetInputClass("TruckId")"/>                                                                    
+                                <InputText disabled id="truck" @bind-Value="CurrentRefuelInfo.Truck!.LicensePlate" class="@GetInputClass("TruckId")"/>                                                                    
                                 @if (errors.ContainsKey("TruckId"))
                                 {
                                     <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["TruckId"]</p>

@@ -2,45 +2,252 @@
 @inject ITripService TripService
 @attribute [Authorize]
 <div class="max-w-4xl mx-auto px-4 lg:px-6">
-    <!-- Header Section -->
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-        <div>
-            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Trip Details</h2>
-            <div class="flex flex-col gap-x-4">
+    @if (AppState.IsBusy)
+    {
+        <Loader/>
+    }
+    else
+    {
+        <!-- Header Section -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Trip Details</h2>
+                <div class="flex flex-col gap-x-4">
+                    <div>
+                        <span class="font-semibold">Dispatch:</span>
+                        @Trip?.DispatchId
+                    </div>
+                    <div>
+                        <span class="font-semibold">Waybill:</span>
+                        @Trip?.LoadingInfo?.WaybillNo
+                    </div>
+                    <div>
+                        <span class="font-semibold">Date:</span>
+                        @Trip?.Date.ToString("dd MMM yyyy")
+                    </div>
+                    <div>
+                        <span class="font-semibold">Driver:</span>
+                        @Trip?.Driver?.ToString()
+                    </div>
+                    <div>
+                        <span class="font-semibold">Truck:</span>
+                        @Trip?.Truck?.LicensePlate
+                    </div>
+                    <div>
+                        <span class="font-semibold">Product:</span>
+                        @Trip?.Truck?.Product
+                    </div>
+                    <div>
+                        <span class="font-semibold">Loading Depot:</span>
+                        @Trip?.LoadingDepot?.Name
+                    </div>
+                    <div>
+                        <span class="font-semibold">Receiving Depot:</span>
+                        @Trip?.ReceivingDepot?.Name
+                    </div>
+                </div>
+            </div>
+            <div class="mt-4 md:mt-0">
+                <span class="@GetStatusBadgeClass(Trip?.Status ?? TripStatus.Active) text-xs font-medium px-2.5 py-0.5 rounded-full">
+                    @Trip?.Status
+                </span>
+            </div>
+        </div>    
+
+        <!-- Loading Info Section -->
+        <div class="mb-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-2">Loading Info</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <span class="font-semibold">Dispatch:</span>
-                    @Trip.DispatchId
+                    <span class="font-semibold">Waybill No:</span> @Trip?.LoadingInfo?.WaybillNo
                 </div>
                 <div>
-                    <span class="font-semibold">Waybill:</span>
-                    @Trip.LoadingInfo.WaybillNo
+                    <span class="font-semibold">Quantity Loaded:</span> @Trip?.LoadingInfo?.Quantity @Trip?.GetUnit()
+                </div>
+                <div>
+                    <span class="font-semibold">Loading Date:</span> @Trip?.LoadingInfo?.LoadingDate?.ToString("dd MMM yyyy")
+                </div>
+                <div>
+                    <span class="font-semibold">Loading Remark:</span> @Trip?.LoadingInfo?.Remark
                 </div>
             </div>
         </div>
-        <div class="mt-4 md:mt-0">
-            <span class="@GetStatusBadgeClass(Trip.Status) text-xs font-medium px-2.5 py-0.5 rounded-full">
-                @Trip.Status
-            </span>
+
+        <!-- Arrival Info Section -->
+        <div class="mb-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-2">Arrival Info</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <span class="font-semibold">Arrived Depot:</span> @(Trip?.ArrivalInfo?.ArrivedDepot == true ? "Yes" : "No")
+                </div>
+                <div>
+                    <span class="font-semibold">Depot Arrival Date:</span> @Trip?.ArrivalInfo?.DepotArrivalDateTime?.ToString("dd MMM yyyy HH:mm")
+                </div>
+                <div>
+                    <span class="font-semibold">Arrived At Station:</span> @(Trip?.ArrivalInfo?.ArrivedAtStation == true ? "Yes" : "No")
+                </div>
+                <div>
+                    <span class="font-semibold">Station Arrival Date:</span> @Trip?.ArrivalInfo?.StationArrivalDateTime?.ToString("dd MMM yyyy HH:mm")
+                </div>
+                <div>
+                    <span class="font-semibold">Invoice Issued:</span> @(Trip?.ArrivalInfo?.InvoiceIssued == true ? "Yes" : "No")
+                </div>
+                <div>
+                    <span class="font-semibold">Invoice To Station Date:</span> @Trip?.ArrivalInfo?.InvoiceToStationDateTime?.ToString("dd MMM yyyy HH:mm")
+                </div>
+                <div>
+                    <span class="font-semibold">Destination:</span> @Trip?.ArrivalInfo?.Destination
+                </div>
+                <div>
+                    <span class="font-semibold">Remark:</span> @Trip?.ArrivalInfo?.Remark
+                </div>
+            </div>
         </div>
-    </div>    
+
+        <!-- Close Info Section -->
+        <div class="mb-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-2">Close Info</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <span class="font-semibold">Return Date:</span> @Trip?.CloseInfo?.ReturnDateTime?.ToString("dd MMM yyyy HH:mm")
+                </div>
+                <div>
+                    <span class="font-semibold">Trip Remark:</span> @Trip?.CloseInfo?.TripRemark
+                </div>
+                <div>
+                    <span class="font-semibold">Rating:</span> @Trip?.CloseInfo?.Rating
+                </div>
+                <div>
+                    <span class="font-semibold">Supervisor Signature:</span>
+                    @if (!string.IsNullOrEmpty(Trip?.CloseInfo?.SupervisorSignaturePath))
+                    {
+                        <a href="@Trip.CloseInfo.SupervisorSignaturePath" target="_blank" class="text-blue-600 underline">View Signature</a>
+                    }
+                    else
+                    {
+                        <span>N/A</span>
+                    }
+                </div>
+                <div>
+                    <span class="font-semibold">Closed By:</span> @Trip?.ClosedBy?.ToString()
+                </div>
+                <div>
+                    <span class="font-semibold">Completed By:</span> @Trip?.CompletedBy?.ToString()
+                </div>
+            </div>
+        </div>
+
+        <!-- Discharges Section -->
+        <div class="mb-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-2">Discharges</h3>
+            @if (Trip?.Discharges != null && Trip.Discharges.Any())
+            {
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead>
+                        <tr>
+                            <th class="px-4 py-2 text-left">Station</th>
+                            <th class="px-4 py-2 text-left">Arrival</th>
+                            <th class="px-4 py-2 text-left">Start Time</th>
+                            <th class="px-4 py-2 text-left">Quantity</th>
+                            <th class="px-4 py-2 text-left">Final?</th>
+                            <th class="px-4 py-2 text-left">Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var discharge in Trip.Discharges)
+                        {
+                            <tr>
+                                <td class="px-4 py-2">@discharge.Station?.Name</td>
+                                <td class="px-4 py-2">@discharge.TruckArrival?.ToString("dd MMM yyyy HH:mm")</td>
+                                <td class="px-4 py-2">@discharge.DischargeStartTime?.ToString("dd MMM yyyy HH:mm")</td>
+                                <td class="px-4 py-2">@discharge.QuantityDischarged @Trip?.GetUnit()</td>
+                                <td class="px-4 py-2">@(discharge.IsFinalDischarge ? "Yes" : "No")</td>
+                                <td class="px-4 py-2">@discharge.Notes</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <div class="text-gray-500">No discharge records available.</div>
+            }
+        </div>
+
+        <!-- Requests Section -->
+        <div class="mb-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-2">Service Requests</h3>
+            @if (Trip?.Requests != null && Trip.Requests.Any())
+            {
+                <ul class="list-disc pl-6">
+                    @foreach (var req in Trip.Requests)
+                    {
+                        <li>
+                            <span class="font-semibold">Request:</span> @req.Description
+                            <span class="ml-2 text-xs text-gray-500">(@req.CreatedAt.ToString("dd MMM yyyy"))</span>
+                        </li>
+                    }
+                </ul>
+            }
+            else
+            {
+                <div class="text-gray-500">No service requests available.</div>
+            }
+        </div>
+
+        <!-- Checkpoints Section -->
+        <div class="mb-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-2">Trip Checkpoints</h3>
+            @if (Trip?.Checkpoints != null && Trip.Checkpoints.Any())
+            {
+                <ul class="list-disc pl-6">
+                    @foreach (var cp in Trip.Checkpoints)
+                    {
+                        <li>
+                            <span class="font-semibold">Checkpoint:</span> @cp.Checkpoint?.Name
+                            <span class="ml-2 text-xs text-gray-500">(@cp.ActualArrivalTime?.ToString("dd MMM yyyy HH:mm"))</span>
+                        </li>
+                    }
+                </ul>
+            }
+            else
+            {
+                <div class="text-gray-500">No checkpoints available.</div>
+            }
+        </div>    
+        <!-- Actions Section -->
+        <div class="flex justify-end space-x-4">
+            <button class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                    @onclick="() => OnEditTrip()">
+                Edit Trip
+            </button>
+            <button class="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400"
+                    @onclick="() => OnBackToTrips()">  
+                Back to Trips
+            </button>
+        </div>
+    }
 </div>
+
 
 @code {
     [Parameter] public Guid id { get; set; }
     public Trip? Trip { get; set; }
 
-    [Parameter]
-    public EventCallback OnBack { get; set; }
-
-    [Parameter]
-    public EventCallback OnEdit { get; set; }
-
     protected override async Task OnParametersSetAsync()
     {
-        if (Trip is null)
-        {
-            Trip = await TripService.GetAsync(id, AppState.GetCancellationToken());
-        }
+        AppState.IsBusy = true;
+        Trip = await TripService.GetAsync(id, AppState.GetCancellationToken());        
+        AppState.IsBusy = false;
+    }
+
+    private void OnEditTrip()
+    {
+        nav.NavigateTo($"/edit-trip/{Trip?.Id}");
+    }
+    private void OnBackToTrips()
+    {
+        nav.NavigateTo("/trips");        
     }
 
     private string GetStatusBadgeClass(TripStatus status)

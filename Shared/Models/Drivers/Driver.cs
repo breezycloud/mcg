@@ -19,6 +19,8 @@ public class Driver
     [Required]
     [StringLength(11, ErrorMessage = "Phone must be exactly 11 digits")]
     public string? PhoneNo { get; set; }
+    public string? LicenseNo { get; set; }
+    public DateOnly? ExpiryDate { get; set; }
     [Column(TypeName = "jsonb")]
     public List<UploadResult> Files { get; set; } = [];    
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;

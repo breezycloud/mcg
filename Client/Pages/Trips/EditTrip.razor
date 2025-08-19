@@ -324,7 +324,7 @@
                         {
                             <div>
                                 <QuantityReconciliation 
-                                    Discharges="@Trip.Discharges.ToList()" 
+                                    Discharges="@Trip.Discharges!.ToList()" 
                                     LoadingQuantity="@(Trip.LoadingInfo.Quantity ?? 0)"
                                     Unit="@Trip.GetUnit()"
                                     TolerancePercentage="0.29m"/>                                        
@@ -518,12 +518,7 @@
     protected override async Task OnInitializedAsync()
     {
         AppState.IsBusy = true;                
-        if (Trip is null)
-        {
-            Trip = await TripService.GetAsync(id, AppState.GetCancellationToken());
-        }
-        LoadingDepots = await StationService.GetAsync(StationType.LoadingDepot.ToString(), AppState.GetCancellationToken());
-        Depots = await StationService.GetAsync(StationType.ReceivingDepot.ToString(), AppState.GetCancellationToken());
+        await OnRefresh();
         //Destionations = await StationService.GetAsync(StationType.DischargeStation.ToString(), AppState.GetCancellationToken());
         @* Drivers = await DriverService.GetAsync(AppState.GetCancellationToken());
         if (Id.HasValue)
@@ -533,7 +528,9 @@
 
     private async Task OnRefresh()
     {
-        await OnInitializedAsync();
+        Trip = await TripService.GetAsync(id, AppState.GetCancellationToken());
+        LoadingDepots = await StationService.GetAsync(StationType.LoadingDepot.ToString(), AppState.GetCancellationToken());
+        Depots = await StationService.GetAsync(StationType.ReceivingDepot.ToString(), AppState.GetCancellationToken());
         StateHasChanged();
     }
 
@@ -547,7 +544,7 @@
             TripStatus.Active => "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
             _ => "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300",
         };
-    }    
+    }
 
     private string GetInputClass(string fieldName)
     {
@@ -777,8 +774,7 @@
             if (response)            
             {                                
                 Notify();
-                await _js.InvokeVoidAsync("window.location.reload()");
-                StateHasChanged();
+                await OnRefresh();
             }
             else
             {
@@ -791,8 +787,7 @@
         }
         finally
         {
-            CloseDischargeModal();
-            await OnInitializedAsync();
+            CloseDischargeModal();            
             AppState.IsProcessing = false;
         }
     }
@@ -804,9 +799,9 @@
         {
             var response = await RefuelInfoService.AddAsync(info, AppState.GetCancellationToken());
             if (response)            
-            {                                
+            {                            
+                await OnRefresh();    
                 Notify();                
-                StateHasChanged();
             }
             else
             {
@@ -818,9 +813,8 @@
             Console.WriteLine($"Error adding refuel info: {ex.Message}");
         }
         finally
-        {
-            CloseRefuelModal();
-            await OnRefresh();
+        {            
+            CloseRefuelModal();            
             AppState.IsProcessing = false;
         }
     }
@@ -849,6 +843,7 @@
                 {
                     Trip!.Discharges.Remove(dischargeToRemove);
                 }
+                await OnRefresh();
             }
             else
             {
@@ -860,7 +855,7 @@
             Console.WriteLine($"Error deleting discharge: {ex.Message}");
         }
         finally
-        {
+        {            
             showDeleteDischargeModal = false;
             dischargeToDelete = null;
             StateHasChanged();
