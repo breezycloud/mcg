@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using Shared.Enums;
 using Shared.Models.Drivers;
 using Shared.Models.Shops;
+using Shared.Models.Trips;
 using Shared.Models.Trucks;
 using Shared.Models.Users;
 
@@ -18,6 +19,7 @@ public class ServiceRequest
     public ServiceItem Item { get; set; }
     public Guid? TruckId { get; set; }
     public Guid? DriverId { get; set; }
+    public Guid? TripId { get; set; }
 
     [Required]
     public string? Description { get; set; }
@@ -50,6 +52,9 @@ public class ServiceRequest
 
     [ForeignKey(nameof(MaintenanceSiteId))]
     public virtual MaintenanceSite? Site { get; set; }
+
+    [ForeignKey(nameof(TripId))]
+    public virtual Trip? Trip { get; set; }
 
     // Collection of status change history
     public virtual ICollection<ServiceRequestHistory> History { get; set; } = new List<ServiceRequestHistory>();
