@@ -1,0 +1,246 @@
+@inject IRefuelInfoService RefuelInfoService
+@inject ITruckService TruckService
+@inject IStationService StationService
+
+<!-- Pure Flowbite Modal Component -->
+<div id="Refuel-modal" tabindex="-1" aria-hidden="@(!IsVisible)" 
+     class="@(IsVisible ? "flex" : "hidden") fixed top-0 left-0 right-0 z-50 w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full justify-center items-center bg-opacity-50">
+    <div class="relative w-full max-w-2xl max-h-full">
+        <!-- Modal content -->
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <!-- Modal header -->
+            <div class="flex items-start justify-between p-4 border-b rounded-t dark:border-gray-600">
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
+                    @(EditMode  ? "Edit Refuel" : "Add New Refuel")
+                </h3>
+                <button type="button" @onclick="CloseCheckpointModal"
+                        class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white">
+                    <svg aria-hidden="true" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span class="sr-only">Close modal</span>
+                </button>
+            </div>
+            
+            <!-- Modal body -->
+            <div class="p-6 space-y-4">
+                @if (AppState.IsBusy)
+                {
+                    <div class="pb-4 space-y-3">
+                        <LoadingSpinner/>
+                    </div>
+                }
+                else
+                {
+                    <!-- RefuelInfo Form -->
+                    <EditForm Model="@CurrentRefuelInfo" OnValidSubmit="@Save" class="space-y-6">                        
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Date -->
+                            <div>
+                                <label for="date" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                    Date <span class="text-red-500">*</span>
+                                </label>
+                                <InputDate id="date" @bind-Value="CurrentRefuelInfo!.Date"
+                                    class="@GetInputClass("Date")" />
+                                @if (errors.ContainsKey("Date"))
+                                {
+                                    <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["Date"]</p>
+                                }
+                            </div>
+
+                            <!-- Truck -->
+                            <div>
+                                <label for="truck" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                    Truck <span class="text-red-500">*</span>
+                                </label>
+                                <InputText id="truck" @bind-Value="CurrentRefuelInfo.Truck!.LicensePlate" class="@GetInputClass("TruckId")"/>                                                                    
+                                @if (errors.ContainsKey("TruckId"))
+                                {
+                                    <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["TruckId"]</p>
+                                }
+                            </div>
+
+                            <!-- Station -->
+                            <div>
+                                <label for="station" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                    Station
+                                </label>
+                                <InputSelect id="station" @bind-Value="CurrentRefuelInfo.StationId" class="@GetInputClass("StationId")">
+                                    <option value="">Select Station</option>
+                                    @if (Stations != null)
+                                    {
+                                        @foreach (var station in Stations)
+                                        {
+                                            <option value="@station.Id">@station.Name</option>
+                                        }
+                                    }
+                                </InputSelect>
+                                @if (errors.ContainsKey("StationId"))
+                                {
+                                    <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["StationId"]</p>
+                                }
+                            </div>
+
+                            <!-- Quantity -->
+                            <div>
+                                <label for="quantity" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                    Quantity <span class="text-red-500">*</span>
+                                </label>
+                                <InputNumber id="quantity" @bind-Value="CurrentRefuelInfo.Quantity"
+                                    class="@GetInputClass("Quantity")" step="0.01" />
+                                @if (errors.ContainsKey("Quantity"))
+                                {
+                                    <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["Quantity"]</p>
+                                }
+                            </div>
+
+                            <!-- Unit Of Measure -->
+                            <div>
+                                <label for="unit" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                    Unit <span class="text-red-500">*</span>
+                                </label>
+                                <InputSelect id="unit" @bind-Value="CurrentRefuelInfo.Unit" class="@GetInputClass("Unit")">
+                                    @foreach (var unit in Enum.GetValues(typeof(UnitOfMeasure)))
+                                    {
+                                        <option value="@unit">@unit</option>
+                                    }
+                                </InputSelect>
+                                @if (errors.ContainsKey("Unit"))
+                                {
+                                    <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["Unit"]</p>
+                                }
+                            </div>
+
+                            <!-- Price -->
+                            <div>
+                                <label for="price" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                    Price
+                                </label>
+                                <InputNumber id="price" @bind-Value="CurrentRefuelInfo.Price"
+                                    class="@GetInputClass("Price")" step="0.01" />
+                                @if (errors.ContainsKey("Price"))
+                                {
+                                    <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["Price"]</p>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Dates (Display only when editing) -->
+                        @if (EditMode)
+                        {
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">
+                                        Created At
+                                    </label>
+                                    <div class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300">
+                                        @CurrentRefuelInfo.CreatedAt.ToString("MMM dd, yyyy HH:mm")
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">
+                                        Last Updated
+                                    </label>
+                                    <div class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300">
+                                        @(CurrentRefuelInfo.UpdatedAt?.ToString("MMM dd, yyyy HH:mm") ?? "Never")
+                                    </div>
+                                </div>
+                            </div>
+                        }                        
+                    </EditForm>                    
+                }
+            </div>
+            
+            <!-- Modal footer -->
+            <div class="flex items-center justify-end p-6 space-x-2 border-t border-gray-200 rounded-b dark:border-gray-600">
+                <button @onclick="CloseCheckpointModal" type="button"
+                        class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-blue-300 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600">
+                    Cancel
+                </button>
+                <button @onclick="Save" type="button"
+                        class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                    @(EditMode  ? "Save" : "Save Changes")
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+@code {
+    [Parameter]
+    public bool IsVisible { get; set; } = false;
+    [Parameter]
+    public bool EditMode { get; set; } = false;
+    [Parameter]
+    public Truck? Truck { get; set; }
+    [Parameter] public RefuelInfo? CurrentRefuelInfo { get; set; } = new();        
+    [Parameter]
+    public EventCallback<RefuelInfo> OnSave { get; set; }
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    private Dictionary<string, string> errors = new();
+    
+    private Station[]? Stations = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        AppState.IsBusy = true;
+        await Task.Delay(500);
+        Stations = await StationService.GetAsync(StationType.RefuellingStation.ToString(), AppState.GetCancellationToken());        
+        AppState.IsBusy = false;
+    }
+
+    private string GetInputClass(string fieldName)
+    {
+        var baseClass = "bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500";
+        
+        if (errors.ContainsKey(fieldName))
+        {
+            baseClass += " border-red-500 bg-red-50 dark:bg-red-900 dark:border-red-700";
+        }
+        else
+        {
+            baseClass += " border-gray-300";
+        }
+        
+        return baseClass;
+    }
+
+    void OnValueChanged()
+    {
+        CurrentRefuelInfo.Station = Stations.FirstOrDefault(x => x.Id == CurrentRefuelInfo.StationId);
+        StateHasChanged();
+    }
+
+    private async Task Save()
+    {        
+        errors.Clear();
+        if (string.IsNullOrWhiteSpace(CurrentRefuelInfo.DispatchId))
+        {
+            errors[nameof(CurrentRefuelInfo.DispatchId)] = "Dispatch No is required.";            
+        }
+        if (CurrentRefuelInfo!.StationId.Equals(Guid.Empty))
+        {
+            errors[nameof(CurrentRefuelInfo.StationId)] = "Station is required.";
+        }
+        if (CurrentRefuelInfo!.Quantity <= 0)
+        {
+            errors[nameof(CurrentRefuelInfo.Quantity)] = "Quantity must be greater than zero.";
+        }        
+        if (errors.Count > 0)
+        {
+            ToastService.ShowWarning("Fill the required fields to proceed");
+            StateHasChanged();
+            return; // Validation failed, do not proceed
+        }        
+        await OnSave.InvokeAsync(CurrentRefuelInfo);
+    }
+
+    private async Task CloseCheckpointModal()
+    {
+        IsVisible = false;        
+        EditMode = false;
+        await OnClose.InvokeAsync();
+    }
+}

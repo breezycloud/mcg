@@ -22,7 +22,7 @@ public class RefuelInfosController : ControllerBase
         _context = context;
     }
 
-     // POST: api/Paged
+    // POST: api/Paged
     [HttpPost("paged")]
     public async Task<ActionResult<GridDataResponse<RefuelInfo>?>> GetPagedDatAsync(GridDataRequest request, CancellationToken cancellationToken = default)
     {
@@ -34,7 +34,7 @@ public class RefuelInfosController : ControllerBase
             if (!string.IsNullOrEmpty(request.SearchTerm))
             {
                 string pattern = $"%{request.SearchTerm}%";
-                query = query.Where(x => EF.Functions.ILike(x.Station!.Name, pattern) );
+                query = query.Where(x => EF.Functions.ILike(x.Station!.Name, pattern) || EF.Functions.ILike(x.DispatchId!, pattern));
             }
 
             response.Total = await query.CountAsync();
@@ -56,7 +56,7 @@ public class RefuelInfosController : ControllerBase
 
             throw;
         }
-    }
+    }    
 
     // GET: api/RefuelInfos
     [HttpGet]

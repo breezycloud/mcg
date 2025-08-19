@@ -14,10 +14,10 @@ public class TripLoadingDto
     public Guid? DriverId { get; set; }
 
     [Required]
-    public Guid LoadingPointId { get; set; }
+    public Guid? LoadingPointId { get; set; }
 
     [Required]
-    public string? DispatchId => $"{DateTime.Now:yy}{DateTime.Now:MM}{DateTime.Now:dd}{LicensePlate?.Substring(2, 6)}";
+    public string? DispatchId => $"{LoadingDate:yy}{LoadingDate:MM}{LoadingDate:dd}{LicensePlate?.Substring(2, 6)}";
     public string? WaybillNumber { get; set; }
     [Required]
     public string? Destination { get; set; } = "abuja";

@@ -37,6 +37,7 @@ public class AppDbContext : DbContext
     public virtual DbSet<IoT> IoTs { get; set; } = default!;
     public virtual DbSet<RefuelInfo> RefuelInfos { get; set; } = default!;
 
-public DbSet<Shared.Models.Services.ServiceRequest> ServiceRequest { get; set; } = default!;
+    public DbSet<Shared.Models.Services.ServiceRequest> ServiceRequest { get; set; } = default!;
+    public DbSet<Shared.Models.Services.ServiceRequestHistory> ServiceRequestHistory { get; set; } = default!;
 
 }

@@ -2,20 +2,21 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Shared.Enums;
 using Shared.Models.Stations;
+using Shared.Models.Trips;
 using Shared.Models.Trucks;
 
 namespace Shared.Models.RefuelInfos;
-
 
 public class RefuelInfo
 {
     [Key]
     public Guid Id { get; set; }
-    public DateOnly Date { get; set; } = DateOnly.FromDateTime(DateTime.UtcNow);
+    public DateOnly Date { get; set; } = DateOnly.FromDateTime(DateTime.UtcNow);    
     public Guid TruckId { get; set; }
+    public string? DispatchId { get; set; }
     public Guid? StationId { get; set; }
     public decimal Quantity { get; set; }
-    public UnitOfMeasure Unit { get; set; }
+    public UnitOfMeasure Unit { get; set; } = UnitOfMeasure.SCM;
     public decimal? Price { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? UpdatedAt { get; set; }
@@ -23,5 +24,4 @@ public class RefuelInfo
     public virtual Truck? Truck { get; set; }
     [ForeignKey(nameof(StationId))]
     public virtual Station? Station { get; set; }
-
 }

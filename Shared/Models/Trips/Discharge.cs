@@ -16,14 +16,13 @@ public class Discharge
     public Guid TripId { get; set; }
     public Guid StationId { get; set; }
     public DateTimeOffset? TruckArrival { get; set; } = DateTimeOffset.UtcNow;
-    public DateTimeOffset DischargeStartTime { get; set; }
+    public DateTimeOffset? DischargeStartTime { get; set; }
 
     public decimal QuantityDischarged { get; set; }
 
     public bool IsFinalDischarge { get; set; }
-
     [Column(TypeName = "jsonb")]
-    public FileUploadModel Document { get; set; } = new();
+    public List<UploadResult> Files { get; set; } = [];    
 
     [StringLength(500)]
     public string? Notes { get; set; }

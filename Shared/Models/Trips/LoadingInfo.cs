@@ -12,9 +12,7 @@ public class LoadingInfo
     [Column(TypeName = "jsonb")]
     public List<Metrics>? Metrics { get; set; } = [];
     [Column(TypeName = "jsonb")]
-    public FileUploadModel WaybillFile { get; set; } = new();
-    [Column(TypeName = "jsonb")]
-    public FileUploadModel LogBook { get; set; } = new();
+    public List<UploadResult> Files { get; set; } = [];    
     public DispatchType DispatchType { get; set; }
     public ElockStatus ElockStatus { get; set; }
     public string? Destination { get; set; }

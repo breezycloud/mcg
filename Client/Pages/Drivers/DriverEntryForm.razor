@@ -72,6 +72,13 @@
                 <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Must be exactly 11 digits</p>
             </div>
 
+            <div>
+                <FileUploadView OnFilesUploaded="@OnUploadComplete"/>
+            </div>
+            <div>
+                <FileListView Files="CurrentDriver.Files"/>
+            </div>
+
             <!-- Dates (Display only when editing) -->
             @if (EditMode)
             {
@@ -226,6 +233,20 @@
         {
             AppState.IsProcessing = false;
         }
+    }
+
+    private async Task OnUploadComplete(List<UploadResult> files)
+    {        
+        if (files.Any())
+        {
+            CurrentDriver.Files.AddRange(files);
+            ToastService.ShowSuccess("File(s) uploaded successfully");
+        }
+        else
+        {
+            ToastService.ShowError("Failed to upload files");
+        }
+        StateHasChanged();
     }
     
     private void Cancel()

@@ -35,6 +35,22 @@ public class RequestService(IHttpClientFactory _httpClient) : IRequestService
             throw;
         }
     }
+
+    public async Task<bool> AddHistoryAsync(ServiceRequestHistory model, CancellationToken cancellationToken)
+    {
+        try
+        {
+            model.ServiceRequest = null; model.ChangedBy = null;
+            using var response = await _httpClient.CreateClient("AppUrl").PostAsJsonAsync($"servicerequests/history", model, cancellationToken);
+            response.EnsureSuccessStatusCode();
+            return response.IsSuccessStatusCode;
+        }
+        catch (System.Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            throw;
+        }
+    }
     public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken)
     {
         try

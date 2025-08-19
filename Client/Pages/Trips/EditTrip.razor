@@ -3,8 +3,10 @@
 @inject ITripService TripService
 @inject IStationService StationService
 @inject IDischargeService DischargeService
+@inject IRefuelInfoService RefuelInfoService
 @using Client.Pages.Checkpoints
 @using Client.Pages.Discharges
+@using Client.Pages.RefuelInfos
 
 <div class="max-w-4xl mx-auto px-4 lg:px-6">
     @if (AppState.IsBusy)
@@ -41,17 +43,17 @@
                             </button>
                         </li>
                         <li class="mr-2">
+                            <button @onclick="() => SetActiveTab(5)" 
+                                    class="@GetTabClass(5) inline-block p-4 border-b-2 rounded-t-lg">
+                                Refuel Info
+                            </button>
+                        </li>
+                        <li class="mr-2">
                             <button @onclick="() => SetActiveTab(2)" 
                                     class="@GetTabClass(2) inline-block p-4 border-b-2 rounded-t-lg">
                                 Truck Arrival
                             </button>
-                        </li>
-                        @* <li class="mr-2">
-                            <button @onclick="() => SetActiveTab(3)" 
-                                    class="@GetTabClass(3) inline-block p-4 border-b-2 rounded-t-lg">
-                                Checkpoints
-                            </button>
-                        </li> *@
+                        </li>                        
                         <li class="mr-2">
                             <button @onclick="() => SetActiveTab(3)" 
                                     class="@GetTabClass(3) inline-block p-4 border-b-2 rounded-t-lg">
@@ -68,10 +70,26 @@
                 </div>  
                 <div class="space-y-4">
                     @if (activeTab == 1)
-                    {
-
+                    {                        
                         <!-- Loading Info/E-Lock Status Tab -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">                     
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Loading Point -->
+                            <div>
+                                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                    Loading Depot <span class="text-red-500">*</span>
+                                </label>
+                                <InputSelect @bind-Value="Trip!.LoadingDepotId" class="@GetInputClass("LoadingPointId")">
+                                    <option value="">-- Select Loading Depot --</option>
+                                    @foreach (var station in LoadingDepots!)
+                                    {
+                                        <option value="@station.Id">@station.Name</option>
+                                    }
+                                </InputSelect>
+                                @if (errors.ContainsKey("LoadingPointId"))
+                                {
+                                    <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["LoadingPointId"]</p>
+                                }
+                            </div>
                             <div>
                                 <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                                     Loading Date & Time <span class="text-red-500">*</span>
@@ -91,7 +109,7 @@
                                     <input type="number" step="0.01" @bind="Trip.LoadingInfo.Quantity" disabled="@(Trip.Truck.Product == Product.LPG ? true : false)"
                                             class="rounded-l-lg bg-gray-50 border border-gray-300 text-gray-900 focus:ring-blue-500 focus:border-blue-500 block flex-1 min-w-0 w-full text-sm p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
                                     <span class="inline-flex items-center px-3 text-sm text-gray-900 bg-gray-200 border border-l-0 border-gray-300 rounded-r-md dark:bg-gray-600 dark:text-gray-400 dark:border-gray-600">
-                                        @(AppState.GetUnitForProduct(Trip.Truck?.Product.ToString()))
+                                        @(Trip.GetUnit())
                                     </span>                                   
                                 </div>
                                 @if (errors.ContainsKey("Quantity"))
@@ -122,11 +140,11 @@
                             </div>
                                 <StateSelector IsRequired="true" Destination="@Trip.LoadingInfo.Destination" OnLocationChanged="@DestinationChanged" FieldName="Destination" Errors="errors" GetInputClass="GetInputClass" />
                             <div>                                
-                                <FileUploadView Label="Upload Waybill file" Model="@Trip.LoadingInfo.WaybillFile"/>
-                            </div>
-                            <div>
-                                @* <FileUploadView Label="Upload Log Book Params" Model="@Trip.LoadingInfo.LogBook"/> *@
-                            </div>
+                                <FileUploadView OnFilesUploaded="OnUploadCompleted"/>
+                            </div>                            
+                        </div>
+                        <div>
+                            <FileListView Files="@Trip.LoadingInfo.Files"/>
                         </div>
                         @if (Trip.Truck?.Product != Product.CNG || Trip.LoadingInfo.Metrics.Count != 3)
                         {                    
@@ -155,6 +173,21 @@
                                         rows="3" placeholder="Any notes about the e-lock status..."></textarea>
                             </div>
                         </div>
+                    }
+                    else if (activeTab == 5)
+                    {                        
+                        <div class="flex flex-row align-end">
+                            <button @onclick="ShowAddRefuelInfoModal"
+                                class="flex  items-center justify-center text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">
+                            <svg class="w-4 h-4 mr-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 18 18">
+                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 1v16M1 9h16"/>
+                            </svg>
+                            Add Refuel Info
+                        </button>
+                        </div>                        
+                        <TripRefuelInfo Dispatch="@Trip!.DispatchId" OnSave="OnRefresh"/>
+
+                        
                     }
                     else if (activeTab == 2)
                     {
@@ -278,7 +311,7 @@
                            @if (!Trip.Discharges!.Any(x=> x.IsFinalDischarge))
                            {
                                 <button @onclick="ShowAddDischargeModal"
-                                        class="flex items-center justify-center text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">
+                                        class="flex items-center justify-end text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">
                                     <svg class="w-4 h-4 mr-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 18 18">
                                         <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 1v16M1 9h16"/>
                                     </svg>
@@ -300,7 +333,7 @@
                         }
 
 
-                    }
+                    }                    
                     else    
                     {
                         <div class="space-y-6">
@@ -392,7 +425,7 @@
             <button @onclick="CloseModal" type="button" class="py-2.5 px-5 me-2 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700">
                 Cancel
             </button>
-            @if (activeTab != 3)
+            @if (activeTab != 3 || activeTab != 5)
             {
                 <button @onclick="SaveChanges" type="button" class="pr-4 text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800" disabled="@AppState.IsProcessing">
                     @if (AppState.IsProcessing)
@@ -414,6 +447,17 @@
         
     }
 </div>
+
+@if (showRefuelModal)
+{
+    <RefuelEntry 
+        CurrentRefuelInfo="@RefuelInfo"
+        OnSave="UpdateRefuel"
+        OnClose="@CloseRefuelModal"
+        Truck="@Trip.Truck"
+        IsVisible="showRefuelModal"
+    />
+}
 
 @if (showDischargeModal)
 {
@@ -457,10 +501,20 @@
     private Discharge currentDischarge = new();
     private Discharge? editingDischarge;
     private bool showDischargeModal = false;
+    
     private bool viewDischargesModal = false;
     private bool showDeleteDischargeModal = false;
     private Discharge? dischargeToDelete;    
-    private Station[] Depots = [];
+
+    private bool showRefuelModal = false;
+    private bool viewRefuelModal = false;
+    private bool showDeleteRefuelModal = false;
+    private RefuelInfo? RefuelInfo { get; set;} = new();
+    private RefuelInfo? editingRefuelInfo = null;
+    private RefuelInfo? refuelInfoToDelete = null;
+    private Station[]? LoadingDepots = [];
+    private Station[]? Depots = [];
+
     protected override async Task OnInitializedAsync()
     {
         AppState.IsBusy = true;                
@@ -468,12 +522,19 @@
         {
             Trip = await TripService.GetAsync(id, AppState.GetCancellationToken());
         }
+        LoadingDepots = await StationService.GetAsync(StationType.LoadingDepot.ToString(), AppState.GetCancellationToken());
         Depots = await StationService.GetAsync(StationType.ReceivingDepot.ToString(), AppState.GetCancellationToken());
         //Destionations = await StationService.GetAsync(StationType.DischargeStation.ToString(), AppState.GetCancellationToken());
         @* Drivers = await DriverService.GetAsync(AppState.GetCancellationToken());
         if (Id.HasValue)
             CurrentTrip = await TripService.GetAsync(Id.Value, AppState.GetCancellationToken()) ?? new();                     *@        
         AppState.IsBusy = false;
+    }
+
+    private async Task OnRefresh()
+    {
+        await OnInitializedAsync();
+        StateHasChanged();
     }
 
     private void CloseModal() => nav.NavigateTo("/trips");
@@ -537,6 +598,10 @@
 
         if (activeTab == 1)
         {
+            if (Trip!.LoadingDepotId is null || Trip!.LoadingDepotId.Equals(Guid.Empty))
+            {
+                errors["LoadingDepotId"] = "Loading Depot is required";
+            }
             if (Trip!.LoadingInfo.LoadingDate is null)
             {
                 errors["LoadingDate"] = "Date is required";
@@ -691,22 +756,28 @@
             currentDischarge = new() { TruckArrival = Trip.ArrivalInfo.StationArrivalDateTime };
         else
             currentDischarge = new();
+    }
 
+    private void ShowAddRefuelInfoModal()
+    {               
+        editingRefuelInfo = null;
+        showRefuelModal = true;        
+        RefuelInfo = new() { DispatchId = Trip!.DispatchId, Truck = Trip.Truck, TruckId = Trip.Truck.Id };
     }
 
     private async Task EditDischarge(Discharge discharge)
     {
+        AppState.IsProcessing = true;
         try
         {
             currentDischarge = discharge;
             currentDischarge.TripId = Trip!.Id;
-            currentDischarge.Station = null;
             Trip!.Discharges.Add(currentDischarge);
             var response = await DischargeService.AddAsync(currentDischarge, AppState.GetCancellationToken());
             if (response)            
-            {                
-                await OnInitializedAsync();
+            {                                
                 Notify();
+                await _js.InvokeVoidAsync("window.location.reload()");
                 StateHasChanged();
             }
             else
@@ -721,6 +792,36 @@
         finally
         {
             CloseDischargeModal();
+            await OnInitializedAsync();
+            AppState.IsProcessing = false;
+        }
+    }
+
+    private async Task UpdateRefuel(RefuelInfo info)
+    {
+        AppState.IsProcessing = true;
+        try
+        {
+            var response = await RefuelInfoService.AddAsync(info, AppState.GetCancellationToken());
+            if (response)            
+            {                                
+                Notify();                
+                StateHasChanged();
+            }
+            else
+            {
+                ToastService.ShowWarning("Failed to update refuel info");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error adding refuel info: {ex.Message}");
+        }
+        finally
+        {
+            CloseRefuelModal();
+            await OnRefresh();
+            AppState.IsProcessing = false;
         }
     }
 
@@ -728,6 +829,12 @@
     {
         dischargeToDelete = discharge;
         showDeleteDischargeModal = true;
+    }
+
+    private void ShowDeleteDischargeModal(RefuelInfo info)
+    {
+        refuelInfoToDelete = info;        
+        showDeleteRefuelModal = true;
     }
 
     private async Task DeleteDischarge(Guid id)
@@ -767,9 +874,23 @@
         editingDischarge = null;
     }
 
+    private void CloseRefuelModal()
+    {
+        showRefuelModal = false;
+        RefuelInfo = new();
+        editingRefuelInfo = null;
+        StateHasChanged();
+    }
+
     private void CloseViewDischargeModal()
     {
         viewDischargesModal = false;
+        StateHasChanged();
+    }
+
+    private void CloseViewRefuelInfoModal()
+    {
+        viewRefuelModal = false;
         StateHasChanged();
     }
 
@@ -829,5 +950,13 @@
             _ => ""
         };
     }
+
+    private void OnUploadCompleted(List<UploadResult> files)
+    {
+        Trip.LoadingInfo.Files = files;
+        StateHasChanged();
+    }
+
+    
 }
         

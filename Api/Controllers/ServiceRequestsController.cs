@@ -83,9 +83,11 @@ public class ServiceRequestsController : ControllerBase
         var serviceRequest = await _context.ServiceRequest.AsNoTracking()
                                                           .Include(x => x.Site)
                                                           .Include(x => x.Truck)
+                                                          .Include(x => x.Driver)
                                                           .Include(x => x.CreatedBy)
                                                           .Include(x => x.TreatedBy)
                                                           .Include(x => x.ClosedBy)
+                                                          .Include(x => x.History).ThenInclude(x => x.ChangedBy)
                                                           .AsSplitQuery()
                                                           .FirstOrDefaultAsync(x => x.Id == id);
 
@@ -137,6 +139,27 @@ public class ServiceRequestsController : ControllerBase
         await _context.SaveChangesAsync();
 
         return CreatedAtAction("GetServiceRequest", new { id = serviceRequest.Id }, serviceRequest);
+    }
+
+    // POST: api/ServiceRequests/History
+    // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+    [HttpPost("History")]
+    public async Task<ActionResult<ServiceRequestHistory>> PostServiceRequestHistory(ServiceRequestHistory history, CancellationToken cancellationToken)
+    {
+        var exist = await _context.ServiceRequestHistory.FindAsync(history.Id);
+        if (exist is not null)
+        {
+            exist.ChangedAt = history.ChangedAt;
+            exist.Status = history.Status;
+            exist.Notes = history.Notes;
+        }
+        else
+        {
+            _context.ServiceRequestHistory.Add(history);
+        }        
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return Created();
     }
 
     // DELETE: api/ServiceRequests/5
