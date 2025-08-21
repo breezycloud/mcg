@@ -43,55 +43,27 @@ public class SeedData
         
     }
 
-    private static (string firstName, string lastName) GetFirstLastName(string fullName)
-    {
-
-        // Split the name into parts
-        string[] nameParts = fullName.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-
-        string lastName = "";
-        string firstName = "";
-
-        if (nameParts.Length > 0)
-        {
-            // The first part is typically the last name
-            firstName = nameParts[0];
-
-            // The rest parts form the first name
-            if (nameParts.Length > 1)
-            {
-                lastName = string.Join(" ", nameParts, 1, nameParts.Length - 1);
-            }
-        }
-        return (firstName, lastName);
-    }
-    public record Drivers(string fullName, string phoneNo);
+    public record Drivers(string FirstName, string LastName,string PhoneNo);
     public static List<Driver> KDrivers = [];
     private static async Task AddDrivers(AppDbContext db)
     {
         try
         {
-            using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Api.Data.drivers.json");
-            if (stream is null)
-            {
-                throw new FileNotFoundException();
-            }
-
-            Console.WriteLine("driver data found");
+            using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Api.Data.drivers.json") ?? throw new FileNotFoundException();
 
             stream.Position = 0;
             await foreach (var driver in JsonSerializer.DeserializeAsyncEnumerable<Drivers>(stream, options: null, cancellationToken: new CancellationTokenSource().Token))
             {
                 if (driver != null)
                 {
-                    var fullName = GetFirstLastName(driver!.fullName);
-                    Console.WriteLine("First Name: {0} Last Name: {1}", fullName.firstName, fullName.lastName);
+                    //var fullName = GetFirstLastName(driver!.fullName);
+                    //Console.WriteLine("First Name: {0} Last Name: {1}", fullName.firstName, fullName.lastName);
                     var d = new Driver
                     {
                         Id = Guid.NewGuid(),
-                        FirstName = fullName.firstName,
-                        LastName = fullName.lastName,
-                        PhoneNo = driver.phoneNo,
+                        FirstName = driver.FirstName,
+                        LastName = driver.LastName,
+                        PhoneNo = driver.PhoneNo,
                     };
                     await db.Drivers.AddAsync(d);
                     KDrivers.Add(d);
@@ -121,7 +93,7 @@ public class SeedData
             {
                 if (truck != null)
                 {
-                    Console.WriteLine("{0} {1} {2}", truck.TruckNo, truck.VIN, truck.EngineNo);
+                    //Console.WriteLine("{0} {1} {2}", truck.TruckNo, truck.VIN, truck.EngineNo);
                     if (lastDriver is null)
                     {
                         lastDriver = KDrivers.FirstOrDefault();
@@ -143,52 +115,24 @@ public class SeedData
 
     private static async Task AddStations(AppDbContext db)
     {
-        await db.Stations.AddRangeAsync(
-        [
-            new Station
-            {
-                Id = Guid.NewGuid(),
-                Name = "Apapa Terminal 1",
-                Address= new Address
-                {
-                    State = "Lagos",
-                    Location = "Apapa",
-                    ContactAddress = "Apapa"
-                },
-                IsDepot = true,
-                Type = StationType.LoadingDepot,
-                CreatedAt = DateTime.UtcNow
-            },
-            new Station
-            {
-                Id = Guid.NewGuid(),
-                Name = "NNPC Mega Stations",
-                Address= new Address
-                {
-                    State = "Abuja",
-                    Location = "AMAC",
-                    ContactAddress = "Abuja"
-                },
-                IsDepot = false,
-                Type = StationType.DischargeStation,
-                CreatedAt = DateTime.UtcNow
-            },
-            new Station
-            {
-                Id = Guid.NewGuid(),
-                Name = "Suleja Depot",
-                Address= new Address
-                {
-                    State = "Niger",
-                    Location = "Suleja",
-                    ContactAddress = "Suleja"
-                },
-                IsDepot = false,
-                Type = StationType.ReceivingDepot,
-                CreatedAt = DateTime.UtcNow
-            }
+        try
+        {
+            using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Api.Data.stations.json") ?? throw new FileNotFoundException();
 
-        ]);        
+            stream.Position = 0;
+            await foreach (var station in JsonSerializer.DeserializeAsyncEnumerable<Station>(stream, options: null, cancellationToken: new CancellationTokenSource().Token))
+            {
+                if (station != null)
+                {
+                    await db.Stations.AddAsync(station);
+                }
+            }
+        }
+        catch (System.Exception)
+        {
+            
+            throw;
+        }
     }
 
     private static void AddUsers(AppDbContext db)
