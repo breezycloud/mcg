@@ -1,0 +1,730 @@
+[
+    {
+        "Id": "bcaaedaa-b418-4c23-a058-d35c3d4b1824",
+        "Name": "Suleja Depot",
+        "Address": {
+            "State": "Niger",
+            "Location": "Suleja",
+            "ContactAddress": "Suleja"
+        },
+        "IsDepot": false,
+        "Type": 1,
+        "CreatedAt": "2025-08-15T20:46:30.185761+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198af4e-c4fb-7008-b30e-44af49793eab",
+        "Name": "Dangote Refinery",
+        "Address": {
+            "State": "Lagos",
+            "Location": "Ibeju-Lekki",
+            "ContactAddress": "Lekki Free Trade Zone"
+        },
+        "IsDepot": false,
+        "Type": 0,
+        "CreatedAt": "2025-08-15T20:56:53.293+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bccc-ca44-795d-8526-a2b968166ef8",
+        "Name": "Apapa Terminal 2 JV",
+        "Address": {
+            "State": "Lagos",
+            "Location": "Apapa",
+            "ContactAddress": "Badia Street Apapa"
+        },
+        "IsDepot": false,
+        "Type": 0,
+        "CreatedAt": "2025-08-18T11:49:20.659+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bced-0f7d-751e-b4b2-dc39c108cb86",
+        "Name": "NIPCO Apapa Terminal",
+        "Address": {
+            "State": "Lagos",
+            "Location": "Apapa",
+            "ContactAddress": "Apapa, Lagos"
+        },
+        "IsDepot": false,
+        "Type": 0,
+        "CreatedAt": "2025-08-18T11:49:59.86+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bcee-3b7c-7f78-8479-ca02607931aa",
+        "Name": "Ilasamanja CNG Mother Station",
+        "Address": {
+            "State": "Lagos",
+            "Location": "Oshodi-Isolo",
+            "ContactAddress": "Oshodi, Oshodi-Isolo"
+        },
+        "IsDepot": false,
+        "Type": 0,
+        "CreatedAt": "2025-08-18T12:25:29.766+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "dec519bb-9d3a-4d4c-b969-5cf14d0432e8",
+        "Name": "NNPC Mega Station Zone 1",
+        "Address": {
+            "State": "Abuja",
+            "Location": "AMAC",
+            "ContactAddress": "Olusegun Obasanjo Way, Wuse, Zone 1, Abuja"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-15T20:46:30.185761+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bcf0-216b-78f2-9ef6-391ee722302e",
+        "Name": "NNPC Station Wuse Zone 6",
+        "Address": {
+            "State": "Abuja",
+            "Location": "AMAC",
+            "ContactAddress": "Herbert Macaulay Way, Wuse Zone 6"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T12:27:33.205+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bcf1-8df8-7b48-8163-aa358eae1ef0",
+        "Name": "Ikeja Aviation",
+        "Address": {
+            "State": "Lagos",
+            "Location": "Ikeja",
+            "ContactAddress": "Murtala Mohammed Airport Local Wing, Ikeja"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T12:29:05.201+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bcf2-849a-7598-b4eb-827a1e57aa31",
+        "Name": "Abuja Aviation",
+        "Address": {
+            "State": "Abuja",
+            "Location": "AMAC",
+            "ContactAddress": "Nnamdi Azikwe Airport Abuja"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T12:30:06.664+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bcf4-1866-72be-b746-ba7351afbc2e",
+        "Name": "NNPC Gaduwa",
+        "Address": {
+            "State": "Abuja",
+            "Location": "AMAC",
+            "ContactAddress": "Markus Kangye Boulevard, Gaduwa"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T12:31:09.804+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bcfa-28f1-7934-9bef-06fc932247ae",
+        "Name": "NNPC Dei-Dei",
+        "Address": {
+            "State": "Abuja",
+            "Location": "AMAC",
+            "ContactAddress": "Close To Sabojibi Road, Kubwa Express Way, Dei-Dei, Abuja"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T12:35:43.628+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bcff-8c70-7f23-b82a-8e7a71143312",
+        "Name": "NNPC Station Ushafa",
+        "Address": {
+            "State": "Abuja",
+            "Location": "Bwari",
+            "ContactAddress": "Ushafa Bridge, Tasha-Bwari Road, Bwari"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T12:41:04.066+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bd00-6918-7ed4-a13d-7272c8f18fd9",
+        "Name": "NNPC Gannaja Road Lokoja-Ajaokuta Way",
+        "Address": {
+            "State": "Kogi",
+            "Location": "Lokoja",
+            "ContactAddress": "Lokoja-Ajaokuta Way, Gannaja, Lokoja, Kogi"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T12:45:23.202+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bd02-0bf4-7dce-83aa-d459d0297a59",
+        "Name": "NNPC Lokoja-Okene Road",
+        "Address": {
+            "State": "Kogi",
+            "Location": "Lokoja",
+            "ContactAddress": "Lokoja-Okene Road, Lokoja, Kogi"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T12:46:54.335+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bcf6-a9b1-7986-859a-e0852403da6e",
+        "Name": "NNPC Princess & Princess Junction (Sector Center)",
+        "Address": {
+            "State": "Abuja",
+            "Location": "AMAC",
+            "ContactAddress": "Oladipo Diya, Prince & Princess Junction, Abuja"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T12:34:05.699+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bd02-ec94-7e8a-af3f-127e6b05caa9",
+        "Name": "NNPC Ajaokuta-Ayangba Way Kogi",
+        "Address": {
+            "State": "Kogi",
+            "Location": "Ajaokuta",
+            "ContactAddress": "Ajaokuta-Ayangba Way, Ajaokuta, Kogi"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T12:48:36.517+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bd03-b517-7aa8-bbcf-d37bbb4240b6",
+        "Name": "NNPC Constitution Avenue",
+        "Address": {
+            "State": "Abuja",
+            "Location": "AMAC",
+            "ContactAddress": "Constitution Avenue, CBD, Abuja"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T12:49:06.082+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bd04-74b8-75fe-a5e8-4b9d2b7fab44",
+        "Name": "NNPC 1St Avenue Gwarinpa",
+        "Address": {
+            "State": "Abuja",
+            "Location": "AMAC",
+            "ContactAddress": "1St Avenue, Gwarinpa, Abuja"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T12:50:00.386+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bd05-c505-7d8b-ba97-e9c63e8d7ebd",
+        "Name": "NNPC Ngozi Okonjo-Iweala Way Utako",
+        "Address": {
+            "State": "Abuja",
+            "Location": "AMAC",
+            "ContactAddress": "Ngozi Okonjo-Iweala Way (Adj. NNPC Medical Center), Utako, Abuja"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T12:50:44.944+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bd06-aba2-7aa9-909b-2a49a5e4e028",
+        "Name": "NNPC Mega Station Lokoja",
+        "Address": {
+            "State": "Kogi",
+            "Location": "Lokoja",
+            "ContactAddress": " Lokoja-Okene Road, Lokoja, Kogi"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T12:52:11.108+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bd08-89c7-7a29-a850-dc782f078ff2",
+        "Name": "NNPC Mararaba Near Old Karu Rd",
+        "Address": {
+            "State": "Nasarawa",
+            "Location": "Karu",
+            "ContactAddress": "Abua-Keffi Way Near Old Karu Road, Mararaba, Nassarawa"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T12:53:10.774+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bd0a-0e84-74ad-b996-2db28d4896c5",
+        "Name": "NNPC Kugbo",
+        "Address": {
+            "State": "Abuja",
+            "Location": "AMAC",
+            "ContactAddress": "Abuja-Keffi Road, Kugbo, Karu Ward, Abuja"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T12:55:12.793+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bd0a-d0b6-7943-9ae1-97a41146c76c",
+        "Name": "NNPC Ahmadu Bello Way Garki 2",
+        "Address": {
+            "State": "Abuja",
+            "Location": "AMAC",
+            "ContactAddress": "Garki 2 Near Automated Carwash, Garki 2, Abuja"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T12:56:54.994+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bd0b-90ff-7f19-9c3e-30f650adcb21",
+        "Name": "NNPC Obafemi Awolowo Way Jabi",
+        "Address": {
+            "State": "Abuja",
+            "Location": "AMAC",
+            "ContactAddress": "Lifecamp Bridge, Obafemi Awolowo Way, Jabi, Abuja"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T12:57:42.345+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bd0d-d3a2-75ef-b0a1-cc64b2a3cb59",
+        "Name": "NNPC World Energy Tasha-Bwari Way",
+        "Address": {
+            "State": "Abuja",
+            "Location": "Bwari",
+            "ContactAddress": "Tasha-Bwari Way, Bwari, Abuja"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T12:58:31.043+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bd0e-f3bc-7c6e-a076-8ca4086c8fac",
+        "Name": "NNPC Allomo, Kogi",
+        "Address": {
+            "State": "Kogi",
+            "Location": "Ofu",
+            "ContactAddress": "Allomo, Ofu, Kogi"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T13:01:10.54+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bd10-cd56-75e7-82b5-8c9edc32fc15",
+        "Name": "NNPC Checkpoint Okene",
+        "Address": {
+            "State": "Kogi",
+            "Location": "Okene",
+            "ContactAddress": "Okene, Kogi"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T13:02:12.885+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bd11-f1c5-7b36-9b4e-fc2ff945bb55",
+        "Name": "NNPC Life-Camp",
+        "Address": {
+            "State": "Abuja",
+            "Location": "AMAC",
+            "ContactAddress": "Abubakar Koko Avenue, Life-Camp, Abuja"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T13:04:14.733+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bd30-f576-7cb4-ac5b-e7a98400eb1c",
+        "Name": "NNPC Iyara, Ijumu, Kogi",
+        "Address": {
+            "State": "Kogi",
+            "Location": "Ijumu",
+            "ContactAddress": "Iyara, Ijumu, Kogi"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T13:38:02.401+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bd31-c603-7dc8-b3b9-9a3a7c91d132",
+        "Name": "NNPC Katampe-Jahi Axis, Kubwa Express Way",
+        "Address": {
+            "State": "Abuja",
+            "Location": "AMAC",
+            "ContactAddress": "Katampe-Jahi Bridge Axis, Kubwa Express Way, Abuja"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T13:39:21.694+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bd32-7ebc-7c36-8e9f-b019563a55b3",
+        "Name": "NNPC Mega Station Abuja-Lokoja Express Way",
+        "Address": {
+            "State": "Abuja",
+            "Location": "Kwali",
+            "ContactAddress": "Abuja-Lokoja Express Way, Kwali"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T13:40:24.163+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bd34-0e65-7bd4-99c3-84afcacedc4e",
+        "Name": "NNPC Airport Road Adjascent Shoprite (Seddi Kemil)",
+        "Address": {
+            "State": "Abuja",
+            "Location": "AMAC",
+            "ContactAddress": "Adjacent Shoprite After ATV, Airport Raod, Abuja"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T13:41:03.027+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bd34-bb5f-78ec-9f8e-05c8380bd6f4",
+        "Name": "NNPC Dikwa Road Kubwa",
+        "Address": {
+            "State": "Abuja",
+            "Location": "AMAC",
+            "ContactAddress": "Dikwa Road, Kubwa FHA Phase 1, Abuja"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T13:42:45.228+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bd36-30e7-7083-bcd9-956261bad800",
+        "Name": "NNPC Mabushi",
+        "Address": {
+            "State": "Abuja",
+            "Location": "AMAC",
+            "ContactAddress": "Close To VIO Office, Mabushi, Abuja"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T13:43:31.584+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bd36-eb03-7005-a4b2-70c87c2be812",
+        "Name": "Presidential Villa C-In-C",
+        "Address": {
+            "State": "Abuja",
+            "Location": "Kwali",
+            "ContactAddress": "Presidential Villa, Asokoro, Abuja"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T13:45:04.695+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bd37-e17a-706b-94f1-343dfcfc4035",
+        "Name": "NNPC Airport Road Lugbe After Dunamis Church",
+        "Address": {
+            "State": "Abuja",
+            "Location": "AMAC",
+            "ContactAddress": "After Dunamis Dome Church, Airport Road, Abuja"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T13:45:53.216+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bd38-6af0-77d4-bf3f-909f2f654e9a",
+        "Name": "NIA",
+        "Address": {
+            "State": "Abuja",
+            "Location": "AMAC",
+            "ContactAddress": "Murtala Mohammed Way, Asokoro, Abuja"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T13:46:55.937+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bd3a-2fc0-7753-bc50-7cbf374b98a5",
+        "Name": "NNPC Guzape",
+        "Address": {
+            "State": "Abuja",
+            "Location": "AMAC",
+            "ContactAddress": "Off Bala Mohammed Way, Guzape, Abuja"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T13:48:33.722+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bd3c-215b-783a-892d-227d431e8cb8",
+        "Name": "NNPC Jikwoyi Nyanya-Karshi Road",
+        "Address": {
+            "State": "Abuja",
+            "Location": "AMAC",
+            "ContactAddress": "Nyanya-Karshi Road, Jikwoyi, Abuja"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T13:49:50.082+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bd3d-be21-74a3-9cce-43d23fa56794",
+        "Name": "NNPC Carwash Bus Stop Lugbe",
+        "Address": {
+            "State": "Abuja",
+            "Location": "AMAC",
+            "ContactAddress": "Carwash Bus Stop Lugbe Before Dunamis Dome Church, Airport Road, Abuja"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T13:52:07.985+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "d697fc0e-f733-4234-b03a-887f8ba118ef",
+        "Name": "NRL Apapa Terminal 1",
+        "Address": {
+            "State": "Lagos",
+            "Location": "Apapa",
+            "ContactAddress": "Apapa"
+        },
+        "IsDepot": true,
+        "Type": 0,
+        "CreatedAt": "2025-08-15T20:46:30.185742+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bcf0-99cd-7a87-9f4e-a23a336342fd",
+        "Name": "NNPC Station Wuse Zone 3",
+        "Address": {
+            "State": "Abuja",
+            "Location": "AMAC",
+            "ContactAddress": "Herbert Macaulay Way, Wuse Zone 3"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T12:28:32.982+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bd3e-ff1e-765a-84d0-d4ae35d3a4c0",
+        "Name": "National Assembly",
+        "Address": {
+            "State": "Abuja",
+            "Location": "AMAC",
+            "ContactAddress": "National Assembly, Three Arm Zone, Asokoro, Abuja"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T13:54:09.098+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bd40-1a87-7bc1-a43d-58684aa86714",
+        "Name": "NNPC Balewa Road, Ankpa, Kogi",
+        "Address": {
+            "State": "Kogi",
+            "Location": "Ankpa",
+            "ContactAddress": "Balewa Road, Ankpa, Kogi"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T13:54:56.427+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bd41-692b-7c3f-af0d-3525581f4446",
+        "Name": "NNPC Ohumeme-Lokoja Road, Okene",
+        "Address": {
+            "State": "Kogi",
+            "Location": "Okene",
+            "ContactAddress": "Ohumeme-Lokoja Road, Okene, Kogi"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T13:56:37.647+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bd42-2df3-7c72-8af2-432063bcb08e",
+        "Name": "US Embassy Abuja",
+        "Address": {
+            "State": "Abuja",
+            "Location": "AMAC",
+            "ContactAddress": "Off Independence Avenue, CBD, Abuja"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T13:57:39.211+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bd43-077e-7a74-9c0a-4a8d4f0b0a14",
+        "Name": "NNPC Durumi AIS Axis",
+        "Address": {
+            "State": "Abuja",
+            "Location": "AMAC",
+            "ContactAddress": "Durumi AIS Road, Kaura, Abuja"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T13:58:36.528+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bd4b-baa3-738d-9e98-d8f3a8cbd007",
+        "Name": "NNPC Abdussalami Abubakar Way Gudu",
+        "Address": {
+            "State": "Abuja",
+            "Location": "AMAC",
+            "ContactAddress": "Off Abdussalami Abubakar Way, Gudu, Abuja"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T14:06:45.835+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bd52-20d5-7560-a837-131175df441e",
+        "Name": "NNPC Kabusa",
+        "Address": {
+            "State": "Abuja",
+            "Location": "AMAC",
+            "ContactAddress": "After Kabusa Main Market, Kabusa, Abuja"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T14:15:08.735+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bd55-144b-7b8a-b5c4-ac2d45b957ca",
+        "Name": "Bokir Filling Station Obajana",
+        "Address": {
+            "State": "Kogi",
+            "Location": "Lokoja",
+            "ContactAddress": "Obajana Cement Plant Road, Obajana, Lokoja, Kogi"
+        },
+        "IsDepot": false,
+        "Type": 2,
+        "CreatedAt": "2025-08-18T14:17:04.294+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bd56-6e62-7b38-b436-edd949b48e9d",
+        "Name": "NIPCO Ibafo",
+        "Address": {
+            "State": "Ogun",
+            "Location": "Obafemi Owode",
+            "ContactAddress": "Lagos - Ibadan Express Way, Ibafo, Obafemi-Owode, Ogun"
+        },
+        "IsDepot": false,
+        "Type": 2,
+        "CreatedAt": "2025-08-18T14:18:48.485+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bd57-5d81-7d25-9bde-fb5605e86afc",
+        "Name": "NIPCO Ajaokuta CNG Station",
+        "Address": {
+            "State": "Kogi",
+            "Location": "Ajaokuta",
+            "ContactAddress": "Ajaokuta, Kogi"
+        },
+        "IsDepot": false,
+        "Type": 2,
+        "CreatedAt": "2025-08-18T14:20:27.581+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198bcfb-8583-7b5e-a496-ed113541b5ca",
+        "Name": "NNPC Station Wuse Zone 1",
+        "Address": {
+            "State": "Abuja",
+            "Location": "AMAC",
+            "ContactAddress": "Olusegun Obasanjo Way, Wuse Zone 1, Abuja"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T12:40:07.023+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198be2c-88ee-771b-b6d9-a265273d4286",
+        "Name": "NNPC CNG Station Kuto",
+        "Address": {
+            "State": "Ogun",
+            "Location": "Abeokuta South",
+            "ContactAddress": "Kuto, Abeokuta Town, Abeokuta South, Ogun"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-18T18:12:45.903+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198be2e-1187-77cf-b8ef-0e5da8794b5d",
+        "Name": "NIPCO Ajaokuta CNG Mother Station",
+        "Address": {
+            "State": "Kogi",
+            "Location": "Ajaokuta",
+            "ContactAddress": "Ajaokuta, Kogi"
+        },
+        "IsDepot": false,
+        "Type": 0,
+        "CreatedAt": "2025-08-18T18:15:14.198+01:00",
+        "UpdatedAt": null
+    },
+    {
+        "Id": "0198c374-f835-73be-8e80-463015d73ae1",
+        "Name": "NNPC Zuba",
+        "Address": {
+            "State": "Abuja",
+            "Location": "Gwagwalada",
+            "ContactAddress": "By Zuba Bridge, Lokoja-Abuja-Kaduna Express Way, Abuja"
+        },
+        "IsDepot": false,
+        "Type": 3,
+        "CreatedAt": "2025-08-19T18:49:25.172+01:00",
+        "UpdatedAt": null
+    }
+]

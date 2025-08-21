@@ -11,6 +11,7 @@
   <ItemGroup>
     <EmbeddedResource Include="Data\trucks.json"/>
     <EmbeddedResource Include="Data\drivers.json"/>
+    <EmbeddedResource Include="Data\stations.json"/>
   </ItemGroup>
 
    <ItemGroup>
