@@ -33,7 +33,7 @@ public class DashboardService : IDashboardService
         {
             TotalTrips = trips.Count,
             ActiveTrips = trips.Count(t => t.Status == TripStatus.Active),
-            ClosedTrips = trips.Count(t => t.Status == TripStatus.Closed),
+            ClosedTrips = trips.Count(t => t.Status == TripStatus.Closed || t.Status == TripStatus.Completed),
             AvgTripDurationDays = CalculateAverageTripDuration(trips),
             TotalDispatchedQuantity = trips.Sum(t => t.LoadingInfo.Quantity ?? 0)
         };
