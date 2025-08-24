@@ -11,6 +11,7 @@ using Shared.Models.Services;
 using Shared.Models.Checkpoints;
 using Shared.Models.RefuelInfos;
 using Shared.Models.TripCheckpoints;
+using Shared.Models.Incidents;
 
 namespace Api.Context;
 
@@ -39,5 +40,8 @@ public class AppDbContext : DbContext
 
     public DbSet<Shared.Models.Services.ServiceRequest> ServiceRequest { get; set; } = default!;
     public DbSet<Shared.Models.Services.ServiceRequestHistory> ServiceRequestHistory { get; set; } = default!;
+    public DbSet<Incident> Incidents { get; set; } = default!;
+    public DbSet<IncidentType> IncidentTypes { get; set; } = default!;
+    public DbSet<IncidentHistory> IncidentHistories { get; set; } = default!;
 
 }

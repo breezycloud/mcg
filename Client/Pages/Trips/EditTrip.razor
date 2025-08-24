@@ -292,6 +292,13 @@
                     }
                     else if (activeTab == 3)
                     {
+                        @if (Trip?.Truck?.Product != Product.CNG || Trip.Metrics?.Count != 3)
+                        {                    
+                            <MetricsEditor
+                                Product="@Trip!.Truck!.Product!.Value"
+                                MetricsList="@(Trip.Metrics)"                         
+                                MetricsListChanged="HandleDischargeMetricsChanged" />
+                        }                        
                         <div class="mb-6 flex flex-col sm:flex-row justify-between gap-4">
                             <!-- Discharge Count Indicator -->
                             @if (Trip!.Discharges != null && Trip.Discharges.Count > 0)
@@ -898,6 +905,23 @@
             StateHasChanged();
         }
         Trip!.LoadingInfo.Metrics = updatedMetrics;
+        var response = await TripService.UpdateAsync(Trip, AppState.GetCancellationToken());
+        if (response)
+        {
+            ToastService.ShowSuccess("Information updated");
+        }
+        else
+        {
+            ToastService.ShowSuccess("failed to update information");
+        }
+        AppState.IsProcessing = false;
+        StateHasChanged();
+    }
+
+    private async Task HandleDischargeMetricsChanged(List<Metrics> updatedMetrics)
+    {        
+        AppState.IsProcessing = true;
+        Trip!.Metrics = updatedMetrics;
         var response = await TripService.UpdateAsync(Trip, AppState.GetCancellationToken());
         if (response)
         {

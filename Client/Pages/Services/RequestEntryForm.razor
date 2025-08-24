@@ -87,7 +87,7 @@
             }
         </div>
 
-        @if (CurrentRequest.Item == ServiceItem.Driver)
+        @* @if (CurrentRequest.Item == ServiceItem.Driver)
         {
             <!-- Driver -->
             <div>
@@ -109,7 +109,7 @@
                     <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["DriverId"]</p>
                 }
             </div>
-        }
+        } *@
 
         <!-- Description -->
         <div>
@@ -124,28 +124,42 @@
                 <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["Description"]</p>
             }
         </div>
-
-        <!-- Maintenance Site -->
-        <div>
-            <label for="maintenanceSite" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                Maintenance Site
-            </label>
-            <InputSelect id="maintenanceSite" @bind-Value="CurrentRequest.MaintenanceSiteId" class="@GetInputClass("MaintenanceSiteId")">
-                <option value="">Select site</option>
-                @if (Sites is not null)
-                {
-                    @foreach (var site in Sites)
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Maintenance Site -->        
+            <div>
+                <label for="maintenanceSite" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    Maintenance Site
+                </label>
+                <InputSelect id="maintenanceSite" @bind-Value="CurrentRequest.MaintenanceSiteId" class="@GetInputClass("MaintenanceSiteId")">
+                    <option value="">Select site</option>
+                    @if (Sites is not null)
                     {
-                        <option value="@site.Id">@site.Name</option>
+                        @foreach (var site in Sites)
+                        {
+                            <option value="@site.Id">@site.Name</option>
+                        }
                     }
+                </InputSelect>
+                @if (errors.ContainsKey("MaintenanceSiteId"))
+                {
+                    <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["MaintenanceSiteId"]</p>
                 }
-            </InputSelect>
-            @if (errors.ContainsKey("MaintenanceSiteId"))
-            {
-                <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["MaintenanceSiteId"]</p>
-            }
-        </div>
+            </div>
 
+            <!-- Cost -->
+            <div>
+                <label for="cost" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    Cost <span class="text-red-500">*</span>
+                </label>
+                @* <div class="flex flex-col items-end">                    
+                </div> *@
+                <InputNumber id="cost" @bind-Value="CurrentRequest.Cost" class="@(GetInputClass("Cost"))" min="0" step="0.01" />
+                @if (errors.ContainsKey("Cost"))
+                {
+                    <p class="mt-1 text-sm text-red-600 dark:text-red-500 text-right">@errors["Cost"]</p>
+                }
+            </div>
+        </div>
         <!-- Dates (Display only when editing) -->
         @if (EditMode)
         {
@@ -240,7 +254,9 @@
     private string GetInputClass(string fieldName)
     {
         var baseClass = "bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500";
-        
+        if (fieldName == "Cost")
+            baseClass += "text-right";
+
         if (errors.ContainsKey(fieldName))
         {
             baseClass += " border-red-500 bg-red-50 dark:bg-red-900 dark:border-red-700";
@@ -267,9 +283,9 @@
         {
             errors["MaintenanceSiteId"] = "Maintenance Site is required";
         }
-        if (CurrentRequest.Item == ServiceItem.Driver && CurrentRequest.DriverId is null)
+        if (CurrentRequest.Cost is null)
         {
-            errors["DriverId"] = "Driver is required";
+            errors["Cost"] = "Cost is required";
         }
         if (string.IsNullOrWhiteSpace(CurrentRequest.Description))
         {

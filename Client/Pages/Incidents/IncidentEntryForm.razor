@@ -1,0 +1,477 @@
+@page "/incidents/{Action}/{Id:guid?}"
+@using Shared.Interfaces.Incidents
+@using Shared.Models.Incidents
+@inject IIncidentService IncidentService
+@inject IIncidentTypeService IncidentTypeService
+@inject IDriverService DriverService
+@inject ITruckService TruckService
+@inject ITripService TripService
+
+<div class="max-w-2xl mx-auto p-4 sm:p-6">
+    @if (AppState.IsBusy)
+    {
+        <Loader/>
+    }
+   else
+   {
+         <!-- Form Header -->
+    <div class="mb-6">
+        <h2 class="text-xl font-bold text-gray-900 dark:text-white">@(EditMode ? "Edit Incident" : "Add New Incidnet")</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Please fill in the request details below</p>
+    </div>
+
+    <!-- Incident Form -->
+    <div class="space-y-6">        
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Truck -->
+            <div>
+            <label for="truck" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+            Truck <span class="text-red-500">*</span>
+            </label>
+            <InputSelect id="truck" @bind-Value="CurrentIncident.TruckId" class="@GetInputClass("TruckId")"
+            @bind-Value:after="OnTruckChanged">
+                <option value="">Select truck</option>
+                @if (Trucks is not null)
+                {
+                @foreach (var truck in Trucks)
+                {
+                    <option value="@truck.Id">@truck.LicensePlate</option>
+                }
+                }
+            </InputSelect>
+            @if (errors.ContainsKey("TruckId"))
+            {
+                <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["TruckId"]</p>
+            }
+            </div>
+
+        <div>
+            <label for="type" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+            Dispatch ID <span class="text-red-500">*</span>
+            </label>       
+            <div class="@GetInputClass("Dispatch")">
+                @CurrentIncident.Trip?.DispatchId
+            </div>
+        </div>
+
+            <!-- Incident Type -->
+            <div>
+            <label for="type" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                Incident Type <span class="text-red-500">*</span>
+            </label>
+            <div class="flex gap-2">
+                <InputSelect id="type" @bind-Value="CurrentIncident.IncidentTypeId" class="@GetInputClass("Type")">
+                <option value="">Select type</option>
+                @foreach (var type in IncidentTypes)
+                {
+                    <option value="@type.Id">@type.Type</option>
+                }
+                </InputSelect>
+                <button type="button"
+                    class="px-3 py-1.5 text-xs font-medium text-white bg-green-600 rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400"
+                    @onclick="AddIncidentType">
+                + Add
+                </button>
+            </div>
+            @if (errors.ContainsKey("Type"))
+            {
+                <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["Type"]</p>
+            }
+            </div>            
+            <!-- Driver -->
+        <div>
+            <label for="driver" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+            Driver <span class="text-red-500">*</span>
+            </label>
+            <InputSelect id="driver" @bind-Value="CurrentIncident.DriverId" class="@GetInputClass("DriverId")">
+            <option value="">Select Drvier</option>
+            @if (Drivers is not null)
+            {
+                @foreach (var driver in Drivers)
+                {
+                <option value="@driver.Id">@driver.ToString()</option>
+                }
+            }
+            </InputSelect>
+            @if (errors.ContainsKey("DriverId"))
+            {
+            <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["DriverId"]</p>
+            }
+        </div>        
+        </div>        
+
+        <!-- Description -->
+        <div>
+            <label for="description" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+            Description <span class="text-red-500">*</span>
+            </label>
+            <InputTextArea id="description" @bind-Value="CurrentIncident.Description"
+            class="@GetInputClass("Description")"
+            placeholder="Describe the request..." rows="3"/>
+            @if (errors.ContainsKey("Description"))
+            {
+            <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["Description"]</p>
+            }
+        </div>        
+
+        <!-- Dates (Display only when editing) -->
+        @if (EditMode)
+        {
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">
+                Created At
+                </label>
+                <div class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300">
+                @CurrentIncident.CreatedAt.ToString("MMM dd, yyyy HH:mm")
+                </div>
+            </div>
+            <div>
+                <label class="block mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">
+                Treated At
+                </label>
+                <div class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300">
+                @(CurrentIncident.TreatedAt?.ToString("MMM dd, yyyy HH:mm") ?? "Not yet")
+                </div>
+            </div>
+            <div>
+                <label class="block mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">
+                Closed At
+                </label>
+                <div class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300">
+                @(CurrentIncident.ClosedAt?.ToString("MMM dd, yyyy HH:mm") ?? "Not yet")
+                </div>
+            </div>
+            </div>
+        }
+        
+
+        <!-- Form Actions -->
+        <div class="flex justify-end gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <button type="button" @onclick="Cancel"
+                class="px-5 py-2.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-700 dark:focus:ring-gray-700">
+            Cancel
+            </button>
+            <button type="button"
+                    @onclick="HandleSubmit"
+                    class="px-5 py-2.5 text-sm font-medium text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800 flex items-center justify-center min-w-[120px]"
+                    disabled="@AppState.IsProcessing">
+                    @if (AppState.IsProcessing)
+                    {
+                        <svg class="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                        </svg>
+                        @("Processing...")
+                    }
+                    else
+                    {
+                        @(EditMode ? "Update Incident" : "Add Incident")
+                    }
+                </button>           
+        </div>
+    </div>    
+   }
+</div>
+
+@if (IsVisible)
+{
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" @onclick="CloseIncidentModal">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg w-full max-w-xl mx-auto" @onclick:stopPropagation>
+            <!-- Header -->
+            <div class="flex items-start justify-between p-6 border-b border-gray-200 dark:border-gray-700 rounded-t">
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
+                    @(editingIncidentType is not null ? "Edit" : "Add") Incident Type
+                <p class="text-sm text-gray-500 dark:text-gray-400">Please fill in the details below</p>
+                </h3>
+                <button type="button" @onclick="CloseIncidentModal" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 dark:hover:bg-gray-700 dark:text-gray-200 dark:hover:text-white rounded-lg text-sm w-8 h-8 flex items-center justify-center">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 14 14">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 1l6 6m0 0l6 6M7 7l-6 6m6-6l6-6"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="p-6 space-y-5">
+
+                <!-- Incident Type Name -->
+            <div>
+                <label for="name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    Incident Type <span class="text-red-500">*</span>
+                </label>
+                <InputText id="name" @bind-Value="IncidentType.Type"
+                        class="@GetInputClass("Name")"
+                        maxlength="100"
+                        placeholder="Enter incident type name" />
+                @if (errors.ContainsKey("Name"))
+                {
+                    <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["Name"]</p>
+                }                        
+            </div>            
+
+            <!-- Timestamps -->
+            @if (editingIncidentType is not null)
+            {
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">Created At</label>
+                        <div class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300">
+                            @IncidentType.CreatedAt.ToString("MMM dd, yyyy HH:mm")
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">Last Updated</label>
+                        <div class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300">
+                            @(IncidentType.UpdatedAt?.ToString("MMM dd, yyyy HH:mm") ?? "Never")
+                        </div>
+                    </div>
+                </div>
+            }
+                <!-- Footer -->
+                <div class="flex justify-end p-6 space-x-3 border-t border-gray-200 dark:border-gray-700 rounded-b">
+                    <button type="button"
+                            @onclick="CloseIncidentModal"
+                            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-300 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600">
+                        Cancel
+                    </button>
+                    <button type="button"
+                            @onclick="SaveIncidentType"
+                            disabled="@(AppState.IsProcessing)"
+                            class="px-5 py-2.5 text-sm font-medium text-white bg-blue-700 rounded-lg @(AppState.IsProcessing == false ? "hover:bg-blue-700" : "opacity-50 cursor-not-allowed") focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800 flex items-center justify-center min-w-[120px]">
+                        @(AppState.IsProcessing ? "Saving" : "Save")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string? DispatchID { get; set;}
+    [Parameter] public string Action { get; set; } = "Add";
+    [Parameter] public Guid? Id { get; set; }
+    [Parameter] public Incident CurrentIncident { get; set; } = new();
+    [Parameter] public bool EditMode { get; set; }
+    [Parameter] public EventCallback OnSubmit { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private bool IsVisible = false;
+
+    private IncidentType? IncidentType  = new();
+    private IncidentType? editingIncidentType;
+
+    bool result = false;
+    private NotificationAlert? alert = null;
+
+    private Dictionary<string, string> errors = new();
+
+    // These should be loaded from your service or injected
+    private Truck[]? Trucks;
+    private Driver[]? Drivers;
+    private IncidentType[]? IncidentTypes;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load trucks and sites here
+        AppState.IsBusy = true;
+        if (Id.HasValue)
+        {
+            CurrentIncident = await IncidentService.GetAsync(Id.Value, AppState.GetCancellationToken()) ?? new();
+            EditMode = true;
+        }
+        Drivers = await DriverService.GetAsync(AppState.GetCancellationToken());
+        Trucks = await TruckService.GetAsync(AppState.GetCancellationToken());
+        IncidentTypes = await IncidentTypeService.GetAsync(AppState.GetCancellationToken());
+        AppState.IsBusy = false;
+    }
+
+    private string GetInputClass(string fieldName)
+    {
+        var baseClass = "bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500";
+        
+        if (errors.ContainsKey(fieldName))
+        {
+            baseClass += " border-red-500 bg-red-50 dark:bg-red-900 dark:border-red-700";
+        }
+        else
+        {
+            baseClass += " border-gray-300";
+        }
+        
+        return baseClass;
+    }
+
+    private async Task HandleSubmit()
+    {
+        AppState.IsProcessing = true;
+        errors.Clear();
+
+        // Validate required fields
+        if (CurrentIncident.TruckId.Equals(Guid.Empty))
+        {
+            errors["TruckId"] = "Truck is required";
+        }    
+        if (CurrentIncident.IncidentTypeId.Equals(Guid.Empty))
+        {
+            errors["Type"] = "Incident Type is required";
+        }
+        if (CurrentIncident.DriverId is null)
+        {
+            errors["DriverId"] = "Driver is required";
+        }
+        if (string.IsNullOrWhiteSpace(CurrentIncident.Description))
+        {
+            errors["Description"] = "Description is required";
+        }
+
+        if (errors.Any())
+        {
+            AppState.IsProcessing = false;
+            StateHasChanged();
+            return;
+        }
+                
+        try
+        {
+            CurrentIncident!.Description = StringConverter.ConvertToTitleCase(CurrentIncident!.Description!);
+            Guid userId = await localStorage.GetItemAsync<Guid>("uid");
+            if (!Id.HasValue)
+            {
+                CurrentIncident.CreatedById = userId;
+                result = await IncidentService.AddAsync(CurrentIncident, AppState.GetCancellationToken());
+            }
+            else
+            {
+                CurrentIncident.TreatedById = userId;
+                result = await IncidentService.UpdateAsync(CurrentIncident, AppState.GetCancellationToken());
+            }
+          
+            if (result)
+            {
+                ToastService.ShowSuccess($"Incident Successfully {(EditMode ? "Updated" : "Added")}", 5);
+                 Cancel();
+            }          
+        }
+        catch (Exception ex)
+        {
+            alert = new($"Operation failed", ToastIcon.Error);
+        }
+        finally
+        {
+            AppState.IsProcessing = false;
+        }
+    }
+
+    private async Task OnTruckChanged()
+    {
+        try
+        {
+            if (CurrentIncident.TruckId != Guid.Empty)
+            {
+                var truck = Trucks?.FirstOrDefault(t => t.Id == CurrentIncident.TruckId);
+                if (truck != null)
+                {
+                    CurrentIncident.Truck = truck;
+                    CurrentIncident.DriverId = truck.DriverId; // Automatically set driver if truck has one
+                    Console.WriteLine("akwai trip");
+                    var trip = await TripService.GetActiveTripForTruckAsync(truck.Id, AppState.GetCancellationToken());
+                    if (trip != null)
+                    {
+                        Console.WriteLine("akwai trip");
+                        CurrentIncident.TripId = trip.Id;
+                        CurrentIncident.Trip = trip;
+                    }
+                    else
+                    {
+                        Console.WriteLine("babu trip");
+                        ToastService.ShowWarning($"{truck.LicensePlate} has no active trip");
+                    }
+                }
+            }
+            else
+            {
+                Console.WriteLine("akwai trip");
+                ToastService.ShowWarning($"Truck has no active trip");
+            }
+        }   
+        catch (Exception ex)     
+        {
+            ToastService.ShowWarning("Truck has no active trip or network error");
+        }
+        StateHasChanged();
+    }
+    
+    private void Cancel()
+    {
+        nav.NavigateTo("incidents");
+    }
+
+    private void AddIncidentType()
+    {
+        IsVisible = true;
+        StateHasChanged();
+    }
+
+    private void CloseIncidentModal()
+    {
+        IsVisible = false;
+        StateHasChanged();        
+    }
+
+    private async Task SaveIncidentType()
+    {
+        AppState.IsProcessing = true;
+        errors.Clear();
+
+        // Validate required fields
+        if (string.IsNullOrWhiteSpace(IncidentType.Type))
+        {
+            errors["Name"] = "Incident Type is required";
+        }        
+
+        if (IncidentTypes?.Any(it => it.Type.Equals(IncidentType.Type, StringComparison.OrdinalIgnoreCase)) == true)
+        {
+            errors["Name"] = "Incident Type already exists";
+        }
+
+        if (errors.Any())
+        {
+            AppState.IsProcessing = false;
+            StateHasChanged();
+            return;
+        }
+                
+        try
+        {
+            IncidentType.Type = StringConverter.ConvertToTitleCase(IncidentType.Type);
+            bool result = false;       
+
+            if (editingIncidentType is null)
+            {
+                IncidentType.Id = Guid.NewGuid();
+                result = await IncidentTypeService.AddAsync(IncidentType, AppState.GetCancellationToken());
+            }
+            else
+            {
+                result = await IncidentTypeService.UpdateAsync(IncidentType, AppState.GetCancellationToken());
+            }
+
+            if (result)
+            {
+                ToastService.ShowSuccess($"Incident Type Successfully {(editingIncidentType is not null ? "Updated" : "Added")}", 5);                           
+                IncidentTypes = await IncidentTypeService.GetAsync(AppState.GetCancellationToken());
+                CurrentIncident.IncidentTypeId = editingIncidentType is not null ? editingIncidentType.Id : IncidentType.Id;
+                CloseIncidentModal();
+            }                       
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError("An error occurred while saving");
+        }
+        finally
+        {
+            AppState.IsProcessing = false;
+        }
+    }
+}

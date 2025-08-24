@@ -146,6 +146,8 @@ public class TripsController : ControllerBase
                                 .Include(x => x.LoadingDepot)
                                 .Include(x => x.Discharges)
                                 .ThenInclude(x => x.Station)
+                                .Include(x => x.Incidents)
+                                .ThenInclude(x => x.IncidentType)
                                 .Include(x => x.ClosedBy)
                                 .Include(x => x.CompletedBy)
                                 .AsSplitQuery()
