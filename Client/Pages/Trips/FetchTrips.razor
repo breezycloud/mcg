@@ -9,7 +9,7 @@
 <section class="bg-gray-50 dark:bg-gray-900 rounded-lg">    
     @if (showData)
     {
-        <div class="px-4 lg:px-12">
+        <div class="px-4 lg:px-9">
             <div class="bg-white dark:bg-gray-800 relative shadow-md sm:rounded-lg overflow-hidden">
                 <!-- Header with search and add button -->
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between p-4 space-y-3 md:space-y-0 md:space-x-4">
@@ -107,12 +107,12 @@
                             {
                                 <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
                                     <!-- Trip Date -->
-                                    <td class="px-6 py-4 text-sm text-gray-900 dark:text-white">
+                                    <td class="px-4 py-4 text-sm text-gray-900 dark:text-white">
                                         @trip.Date.ToString("MMM dd, yyyy")
                                     </td>
 
                                     <!-- Dispatch Number & Waybill -->
-                                    <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
+                                    <td class="px-4 py-4 text-sm text-gray-700 dark:text-gray-300">
                                         <div>
                                             <span class="font-semibold">Dispatch:</span>
                                             @trip.DispatchId
@@ -124,12 +124,12 @@
                                     </td>
 
                                     <!-- Truck -->
-                                    <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
+                                    <td class="px-4 py-4 text-sm text-gray-700 dark:text-gray-300">
                                         @trip.Truck?.LicensePlate
                                     </td>
 
                                     <!-- Driver -->
-                                    <td class="px-6 py-4 text-sm">
+                                    <td class="px-4 py-4 text-sm">
                                         @if (trip.Driver != null)
                                         {
                                             <div class="font-medium text-gray-900 dark:text-white">@trip.Driver.FirstName @trip.Driver.LastName</div>
@@ -142,19 +142,19 @@
                                     </td>                                                                
 
                                     <!-- Origin -->
-                                    <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
+                                    <td class="px-4 py-4 text-sm text-gray-700 dark:text-gray-300">
                                         <div>@trip.LoadingDepot?.Name</div>
                                         <div class="text-xs text-gray-500">@(trip.LoadingInfo.Quantity is null ? "" : $"{trip.LoadingInfo?.Quantity} {trip.GetUnit()}") </div>                                        
                                     </td>
 
                                     <!-- Destination -->
-                                    <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
+                                    <td class="px-4 py-4 text-sm text-gray-700 dark:text-gray-300">
                                         <div>@trip.LoadingInfo.Destination</div>
                                         @* <div class="text-xs text-gray-500">@trip @trip.Destination.DischargedUnit</div>                                         *@
                                     </td>
 
                                     <!-- Status -->
-                                    <td class="px-6 py-4">
+                                    <td class="px-4 py-4">
                                         <span class="text-xs font-medium px-2.5 py-0.5 rounded
                                             @(trip.Status == TripStatus.Active
                                                 ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
@@ -164,7 +164,7 @@
                                     </td>
 
                                     <!-- Actions -->
-                                    <td class="px-6 py-4 text-right">
+                                    <td class="px-4 py-4 text-right">
                                         <div class="flex justify-end space-x-3">                                           
                                             <button @onclick="() => ViewTrip(trip)" class="font-medium text-green-600 dark:text-green-500 hover:underline">
                                                 View

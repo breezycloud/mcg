@@ -92,6 +92,29 @@ public class StationsController : ControllerBase
         }
     }
 
+    // GET: api/Stations
+    [HttpGet("bystate")]
+    public async Task<ActionResult<IEnumerable<Station>>> GetStations(string type, string state, CancellationToken cancellationToken)
+    {
+        IQueryable<Station> query;
+        List<Station> stations = [];
+        try
+        {
+            query = _context.Stations.Where(x => EF.Functions.ILike(x.Type.ToString(), $"%{type}%")).AsQueryable();
+            stations = query.AsEnumerable().Where(x => x.Address is not null && x.Address.State.Contains(state, StringComparison.OrdinalIgnoreCase)).ToList();
+            // await foreach (var station in query.AsAsyncEnumerable().WithCancellation(cancellationToken))
+            // {
+            //     stations.Add(station);
+            // }
+            return stations;
+        }
+        catch (System.Exception)
+        {
+
+            throw;
+        }
+    }
+
     // GET: api/Stations/5
     [HttpGet("{id}")]
     public async Task<ActionResult<Station>> GetStation(Guid id)
