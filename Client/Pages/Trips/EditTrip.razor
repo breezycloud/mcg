@@ -6,9 +6,11 @@
 @inject IRefuelInfoService RefuelInfoService
 @using Client.Pages.Checkpoints
 @using Client.Pages.Discharges
+@using Client.Pages.Incidents
 @using Client.Pages.RefuelInfos
+@using Shared.Models.Incidents
 
-<div class="max-w-4xl mx-auto px-4 lg:px-6">
+<div class="max-w-4xl mx-auto px-2 lg:px-2">
     @if (AppState.IsBusy)
     {
         <Loader/>
@@ -39,30 +41,36 @@
                         <li class="mr-2">
                             <button @onclick="() => SetActiveTab(1)" 
                                     class="@GetTabClass(1) inline-block p-4 border-b-2 rounded-t-lg">
-                                Loading Information
-                            </button>
-                        </li>
-                        <li class="mr-2">
-                            <button @onclick="() => SetActiveTab(5)" 
-                                    class="@GetTabClass(5) inline-block p-4 border-b-2 rounded-t-lg">
-                                Refuel Info
+                                Loading Info
                             </button>
                         </li>
                         <li class="mr-2">
                             <button @onclick="() => SetActiveTab(2)" 
                                     class="@GetTabClass(2) inline-block p-4 border-b-2 rounded-t-lg">
+                                Refuel Info
+                            </button>
+                        </li>
+                        <li class="mr-2">
+                            <button @onclick="() => SetActiveTab(3)" 
+                                    class="@GetTabClass(3) inline-block p-4 border-b-2 rounded-t-lg">
                                 Truck Arrival
                             </button>
                         </li>                        
                         <li class="mr-2">
-                            <button @onclick="() => SetActiveTab(3)" 
-                                    class="@GetTabClass(3) inline-block p-4 border-b-2 rounded-t-lg">
+                            <button @onclick="() => SetActiveTab(4)" 
+                                    class="@GetTabClass(4) inline-block p-4 border-b-2 rounded-t-lg">
                                 Discharge
                             </button>
                         </li>
+                        <li class="mr-2">
+                            <button @onclick="() => SetActiveTab(5)" 
+                                    class="@GetTabClass(5) inline-block p-4 border-b-2 rounded-t-lg">
+                                Incidents
+                            </button>
+                        </li>
                         <li>
-                            <button @onclick="() => SetActiveTab(4)" 
-                                    class="@GetTabClass(4) inline-block p-4 border-b-2 rounded-t-lg">
+                            <button @onclick="() => SetActiveTab(6)" 
+                                    class="@GetTabClass(6) inline-block p-4 border-b-2 rounded-t-lg">
                                 Close Trip
                             </button>
                         </li>
@@ -174,7 +182,7 @@
                             </div>
                         </div>
                     }
-                    else if (activeTab == 5)
+                    else if (activeTab == 2)
                     {                        
                         <div class="flex flex-row align-end">
                             <button @onclick="ShowAddRefuelInfoModal"
@@ -189,7 +197,7 @@
 
                         
                     }
-                    else if (activeTab == 2)
+                    else if (activeTab == 3)
                     {
                         @if (Trip!.LoadingInfo.DispatchType == DispatchType.Depot)
                         {
@@ -290,8 +298,22 @@
                             </div>
                         }
                     }
-                    else if (activeTab == 3)
+                    else if (activeTab == 4)
                     {
+                        @if (!Trip.Discharges!.Any(x=> x.IsFinalDischarge))
+                        {
+                            <button @onclick="ShowAddDischargeModal"
+                                    class="flex items-center justify-end text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">
+                                <svg class="w-4 h-4 mr-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                                    <!-- Fuel discharge icon: fuel pump with arrow down -->
+                                    <rect x="4" y="3" width="8" height="12" rx="2" fill="currentColor" opacity="0.2"/>
+                                    <rect x="4" y="3" width="8" height="12" rx="2" stroke="currentColor" stroke-width="2" fill="none"/>
+                                    <path d="M12 7h2a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" stroke="currentColor" stroke-width="2" fill="none"/>
+                                    <path d="M8 13v3m0 0l-2-2m2 2l2-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                                </svg>
+                                Add Discharge
+                            </button>
+                        }
                         @if (Trip?.Truck?.Product != Product.CNG || Trip.Metrics?.Count != 3)
                         {                    
                             <MetricsEditor
@@ -314,17 +336,7 @@
                                     </button>
                                 </div>                                
                             }
-                        
-                           @if (!Trip.Discharges!.Any(x=> x.IsFinalDischarge))
-                           {
-                                <button @onclick="ShowAddDischargeModal"
-                                        class="flex items-center justify-end text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">
-                                    <svg class="w-4 h-4 mr-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 18 18">
-                                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 1v16M1 9h16"/>
-                                    </svg>
-                                    Add Discharge
-                                </button>
-                           }
+                                                   
                         </div>
 
                         @if (Trip!.Discharges!.Any())
@@ -340,7 +352,11 @@
                         }
 
 
-                    }                    
+                    }
+                    else if (activeTab == 5)
+                    {
+                        <FetchTripIncidents Trip="Trip" Id="Trip.Id"/>
+                    }         
                     else    
                     {
                         <div class="space-y-6">
@@ -432,7 +448,7 @@
             <button @onclick="CloseModal" type="button" class="py-2.5 px-5 me-2 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700">
                 Cancel
             </button>
-            @if (activeTab != 3 || activeTab != 5)
+            @if (activeTab == 1 ||activeTab == 3 || activeTab == 6)
             {
                 <button @onclick="SaveChanges" type="button" class="pr-4 text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800" disabled="@AppState.IsProcessing">
                     @if (AppState.IsProcessing)
@@ -470,6 +486,7 @@
 {
     <DischargeModal Data="@currentDischarge"
         IsVisible="@showDischargeModal"
+        Destination="@Trip.LoadingInfo.Destination"
         EditMode="false"        
         InitialQuantity="@InitialQuantity"
         OnClose="@CloseDischargeModal"
@@ -519,12 +536,14 @@
     private RefuelInfo? RefuelInfo { get; set;} = new();
     private RefuelInfo? editingRefuelInfo = null;
     private RefuelInfo? refuelInfoToDelete = null;
-    private Station[]? LoadingDepots = [];
+    private Station[]? LoadingDepots = [];    
     private Station[]? Depots = [];
 
+    private Incident Incident = new();
     protected override async Task OnInitializedAsync()
     {
-        AppState.IsBusy = true;                
+        AppState.IsBusy = true;   
+        
         await OnRefresh();
         //Destionations = await StationService.GetAsync(StationType.DischargeStation.ToString(), AppState.GetCancellationToken());
         @* Drivers = await DriverService.GetAsync(AppState.GetCancellationToken());
@@ -536,6 +555,7 @@
     private async Task OnRefresh()
     {
         Trip = await TripService.GetAsync(id, AppState.GetCancellationToken());
+        Incident = new Incident { Trip = Trip, Driver = Trip.Driver, Truck = Trip.Truck };             
         LoadingDepots = await StationService.GetAsync(StationType.LoadingDepot.ToString(), AppState.GetCancellationToken());
         Depots = await StationService.GetAsync(StationType.ReceivingDepot.ToString(), AppState.GetCancellationToken());
         StateHasChanged();
@@ -627,7 +647,7 @@
             }
         }
 
-        if (activeTab == 2)
+        if (activeTab == 3)
         {
             if (Trip.LoadingInfo.DispatchType == DispatchType.Depot)
             {
@@ -651,8 +671,8 @@
                     errors["StationArrivalDateTime"] = "Arrival Date/Time is required";
                 }
             }            
-        }
-        if (activeTab == 4)
+        }        
+        if (activeTab == 6)
         {
             if (Trip.CloseInfo.ReturnDateTime is null)
             {
@@ -745,6 +765,7 @@
         }
     }
 
+
     private void CloseCheckpointModal()
     {
         showCheckpointModal = false;
@@ -763,11 +784,11 @@
     }
 
     private void ShowAddRefuelInfoModal()
-    {               
+    {                       
         editingRefuelInfo = null;
         showRefuelModal = true;        
         RefuelInfo = new() { DispatchId = Trip!.DispatchId, Truck = Trip.Truck, TruckId = Trip.Truck.Id };
-    }
+    }    
 
     private async Task EditDischarge(Discharge discharge)
     {
@@ -806,8 +827,8 @@
         {
             var response = await RefuelInfoService.AddAsync(info, AppState.GetCancellationToken());
             if (response)            
-            {                            
-                await OnRefresh();    
+            {        
+                AppState.OnRefuelProcessed();
                 Notify();                
             }
             else
@@ -880,7 +901,7 @@
     {
         showRefuelModal = false;
         RefuelInfo = new();
-        editingRefuelInfo = null;
+        editingRefuelInfo = null;        
         StateHasChanged();
     }
 

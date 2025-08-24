@@ -1,4 +1,3 @@
-@page "/incidents/{Action}/{Id:guid?}"
 @using Shared.Interfaces.Incidents
 @using Shared.Models.Incidents
 @inject IIncidentService IncidentService
@@ -7,21 +6,16 @@
 @inject ITruckService TruckService
 @inject ITripService TripService
 
-<div class="max-w-2xl mx-auto p-4 sm:p-6">
+<div class="max-w-2xl mx-auto">
     @if (IsBusy)
     {
         <Loader/>
     }
    else
-   {
-         <!-- Form Header -->
-    <div class="mb-6">
-        <h2 class="text-xl font-bold text-gray-900 dark:text-white">@(EditMode ? "Edit Incident" : "Add New Incidnet")</h2>
-        <p class="text-sm text-gray-500 dark:text-gray-400">Please fill in the request details below</p>
-    </div>
+   {         
 
     <!-- Incident Form -->
-    <div class="space-y-6">        
+    <div class="space-y-1 p-2">        
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <!-- Truck -->
@@ -29,7 +23,7 @@
             <label for="truck" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
             Truck <span class="text-red-500">*</span>
             </label>
-            <InputSelect id="truck" @bind-Value="CurrentIncident.TruckId" class="@GetInputClass("TruckId")"
+            <InputSelect disabled id="truck" @bind-Value="CurrentIncident.TruckId" class="@GetInputClass("TruckId")"
             @bind-Value:after="OnTruckChanged">
                 <option value="">Select truck</option>
                 @if (Trucks is not null)
@@ -349,7 +343,8 @@
             if (result)
             {
                 ToastService.ShowSuccess($"Incident Successfully {(EditMode ? "Updated" : "Added")}", 5);
-                 Cancel();
+                await OnSubmit.InvokeAsync();
+                Cancel();
             }          
         }
         catch (Exception ex)
@@ -366,7 +361,7 @@
     {
         try
         {
-            if (CurrentIncident.TruckId != Guid.Empty)
+            @* if (CurrentIncident.TruckId != Guid.Empty)
             {
                 var truck = Trucks?.FirstOrDefault(t => t.Id == CurrentIncident.TruckId);
                 if (truck != null)
@@ -390,7 +385,7 @@
             {
                 Console.WriteLine("akwai trip");
                 ToastService.ShowWarning($"Truck has no active trip");
-            }
+            } *@
         }   
         catch (Exception ex)     
         {
@@ -401,7 +396,7 @@
     
     private void Cancel()
     {
-        nav.NavigateTo("incidents");
+        OnCancel.InvokeAsync();
     }
 
     private void AddIncidentType()

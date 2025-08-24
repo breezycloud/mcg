@@ -107,4 +107,18 @@ public class StationService(IHttpClientFactory _httpClient) : IStationService
             throw;
         }
     }
+    public async Task<Station[]?> GetAsync(string type, string state, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var response = await _httpClient.CreateClient("AppUrl").GetAsync($"Stations/bystate?type={type}&state={state}", cancellationToken);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<Station[]?>();
+        }
+        catch (System.Exception)
+        {
+
+            throw;
+        }
+    }
 }

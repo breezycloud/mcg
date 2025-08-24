@@ -23,6 +23,32 @@ public class AppState
         };
     }
 
+    public event EventHandler? RefuelProcessed;
+
+    private bool _hasProcessed = false;
+    public bool HasProcessed
+    {
+        get => _hasProcessed;
+        set
+        {
+            if (_hasProcessed != value)
+            {
+                _hasProcessed = value;
+                RefuelProcessed?.Invoke(this, EventArgs.Empty);
+            }
+        }
+    }
+
+    public void OnRefuelProcessed()
+    {
+        HasProcessed = true; // triggers the setter
+    }
+
+    public void Clear()
+    {
+        HasProcessed = false;
+    }
+
     public CancellationToken GetCancellationToken() =>
         new CancellationTokenSource().Token;
 
