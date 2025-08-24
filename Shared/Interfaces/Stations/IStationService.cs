@@ -11,5 +11,6 @@ public interface IStationService
     Task<Station?> GetAsync(Guid id, CancellationToken cancellationToken);
     Task<Station[]?> GetAsync(CancellationToken cancellationToken);
     Task<Station[]?> GetAsync(string type, CancellationToken cancellationToken);
+    Task<Station[]?> GetAsync(string type, string state, CancellationToken cancellationToken);
     Task<GridDataResponse<Station>?> GetPagedAsync(GridDataRequest request, CancellationToken cancellationToken);
 }
