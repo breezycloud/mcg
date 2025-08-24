@@ -112,6 +112,8 @@
     public bool IsVisible { get; set; } = false;
     [Parameter]
     public decimal InitialQuantity { get; set; }
+    [Parameter]
+    public string? Destination { get; set; }
 
     [Parameter]
     public bool EditMode { get; set; } = false;
@@ -133,7 +135,7 @@
     {
         AppState.IsBusy = true;
         await Task.Delay(500);
-        Stations = await StationService.GetAsync(StationType.DischargeStation.ToString(), AppState.GetCancellationToken());
+        Stations = await StationService.GetAsync(StationType.DischargeStation.ToString(), Destination!, AppState.GetCancellationToken());
         
         AppState.IsBusy = false;
     }

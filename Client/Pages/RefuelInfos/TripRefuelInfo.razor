@@ -1,4 +1,5 @@
 @inject IRefuelInfoService RefuelInfoService
+@implements IDisposable
 
 <div class="max-w-4xl mx-auto">    
      <!-- Metrics Table -->
@@ -55,7 +56,7 @@
                 {
                     <tr>
                         <td colspan="8" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
-                            @if (AppState.IsBusy)
+                            @if (IsBusy)
                             {
                                 <div class="flex justify-center items-center">
                                     <svg class="animate-spin -ml-1 mr-3 h-4 w-4 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -81,7 +82,6 @@
             </tbody>
         </table>
     </div>
-
 </div>
 @* <tr class="bg-white border-b hover:bg-gray-50"> *@
 
@@ -90,33 +90,49 @@
     private GridDataResponse<RefuelInfo>? refuelling = null;
     private GridDataRequest request = new();
     [Parameter] public EventCallback OnSave { get; set; }
-
+    private bool IsBusy, IsProcessing = false;
     
-    protected override async Task OnInitializedAsync()
+    @* protected override async Task OnInitializedAsync()
     {
+        AppState.RefuelProcessed += OnRefuelled!;
         if (!string.IsNullOrWhiteSpace(Dispatch))
         {
             request = new GridDataRequest { SearchTerm = Dispatch, Page = 0, PageSize = 10};
             await Loadrefuelling();
-        }        
+        }
+    } *@
+    
+    protected override async Task OnParametersSetAsync()
+    {
+        AppState.RefuelProcessed += OnRefuelled!;
+        if (!string.IsNullOrWhiteSpace(Dispatch))
+        {
+            request = new GridDataRequest { SearchTerm = Dispatch, Page = 0, PageSize = 10};
+            await Loadrefuelling();
+        }
+    }
+
+    private async void OnRefuelled(object sender, EventArgs args)
+    {
+        await Loadrefuelling();
     }
 
     private async Task Loadrefuelling()
     {
-        AppState.IsBusy = true;
+        IsBusy = true;
         try 
         {
             refuelling = await RefuelInfoService.GetPagedAsync(request, AppState.GetCancellationToken());
         }
         finally
         {
-            AppState.IsBusy = false;
+            IsBusy = false;
         }        
     }
 
     private async Task Delete(Guid id)
     {
-        AppState.IsProcessing = true;
+        IsProcessing = true;
         try
         {
             var response = await RefuelInfoService.DeleteAsync(id, AppState.GetCancellationToken());
@@ -134,6 +150,11 @@
         {
             ToastService.ShowError("Failed to delete info");
         }
-        AppState.IsProcessing = false;
+        IsProcessing = false;
+    }
+
+    public void Dispose()
+    {
+        AppState.RefuelProcessed -= OnRefuelled!;
     }
 }
