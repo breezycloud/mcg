@@ -40,6 +40,9 @@ using Client.Services.RefuelInfos;
 using Shared.Interfaces.Discharges;
 using Client.Services.Discharges;
 using ApexCharts;
+using Shared.Interfaces.Incidents;
+using Client.Services.Incidents;
+using Client.Services.incidenttypes;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
@@ -103,6 +106,8 @@ builder.Services.AddTransient<ICheckpointService, CheckpointService>();
 builder.Services.AddTransient<ITripCheckpointService, TripCheckpointService>();
 builder.Services.AddTransient<IRefuelInfoService, RefuelInfoService>();
 builder.Services.AddTransient<IDischargeService, DischargeService>();
+builder.Services.AddTransient<IIncidentService, IncidentService>();
+builder.Services.AddTransient<IIncidentTypeService, IncidentTypeService>();
 builder.Services.AddHttpClient<ILocationService, LocationService>(client =>
 {
     client.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress);

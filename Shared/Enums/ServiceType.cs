@@ -8,7 +8,6 @@ public enum ServiceType
     Routine,
     Emergency,
     Unscheduled,
-    Incident
 }
 
 public enum ServiceItem
@@ -17,5 +16,5 @@ public enum ServiceItem
     Elock,
     TPMS,
     Camera,
-    Driver
+    GPS
 }

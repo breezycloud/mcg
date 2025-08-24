@@ -198,22 +198,29 @@
 
         <!-- Requests Section -->
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 mb-8 transition-all duration-300 hover:shadow-xl">
-            <h3 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 border-b-2 border-blue-200 dark:border-blue-900 pb-3">Service Requests</h3>
-            @if (Trip?.Requests != null && Trip.Requests.Any())
+            <h3 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 border-b-2 border-blue-200 dark:border-blue-900 pb-3">Incidents</h3>
+            @if (Trip?.Incidents != null && Trip.Incidents.Any())
             {
                 <ul class="list-disc pl-6 space-y-3">
-                    @foreach (var req in Trip.Requests)
+                    @foreach (var req in Trip.Incidents.OrderByDescending(x => x.CreatedAt))
                     {
                         <li class="text-gray-900 dark:text-gray-100 font-medium">
-                            <span class="font-semibold">Request:</span> @req.Description
+                            <span class="font-semibold">Incident: @req.IncidentType?.Type 
+                                <span class="@GetStatusBadgeClass(req.Status) px-2 py-0.5 rounded text-xs font-medium">
+                                    @StringConverter.ToDescription(req.Status)
+                                </span>                                 
+                            </span>
                             <span class="ml-3 text-sm text-gray-500 dark:text-gray-400">(@req.CreatedAt.ToString("dd MMM yyyy"))</span>
+                            <div class="flex flex-column">
+                                @req.Description
+                            </div>                                                        
                         </li>
                     }
                 </ul>
             }
             else
             {
-                <div class="text-gray-500 dark:text-gray-400 italic text-center py-4">No service requests available.</div>
+                <div class="text-gray-500 dark:text-gray-400 italic text-center py-4">No incidents report available.</div>
             }
         </div>
 
@@ -295,4 +302,24 @@
             _ => "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200 shadow-sm",
         };
     }
+
+    private string GetStatusBadgeClass(IncidentStatus status) =>
+        status switch
+        {
+            IncidentStatus.New => "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
+            IncidentStatus.Treated => "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
+            IncidentStatus.Reported or IncidentStatus.Resolved => "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
+            IncidentStatus.Closed => "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
+            _ => "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
+        };
+
+    private string GetStatusIconColor(IncidentStatus status) =>
+    status switch
+    {
+        IncidentStatus.New => "bg-yellow-500",
+        IncidentStatus.Treated => "bg-blue-500",
+        IncidentStatus.Reported or IncidentStatus.Resolved => "bg-green-500",
+        IncidentStatus.Closed => "bg-red-500",
+        _ => "bg-gray-500"
+    };
 }

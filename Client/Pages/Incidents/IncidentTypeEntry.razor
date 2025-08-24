@@ -1,0 +1,178 @@
+@page "/incident-types/{Action}/{Id:guid?}"
+@using Shared.Interfaces.Incidents
+@using Shared.Models.Incidents
+@inject IIncidentTypeService IncidentTypeService
+
+
+<div class="max-w-2xl mx-auto p-4 sm:p-6">
+
+    @if (AppState.IsBusy)
+    {
+        <Loader/>
+    }
+    else
+    {
+        <!-- Form Header -->
+        <div class="mb-6">
+            <h2 class="text-xl font-bold text-gray-900 dark:text-white">@(EditMode ? "Edit " : "Add New ")Incident Type</h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Please fill in the station details below</p>
+        </div>
+
+        <!-- Incident Type Form -->
+        <EditForm Model="@CurrentType" OnValidSubmit="HandleSubmit" class="space-y-6">
+
+            <!-- Incident Type Name -->
+            <div>
+                <label for="name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    Incident Type <span class="text-red-500">*</span>
+                </label>
+                <InputText id="name" @bind-Value="CurrentType.Type"
+                        class="@GetInputClass("Name")"
+                        maxlength="100"
+                        placeholder="Enter incident type name" />
+                @if (errors.ContainsKey("Name"))
+                {
+                    <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["Name"]</p>
+                }                        
+            </div>            
+
+            <!-- Timestamps -->
+            @if (EditMode)
+            {
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">Created At</label>
+                        <div class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300">
+                            @CurrentType.CreatedAt.ToString("MMM dd, yyyy HH:mm")
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">Last Updated</label>
+                        <div class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300">
+                            @(CurrentType.UpdatedAt?.ToString("MMM dd, yyyy HH:mm") ?? "Never")
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- Form Actions -->
+            <div class="flex justify-end gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <button type="button" @onclick="Cancel"
+                    class="px-5 py-2.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-700 dark:focus:ring-gray-700">
+                    Cancel
+                </button>
+                <button type="submit"
+                    class="px-5 py-2.5 text-sm font-medium text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800 flex items-center justify-center min-w-[120px]"
+                    disabled="@AppState.IsProcessing">
+                    @if (AppState.IsProcessing)
+                    {
+                        <svg class="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                        </svg>
+                        @("Processing...")
+                    }
+                    else
+                    {
+                        @(EditMode ? "Update Incident Type" : "Add Incident Type")
+                    }
+                </button>               
+            </div>
+        </EditForm>
+    }
+</div>
+
+@code {
+    [Parameter] public string Action { get; set; } = "Add";
+    [Parameter] public Guid? Id { get; set; }
+    [Parameter] public IncidentType CurrentType { get; set; } = new();
+    [Parameter] public bool EditMode { get; set; }
+    [Parameter] public EventCallback OnSubmit { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    bool result = false;
+    private NotificationAlert? alert = null;
+
+    private Dictionary<string, string> errors = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        AppState.IsBusy = true;
+        if (Id.HasValue)
+        {
+            CurrentType = await IncidentTypeService.GetAsync(Id.Value, AppState.GetCancellationToken()) ?? new();
+            EditMode = true;
+        }
+        AppState.IsBusy = false;
+    }
+
+    private string GetInputClass(string fieldName)
+    {
+        var baseClass = "bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500";
+        
+        if (errors.ContainsKey(fieldName))
+        {
+            baseClass += " border-red-500 bg-red-50 dark:bg-red-900 dark:border-red-700";
+        }
+        else
+        {
+            baseClass += " border-gray-300";
+        }
+        
+        return baseClass;
+    }
+
+    private async Task HandleSubmit()
+    {
+        AppState.IsProcessing = true;
+        errors.Clear();
+
+        // Validate required fields
+        if (string.IsNullOrWhiteSpace(CurrentType.Type))
+        {
+            errors["Name"] = "Incident Type is required";
+        }            
+
+        if (errors.Any())
+        {
+            AppState.IsProcessing = false;
+            StateHasChanged();
+            return;
+        }
+                
+        try
+        {
+            CurrentType.Type = StringConverter.ConvertToTitleCase(CurrentType.Type);
+                        
+
+            if (!Id.HasValue)
+            {
+                result = await IncidentTypeService.AddAsync(CurrentType, AppState.GetCancellationToken());
+            }
+            else
+            {
+                result = await IncidentTypeService.UpdateAsync(CurrentType, AppState.GetCancellationToken());
+            }
+
+            if (result)
+            {
+                ToastService.ShowSuccess($"Incident Type Successfully {(EditMode ? "Updated" : "Added")}", 5);
+                await Task.Delay(1000);
+                nav.NavigateTo("stations");
+            }                            
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError("Operation failed");
+        }
+        finally
+        {
+            AppState.IsProcessing = false;
+        }
+    }
+    
+    private void Cancel()
+    {
+        nav.NavigateTo("");
+    }
+}

@@ -4,6 +4,7 @@ using Shared.Enums;
 using Shared.Helpers;
 using Shared.Models.Checkpoints;
 using Shared.Models.Drivers;
+using Shared.Models.Incidents;
 using Shared.Models.Services;
 using Shared.Models.Stations;
 using Shared.Models.TripCheckpoints;
@@ -21,12 +22,14 @@ public class Trip
     public Guid? DriverId { get; set; }
     public Guid TruckId { get; set; }
     public string? DispatchId { get; set; }
-    public Guid? LoadingDepotId { get; set; }    
-    public Guid? ReceivingDepotId { get; set; }    
+    public Guid? LoadingDepotId { get; set; }
+    public Guid? ReceivingDepotId { get; set; }
     [Column(TypeName = "jsonb")]
     public LoadingInfo LoadingInfo { get; set; } = new();
     [Column(TypeName = "jsonb")]
     public ArrivalInfo ArrivalInfo { get; set; } = new();
+    [Column(TypeName = "jsonb")]
+    public List<Metrics>? Metrics { get; set; } = [];
     [Column(TypeName = "jsonb")]
     public CloseInfo CloseInfo { get; set; } = new();
     public TripStatus Status { get; set; }
@@ -40,11 +43,11 @@ public class Trip
     [ForeignKey(nameof(TruckId))]
     public virtual Truck? Truck { get; set; }
     public virtual ICollection<TripCheckpoint>? Checkpoints { get; set; } = [];
-    public virtual ICollection<ServiceRequest> Requests { get; set; } = [];
+    public virtual ICollection<Incident> Incidents { get; set; } = [];
     public virtual ICollection<Discharge> Discharges { get; set; } = [];
     [ForeignKey(nameof(LoadingDepotId))]
     public Station? LoadingDepot { get; set; }
-    
+
     [ForeignKey(nameof(ReceivingDepotId))]
     public Station? ReceivingDepot { get; set; }
 
@@ -70,7 +73,7 @@ public class Trip
             return "Shortage";
         else if (Quantity > 0)
             return "Overage";
-        else 
+        else
             return "Nil";
     }
 
@@ -118,7 +121,7 @@ public class Trip
                 LoadingInfo.Quantity = LoadingInfo.Quantity;
             }
         }
-    }
+    }        
 }
 
 public class ArrivalInfo
