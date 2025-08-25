@@ -48,6 +48,62 @@
     --font-sans: 'Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'system-ui', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'Noto Sans', 'sans-serif', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
     --font-body: 'Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'system-ui', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'Noto Sans', 'sans-serif', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
     --font-mono: 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', 'monospace';
+
+
+}
+
+/* Tailwind CSS equivalent styles for Rating.razor.css */
+
+.mcc-rating-root {
+    @apply inline-flex text-yellow-400 focus-visible:outline-none active:outline-none;
+}
+
+.mcc-rating-root:focus-visible:not(.mcc-disabled),
+.mcc-rating-root:active:not(.mcc-disabled) {
+    @apply bg-gray-200; /* Replace with your hover color variable */
+}
+
+.mcc-rating-item {
+    @apply cursor-pointer transition-transform duration-150 ease-in-out;
+}
+
+.mcc-rating-item.mcc-rating-item-active {
+    @apply scale-120;
+}
+
+.mcc-rating-item.mcc-disabled {
+    @apply cursor-default pointer-events-none;
+}
+
+.mcc-rating-item.mcc-disabled * {
+    @apply cursor-default text-gray-400; /* Replace with your disabled text variable */
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .mcc-rating-item.mcc-disabled:hover {
+        @apply cursor-default pointer-events-none;
+    }
+    .mcc-rating-item.mcc-disabled:hover * {
+        @apply cursor-default text-gray-400;
+    }
+}
+
+.mcc-rating-item.mcc-readonly {
+    @apply cursor-default;
+}
+
+.mcc-rating-item .mcc-rating-input {
+    @apply absolute z-10 m-0 p-0 opacity-0 overflow-hidden;
+    clip: rect(0,0,0,0);
+    cursor: inherit;
+}
+
+.mcc-rating-item svg {
+    pointer-events: none;
+}
+
+.mcc-rating-item svg path {
+    pointer-events: none;
 }
 
 .star {

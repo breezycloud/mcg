@@ -384,35 +384,17 @@
                             <div>                                
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Remarks (Optional)</label>
                                 <InputTextArea @bind-Value="Trip.CloseInfo.TripRemark" rows="3"
-                                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" />
-                                <ValidationMessage For="@(() => Trip.CloseInfo.TripRemark)" />
+                                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" />                                
                             </div>
 
                             <!-- Rating -->
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Trip Rating</label>
-                                <div class="flex items-center space-x-1">
-                                    @for (int i = 1; i <= 5; i++)
-                                    {
-                                        <button type="button" 
-                                                @onclick="() => SetRating(i)"
-                                                @onmouseover="() => hoverRating = i"
-                                                @onmouseout="() => hoverRating = null"
-                                                class="text-2xl focus:outline-none transition-colors duration-150">
-                                            <span class="@GetStarClass(i)">★</span>
-                                        </button>
-                                    }
-                                    <span class="ml-2 text-sm text-gray-500">
-                                        @if (Trip.CloseInfo.Rating > 0)
-                                        {
-                                            @GetRatingText()
-                                        }
-                                        else
-                                        {
-                                            <span class="text-gray-400">(Click to rate)</span>
-                                        }
-                                    </span>
-                                </div>
+                                <Rating CurrentRating="@Trip!.CloseInfo!.Rating"
+                                        MaxRating="5" 
+                                        OnRatingChanged="SetRating" />
+                                @* <div class="flex items-center space-x-1">                                    
+                                </div> *@
                             </div>
                             @if (Trip!.Status == TripStatus.Active)
                             {
@@ -961,35 +943,15 @@
         ToastService.ShowSuccess("Trip Successfully Updated");
     }
 
-     private int? hoverRating = null;
-
-    private string GetStarClass(int starValue)
-    {
-        if (hoverRating.HasValue)
-        {
-            return starValue <= hoverRating.Value ? "text-yellow-300" : "text-gray-300";
-        }
-        return starValue <= Trip?.CloseInfo.Rating ? "text-yellow-400" : "text-gray-300";
-    }
+    private int hoverRating;
 
     private void SetRating(int rating)
     {
-        Trip.CloseInfo.Rating = rating;        
+        Console.WriteLine(rating);
+        Trip!.CloseInfo.Rating = rating;
         StateHasChanged();        
     }
-
-    private string GetRatingText()
-    {
-        return Trip.CloseInfo.Rating switch
-        {
-            1 => "Poor",
-            2 => "Fair",
-            3 => "Good",
-            4 => "Very Good",
-            5 => "Excellent",
-            _ => ""
-        };
-    }
+    
 
     private void OnUploadCompleted(List<UploadResult> files)
     {

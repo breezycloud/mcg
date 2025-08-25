@@ -41,11 +41,11 @@
                         </div>
                         <div class="flex flex-col">
                             <span class="font-semibold text-gray-600 dark:text-gray-300 text-sm uppercase tracking-wide">Loading Depot</span>
-                            <span class="text-gray-900 dark:text-gray-100 font-medium">@Trip?.LoadingDepot?.Name</span>
+                            <span class="text-gray-900 dark:text-gray-100 font-medium">@(Trip?.LoadingDepot?.Name is null ? "Not assigned" : Trip?.LoadingDepot?.Name)</span>
                         </div>
                         <div class="flex flex-col">
                             <span class="font-semibold text-gray-600 dark:text-gray-300 text-sm uppercase tracking-wide">Receiving Depot</span>
-                            <span class="text-gray-900 dark:text-gray-100 font-medium">@Trip?.ReceivingDepot?.Name</span>
+                            <span class="text-gray-900 dark:text-gray-100 font-medium">@(Trip?.ReceivingDepot?.Name is null ? "Not assigned" : Trip?.ReceivingDepot?.Name)</span>
                         </div>
                     </div>
                 </div>
@@ -63,7 +63,7 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div class="flex flex-col">
                     <span class="font-semibold text-gray-600 dark:text-gray-300 text-sm uppercase tracking-wide">Waybill No</span>
-                    <span class="text-gray-900 dark:text-gray-100 font-medium">@Trip?.LoadingInfo?.WaybillNo</span>
+                    <span class="text-gray-900 dark:text-gray-100 font-medium">@(Trip?.LoadingInfo?.WaybillNo is null ? "Not assigned" : Trip?.LoadingInfo?.WaybillNo)</span>
                 </div>
                 <div class="flex flex-col">
                     <span class="font-semibold text-gray-600 dark:text-gray-300 text-sm uppercase tracking-wide">Quantity Loaded</span>
@@ -86,31 +86,31 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div class="flex flex-col">
                     <span class="font-semibold text-gray-600 dark:text-gray-300 text-sm uppercase tracking-wide">Arrived Depot</span>
-                    <span class="text-gray-900 dark:text-gray-100 font-medium">@(Trip?.ArrivalInfo?.ArrivedDepot == true ? "Yes" : "No")</span>
+                    <span class="text-gray-900 dark:text-gray-100 font-medium">@(Trip?.ArrivalInfo?.ArrivedDepot == true ? "Yes" : "Not assigned")</span>
                 </div>
                 <div class="flex flex-col">
                     <span class="font-semibold text-gray-600 dark:text-gray-300 text-sm uppercase tracking-wide">Depot Arrival Date</span>
-                    <span class="text-gray-900 dark:text-gray-100 font-medium">@Trip?.ArrivalInfo?.DepotArrivalDateTime?.ToString("dd MMM yyyy HH:mm")</span>
+                    <span class="text-gray-900 dark:text-gray-100 font-medium">@(Trip?.ArrivalInfo?.ArrivedDepot == true ? Trip?.ArrivalInfo?.DepotArrivalDateTime?.ToString("dd MMM yyyy HH:mm") : "Not assigned")</span>
                 </div>
                 <div class="flex flex-col">
                     <span class="font-semibold text-gray-600 dark:text-gray-300 text-sm uppercase tracking-wide">Arrived At Station</span>
-                    <span class="text-gray-900 dark:text-gray-100 font-medium">@(Trip?.ArrivalInfo?.ArrivedAtStation == true ? "Yes" : "No")</span>
+                    <span class="text-gray-900 dark:text-gray-100 font-medium">@(Trip?.ArrivalInfo?.ArrivedAtStation == true ? "Yes" : "Not assigned")</span>
                 </div>
                 <div class="flex flex-col">
                     <span class="font-semibold text-gray-600 dark:text-gray-300 text-sm uppercase tracking-wide">Station Arrival Date</span>
-                    <span class="text-gray-900 dark:text-gray-100 font-medium">@Trip?.ArrivalInfo?.StationArrivalDateTime?.ToString("dd MMM yyyy HH:mm")</span>
+                    <span class="text-gray-900 dark:text-gray-100 font-medium">@(Trip?.ArrivalInfo?.ArrivedAtStation == true ? Trip?.ArrivalInfo?.StationArrivalDateTime?.ToString("dd MMM yyyy HH:mm") : "Not assigned")</span>
                 </div>
                 <div class="flex flex-col">
                     <span class="font-semibold text-gray-600 dark:text-gray-300 text-sm uppercase tracking-wide">Invoice Issued</span>
-                    <span class="text-gray-900 dark:text-gray-100 font-medium">@(Trip?.ArrivalInfo?.InvoiceIssued == true ? "Yes" : "No")</span>
+                    <span class="text-gray-900 dark:text-gray-100 font-medium">@(Trip?.ArrivalInfo?.InvoiceIssued == true ? "Yes" : "Not assigned")</span>
                 </div>
                 <div class="flex flex-col">
                     <span class="font-semibold text-gray-600 dark:text-gray-300 text-sm uppercase tracking-wide">Invoice To Station Date</span>
-                    <span class="text-gray-900 dark:text-gray-100 font-medium">@Trip?.ArrivalInfo?.InvoiceToStationDateTime?.ToString("dd MMM yyyy HH:mm")</span>
+                    <span class="text-gray-900 dark:text-gray-100 font-medium">@(Trip?.ArrivalInfo?.InvoiceToStationDateTime is not null ? Trip?.ArrivalInfo?.InvoiceToStationDateTime?.ToString("dd MMM yyyy HH:mm") : "Not assigned")</span>
                 </div>
                 <div class="flex flex-col">
                     <span class="font-semibold text-gray-600 dark:text-gray-300 text-sm uppercase tracking-wide">Destination</span>
-                    <span class="text-gray-900 dark:text-gray-100 font-medium">@Trip?.ArrivalInfo?.Destination</span>
+                    <span class="text-gray-900 dark:text-gray-100 font-medium">@(Trip?.ArrivalInfo?.ArrivedAtStation == true ? Trip?.LoadingInfo.Destination : Trip?.ArrivalInfo.ArrivedDepot == true ? Trip.ReceivingDepot?.Name : "Not assigned")</span>
                 </div>
                 <div class="flex flex-col">
                     <span class="font-semibold text-gray-600 dark:text-gray-300 text-sm uppercase tracking-wide">Remark</span>
@@ -119,9 +119,26 @@
             </div>
         </div>
 
+        @if (Product != Product.CNG)
+        {
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 mb-8 transition-all duration-300 hover:shadow-xl">                                            
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div class="flex flex-col">
+                        <h3 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 border-b-2 border-blue-200 dark:border-blue-900 pb-3">Loading Params</h3>
+                        <TripParams Product="@Product" MetricsList="Trip?.LoadingInfo.Metrics"/>
+                    </div>
+                    <div class="flex flex-col">
+                        <h3 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 border-b-2 border-blue-200 dark:border-blue-900 pb-3">Arrival Params</h3>
+                        <TripParams Product="@Product" MetricsList="Trip?.LoadingInfo.Metrics"/>
+                    </div>
+                </div>
+            </div>
+        }
+        
+
         <!-- Close Info Section -->
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 mb-8 transition-all duration-300 hover:shadow-xl">
-            <h3 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 border-b-2 border-blue-200 dark:border-blue-900 pb-3">Close Info</h3>
+            <h3 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 border-b-2 border-blue-200 dark:border-blue-900 pb-3">Return Info</h3>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div class="flex flex-col">
                     <span class="font-semibold text-gray-600 dark:text-gray-300 text-sm uppercase tracking-wide">Return Date</span>
@@ -246,12 +263,23 @@
         </div>
 
         <!-- Actions Section -->
-        <div class="flex justify-end space-x-4">
-            <button class="px-6 py-3 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-all duration-200 transform hover:-translate-y-0.5"
-                    @onclick="() => OnEditTrip()"
-                    aria-label="Edit trip details">
-                Edit Trip
-            </button>
+        <div class="flex justify-end space-x-4">            
+            @if (Trip.Status != TripStatus.Completed)
+            {
+                <button class="px-6 py-3 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-all duration-200 transform hover:-translate-y-0.5"
+                        @onclick="() => OnEditTrip()"
+                        aria-label="Edit trip details">
+                    Edit Trip
+                </button>
+            }            
+            else if (Trip!.Status == TripStatus.Closed && (Authentication is not null && Authentication.User.IsInRole("Supervisor") || Authentication.User.IsInRole("Admin") || Authentication.User.IsInRole("Master")))
+            {
+                <button class="px-6 py-3 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-all duration-200 transform hover:-translate-y-0.5"
+                        @onclick="() => OnEditTrip()"
+                        aria-label="Edit trip details">
+                    Edit Trip
+                </button>
+            }
             <button class="px-6 py-3 bg-gray-200 text-gray-800 rounded-lg shadow-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-all duration-200 transform hover:-translate-y-0.5"
                     @onclick="() => OnBackToTrips()"
                     aria-label="Return to trips list">
@@ -264,13 +292,22 @@
 @code {
     [Parameter] public Guid id { get; set; }
     public Trip? Trip { get; set; }
-
+    Product Product { get; set; }
+    [CascadingParameter]
+    public Task<AuthenticationState>? authenticationState { get; set; }
+    private AuthenticationState? Authentication { get; set;}
     protected override async Task OnParametersSetAsync()
     {
         AppState.IsBusy = true;
         try
         {
             Trip = await TripService.GetAsync(id, AppState.GetCancellationToken());
+            Product = Trip!.Truck!.Product!.Value;
+            Authentication = await authenticationState!;
+            @* if (Authentication is not null && Authentication.User.IsInRole("Supervisor"))
+            {
+
+            } *@
         }
         catch (Exception ex)
         {
@@ -298,6 +335,7 @@
         return status switch
         {
             TripStatus.Closed => "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 shadow-sm",
+            TripStatus.Overdue => "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 shadow-sm",
             TripStatus.Active => "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 shadow-sm",
             _ => "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200 shadow-sm",
         };
@@ -314,12 +352,12 @@
         };
 
     private string GetStatusIconColor(IncidentStatus status) =>
-    status switch
-    {
-        IncidentStatus.New => "bg-yellow-500",
-        IncidentStatus.Treated => "bg-blue-500",
-        IncidentStatus.Reported or IncidentStatus.Resolved => "bg-green-500",
-        IncidentStatus.Closed => "bg-red-500",
-        _ => "bg-gray-500"
-    };
+        status switch
+        {
+            IncidentStatus.New => "bg-yellow-500",
+            IncidentStatus.Treated => "bg-blue-500",
+            IncidentStatus.Reported or IncidentStatus.Resolved => "bg-green-500",
+            IncidentStatus.Closed => "bg-red-500",
+            _ => "bg-gray-500"
+        };
 }
