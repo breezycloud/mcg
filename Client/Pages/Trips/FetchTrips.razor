@@ -40,18 +40,21 @@
                                 class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" 
                                 @bind="reportFilter.StartDate" />
                         </div>
-                        @* <div>
-                            <label for="end-date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">End Date</label>
-                            <input 
-                                type="date" 
-                                id="end-date" 
-                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" 
-                                @bind="reportFilter.EndDate" />
-                        </div> *@
+                        <select 
+                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                            value="Status"    
+                            style="width: 10rem;"                        
+                            @onchange="OnStatusChanged">
+                            <option value="">All Statuses</option>
+                            @foreach (var status in Enum.GetValues(typeof(TripStatus)))
+                            {
+                                <option value="@status">@status</option>
+                            }
+                        </select>                        
                     </div>
                     
                     <!-- Export CSV Button -->
-                   <div class="flex flex-col items-stretch justify-end flex-shrink-0 w-full space-y-2 md:w-auto md:flex-row md:space-y-0 md:items-center md:space-x-3">
+                   <div class="flex flex-col items-stretch justify-end flex-shrink-0 w-full space-y-2 md:w-auto md:flex-row md:space-y-0 md:items-center md:space-x-3">                        
                         <button 
                             @onclick="ExportCsv"
                             type="button"
@@ -62,12 +65,11 @@
                                 <svg class="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                                </svg>
-                                @* @("Processing...") *@
+                                </svg>                                
                             }
                             else
                             {
-                                @("Export CSV")
+                                @("Export")
                             }
                         </button>
                     </div>
@@ -257,7 +259,9 @@
     private string openMenuId;
     private bool showData = true;
     private bool showStatusModal = false;
+    private TripStatus? Status { get; set; }
 
+    
     private ReportFilter reportFilter = new ReportFilter();
     @* {
         ,
@@ -308,6 +312,25 @@
             request.SearchTerm = search;
         request.Page = 0; // Reset to first page when searching
         await LoadTrips();
+    }
+
+    private async Task OnStatusChanged(ChangeEventArgs e)
+    {
+        response = null;
+        if (Enum.TryParse<TripStatus>(e.Value?.ToString(), out var selected))
+        {
+            Status = selected;
+            request.Status = Status.ToString();
+        }
+        else
+        {
+            request.Status = null;
+        }                
+        request.Page = 0;
+        AppState.IsBusy = true;
+        await Task.Yield();
+        await LoadTrips();
+        AppState.IsBusy = false;
     }
     
     private async Task LoadTrips()

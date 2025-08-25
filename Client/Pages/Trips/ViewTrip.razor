@@ -2,7 +2,7 @@
 @inject ITripService TripService
 @attribute [Authorize]
 
-<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 bg-gray-50 dark:bg-gray-900 min-h-screen">
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-7 bg-gray-50 dark:bg-gray-900 min-h-screen">
     @if (AppState.IsBusy)
     {
         <Loader />
@@ -10,10 +10,10 @@
     else
     {
         <!-- Header Section -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 mb-8 transition-all duration-300 hover:shadow-xl">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 mb-8 transition-all duration-300 hover:shadow-xl">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
                 <div class="space-y-6 w-full">
-                    <h2 class="text-4xl font-extrabold text-gray-900 dark:text-white border-b-2 border-blue-200 dark:border-blue-900 pb-3">Trip Details</h2>
+                    <h3 class="text-4xl font-extrabold text-gray-900 dark:text-white border-b-2 border-blue-200 dark:border-blue-900 pb-3">Trip Details</h3>
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         <div class="flex flex-col">
                             <span class="font-semibold text-gray-600 dark:text-gray-300 text-sm uppercase tracking-wide">Dispatch</span>
@@ -129,7 +129,7 @@
                     </div>
                     <div class="flex flex-col">
                         <h3 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 border-b-2 border-blue-200 dark:border-blue-900 pb-3">Arrival Params</h3>
-                        <TripParams Product="@Product" MetricsList="Trip?.LoadingInfo.Metrics"/>
+                        <TripParams Product="@Product" MetricsList="Trip?.Metrics"/>
                     </div>
                 </div>
             </div>
@@ -150,7 +150,16 @@
                 </div>
                 <div class="flex flex-col">
                     <span class="font-semibold text-gray-600 dark:text-gray-300 text-sm uppercase tracking-wide">Rating</span>
-                    <span class="text-gray-900 dark:text-gray-100 font-medium">@Trip?.CloseInfo?.Rating</span>
+                    @if (Trip?.CloseInfo.Rating <= 0)
+                    {
+                        <span class="text-gray-900 dark:text-gray-100 font-medium"></span>
+                    }
+                    else
+                    {
+                        <Rating CurrentRating="@Trip!.CloseInfo!.Rating"
+                            MaxRating="5"
+                            Disabled="true" />
+                    }                    
                 </div>
                 <div class="flex flex-col">
                     <span class="font-semibold text-gray-600 dark:text-gray-300 text-sm uppercase tracking-wide">Supervisor Signature</span>
@@ -242,7 +251,7 @@
         </div>
 
         <!-- Checkpoints Section -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 mb-8 transition-all duration-300 hover:shadow-xl">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 mb-4 transition-all duration-300 hover:shadow-xl">
             <h3 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 border-b-2 border-blue-200 dark:border-blue-900 pb-3">Trip Checkpoints</h3>
             @if (Trip?.Checkpoints != null && Trip.Checkpoints.Any())
             {
@@ -266,7 +275,7 @@
         <div class="flex justify-end space-x-4">            
             @if (Trip.Status != TripStatus.Completed)
             {
-                <button class="px-6 py-3 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-all duration-200 transform hover:-translate-y-0.5"
+                <button class="px-6 py-2 mb-5 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-all duration-200 transform hover:-translate-y-0.5"
                         @onclick="() => OnEditTrip()"
                         aria-label="Edit trip details">
                     Edit Trip
@@ -274,13 +283,13 @@
             }            
             else if (Trip!.Status == TripStatus.Closed && (Authentication is not null && Authentication.User.IsInRole("Supervisor") || Authentication.User.IsInRole("Admin") || Authentication.User.IsInRole("Master")))
             {
-                <button class="px-6 py-3 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-all duration-200 transform hover:-translate-y-0.5"
+                <button class="px-6 py-2 mb-5 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-all duration-200 transform hover:-translate-y-0.5"
                         @onclick="() => OnEditTrip()"
                         aria-label="Edit trip details">
                     Edit Trip
                 </button>
             }
-            <button class="px-6 py-3 bg-gray-200 text-gray-800 rounded-lg shadow-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-all duration-200 transform hover:-translate-y-0.5"
+            <button class="px-6 py-2 mb-5 bg-gray-200 text-gray-800 rounded-lg shadow-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-all duration-200 transform hover:-translate-y-0.5"
                     @onclick="() => OnBackToTrips()"
                     aria-label="Return to trips list">
                 Back to Trips

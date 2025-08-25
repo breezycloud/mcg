@@ -40,8 +40,8 @@ public class SeedData
         }
     }
 
-    public record Drivers(string FirstName, string LastName,string PhoneNo);
-    public static List<Driver> KDrivers = [];
+    public record Drivers(Guid Id, string FirstName, string LastName,string PhoneNo, string LicensePlate);
+    public static List<Drivers> KDrivers = [];
     private static async Task AddDrivers(AppDbContext db)
     {
         try
@@ -54,16 +54,19 @@ public class SeedData
                 if (driver != null)
                 {
                     //var fullName = GetFirstLastName(driver!.fullName);
-                    //Console.WriteLine("First Name: {0} Last Name: {1}", fullName.firstName, fullName.lastName);
+                    // Console.WriteLine("First Name: {0} Last Name: {1}", driver.FirstName, driver.LastName);
+                    // Console.WriteLine("Id: {0} First Name: {1} Last Name: {2}", newDriver.Id, newDriver.FirstName, newDriver.LastName);
+                    // await Task.Delay(1000);
+                    var newDriver = driver with { Id = Guid.NewGuid(), FirstName = driver.FirstName, LastName = driver.LastName, PhoneNo = driver.PhoneNo, LicensePlate = driver.LicensePlate };
                     var d = new Driver
                     {
-                        Id = Guid.NewGuid(),
-                        FirstName = driver.FirstName,
-                        LastName = driver.LastName,
-                        PhoneNo = driver.PhoneNo,
+                        Id = newDriver.Id,
+                        FirstName = newDriver.FirstName,
+                        LastName = newDriver.LastName,
+                        PhoneNo = newDriver.PhoneNo,                                                
                     };
                     await db.Drivers.AddAsync(d);
-                    KDrivers.Add(d);
+                    KDrivers.Add(newDriver);
                 }
             }
         }
@@ -85,20 +88,22 @@ public class SeedData
             }
 
             stream.Position = 0;
-            Driver? lastDriver = null;
+            Drivers? lastDriver = null;
             await foreach (var truck in JsonSerializer.DeserializeAsyncEnumerable<Truck>(stream, options: null, cancellationToken: new CancellationTokenSource().Token))
             {
                 if (truck != null)
                 {
-                    //Console.WriteLine("{0} {1} {2}", truck.TruckNo, truck.VIN, truck.EngineNo);
-                    if (lastDriver is null)
+                    Console.WriteLine("{0} {1} {2}", truck.TruckNo, truck.VIN, truck.EngineNo);
+                    if (!KDrivers.Any(x => x.LicensePlate == truck.LicensePlate))
                     {
-                        lastDriver = KDrivers.FirstOrDefault();
+
+                        truck.DriverId = null;
                     }
                     else
-                        lastDriver = KDrivers.Where(x => x.Id != lastDriver.Id).FirstOrDefault();
-
-                    truck.DriverId = lastDriver?.Id;
+                    {
+                        lastDriver = KDrivers.Where(x => x.LicensePlate == truck.LicensePlate).FirstOrDefault();
+                        truck.DriverId = lastDriver?.Id;
+                    }                    
                     await db.Trucks.AddAsync(truck);
                 }
             }
