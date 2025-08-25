@@ -1,9 +1,10 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using Shared.Enums;
 
 namespace Shared.Models.Trips;
 
 
-public record CompartmentQuantity(decimal? Quantity);
+public record CompartmentQuantity([property: Column(TypeName = "decimal(18,2)")] decimal? Quantity);
 
 public class Metrics
 {
@@ -11,8 +12,11 @@ public class Metrics
     public Compartment Compartment { get; set; }
 
     // LPG
+    [Column(TypeName = "decimal(18,2)")]
     public decimal? TareWeight { get; set; }
+    [Column(TypeName = "decimal(18,2)")]
     public decimal? GrossWeight { get; set; }
+    [Column(TypeName = "decimal(18,2)")]
     public decimal NetWeight => GrossWeight - TareWeight ?? 0;
 
     // AGO/ATK/PMS
