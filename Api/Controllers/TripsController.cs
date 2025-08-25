@@ -144,6 +144,7 @@ public class TripsController : ControllerBase
                                 .Include(x => x.Driver)
                                 .Include(x => x.Truck)
                                 .Include(x => x.LoadingDepot)
+                                .Include(x => x.ReceivingDepot)
                                 .Include(x => x.Discharges)
                                 .ThenInclude(x => x.Station)
                                 .Include(x => x.Incidents)

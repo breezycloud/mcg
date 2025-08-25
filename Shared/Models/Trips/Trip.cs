@@ -140,7 +140,7 @@ public class CloseInfo
 {
     public DateTime? ReturnDateTime { get; set; }
     public string? TripRemark { get; set; }
-    public int Rating { get; set; } // 1-5
+    public int Rating { get; set; } = 0; // 1-5
     public string? SupervisorSignaturePath { get; set; }
     public DateTime CloseDateTime { get; set; } = DateTime.UtcNow;
 }
