@@ -225,13 +225,9 @@
     [Parameter] public bool EditMode { get; set; }
     [Parameter] public EventCallback OnSubmit { get; set; }
     [Parameter] public EventCallback OnCancel { get; set; }
-
     bool result = false;
     private NotificationAlert? alert = null;
-
     private Dictionary<string, string> errors = new();
-
-    // These should be loaded from your service or injected
     private Truck[]? Trucks;
     private Driver[]? Drivers;
     private MaintenanceSite[]? Sites;

@@ -94,19 +94,25 @@ public class TripsController : ControllerBase
                                       .AsQueryable();
             
             if (!string.IsNullOrEmpty(request.SearchTerm))
-                {
-                    string pattern = $"%{request.SearchTerm}%";
-                    query = query.Include(x => x.Truck)
-                                .Include(x => x.Driver)
-                                .AsSplitQuery()
-                                .Where(x => EF.Functions.ILike(x.LoadingInfo.WaybillNo!, pattern)
-                                || EF.Functions.ILike(x.LoadingDepot.Name, pattern)
-                                || EF.Functions.ILike(x.LoadingInfo.Destination, pattern)
-                                || EF.Functions.ILike(x.Truck.LicensePlate, pattern)
-                                || EF.Functions.ILike(x.Truck.TruckNo, pattern)
-                                || EF.Functions.ILike(x.Driver.LastName, pattern)
-                                || EF.Functions.ILike(x.Driver.FirstName, pattern));
-                }
+            {
+                string pattern = $"%{request.SearchTerm}%";
+                query = query.Include(x => x.Truck)
+                            .Include(x => x.Driver)
+                            .AsSplitQuery()
+                            .Where(x => EF.Functions.ILike(x.LoadingInfo.WaybillNo!, pattern)
+                            || EF.Functions.ILike(x.LoadingDepot.Name, pattern)
+                            || EF.Functions.ILike(x.LoadingInfo.Destination, pattern)
+                            || EF.Functions.ILike(x.Truck.LicensePlate, pattern)
+                            || EF.Functions.ILike(x.Truck.TruckNo, pattern)
+                            || EF.Functions.ILike(x.Driver.LastName, pattern)
+                            || EF.Functions.ILike(x.Driver.FirstName, pattern));
+            }
+
+            if (!string.IsNullOrEmpty(request.Status))
+            {
+                string pattern = $"%{request.Status}%";
+                query = query.Where(x => EF.Functions.ILike(x.Status.ToString()!, pattern));
+            }
 
             response.Total = await query.CountAsync();
             response.Data = [];

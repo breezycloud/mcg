@@ -146,7 +146,26 @@
                                     <option value="@DispatchType.Depot">Depot</option>
                                 </select>
                             </div>
-                                <StateSelector IsRequired="true" Destination="@Trip.LoadingInfo.Destination" OnLocationChanged="@DestinationChanged" FieldName="Destination" Errors="errors" GetInputClass="GetInputClass" />
+                            <StateSelector IsRequired="true" Destination="@Trip.LoadingInfo.Destination" OnLocationChanged="@DestinationChanged" FieldName="Destination" Errors="errors" GetInputClass="GetInputClass" />
+                            @if(Trip.LoadingInfo.DispatchType == DispatchType.Depot)
+                            {
+                                <div>
+                                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                        Receiving Point <span class="text-red-500">*</span>
+                                    </label>
+                                    <InputSelect @bind-Value="Trip.ReceivingDepotId" class="@GetInputClass("ReceivingDepotId")">
+                                        <option value="">-- Select Receiving Depot --</option>
+                                        @foreach (var station in Depots!)
+                                        {
+                                            <option value="@station.Id">@station.Name</option>
+                                        }
+                                    </InputSelect>
+                                    @if (errors.ContainsKey("ReceivingDepotId"))
+                                    {
+                                        <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["ReceivingDepotId"]</p>
+                                    }
+                                </div>
+                            }                            
                             <div>                                
                                 <FileUploadView OnFilesUploaded="OnUploadCompleted"/>
                             </div>                            
@@ -194,7 +213,6 @@
                         </button>
                         </div>                        
                         <TripRefuelInfo Dispatch="@Trip!.DispatchId" OnSave="OnRefresh"/>
-
                         
                     }
                     else if (activeTab == 3)
@@ -224,50 +242,34 @@
                                                     {
                                                         <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["DepotArrivalDateTime"]</p>
                                                     }
-                                            </div>
-
-                                            <div>
-                                                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                                                    Receiving Point <span class="text-red-500">*</span>
-                                                </label>
-                                                <InputSelect @bind-Value="Trip.ReceivingDepotId" class="@GetInputClass("ReceivingDepotId")">
-                                                    <option value="">-- Select Receiving Depot --</option>
-                                                    @foreach (var station in Depots!)
-                                                    {
-                                                        <option value="@station.Id">@station.Name</option>
-                                                    }
-                                                </InputSelect>
-                                                @if (errors.ContainsKey("ReceivingDepotId"))
-                                                {
-                                                    <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["ReceivingDepotId"]</p>
-                                                }                                                
                                             </div>                                            
-
-                                            <div class="flex items-center">
-                                                <input id="invoiced-issued-checkbox" type="checkbox" @bind="Trip!.ArrivalInfo.InvoiceIssued" 
-                                                    class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
-                                                <label for="invoiced-issued-checkbox" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">
-                                                    Invoice has been issued?
-                                                </label>
-                                            </div>
-                                        </div>                                    
-
-                                    }
-
-                                    @if (Trip!.ArrivalInfo.ArrivedDepot && Trip!.ArrivalInfo.InvoiceIssued)
-                                    {
-                                        <div>
-                                            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                                                Invoice Date <span class="text-red-500">*</span>
-                                            </label>
-                                            <input type="datetime-local" @bind="Trip.ArrivalInfo.InvoiceToStationDateTime"
-                                                    class="@GetInputClass("InvoiceToStationDateTime")">
-                                            @if (errors.ContainsKey("InvoiceToStationDateTime"))
-                                            {
-                                                <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["InvoiceToStationDateTime"]</p>
-                                            }
                                         </div>
-                                    }
+                                    }   
+                                    
+                                        <div class="flex items-center">
+                                            <input id="invoiced-issued-checkbox" type="checkbox" @bind="Trip!.ArrivalInfo.InvoiceIssued" 
+                                                class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                                            <label for="invoiced-issued-checkbox" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                                                Invoice has been issued?
+                                            </label>
+                                        </div>
+                                        @if (Trip!.ArrivalInfo.ArrivedDepot && Trip!.ArrivalInfo.InvoiceIssued)
+                                        {
+                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div>
+                                                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                                        Invoice Date <span class="text-red-500">*</span>
+                                                    </label>
+                                                    <input type="datetime-local" @bind="Trip.ArrivalInfo.InvoiceToStationDateTime"
+                                                            class="@GetInputClass("InvoiceToStationDateTime")">
+                                                    @if (errors.ContainsKey("InvoiceToStationDateTime"))
+                                                    {
+                                                        <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["InvoiceToStationDateTime"]</p>
+                                                    }
+                                                </div>                                                
+                                                <StateSelector IsRequired="true" Destination="@Trip.ArrivalInfo!.Destination" OnLocationChanged="@ArrivalDestinationChanged" FieldName="Discharge Destination" Errors="errors" GetInputClass="GetInputClass" />
+                                            </div>
+                                        }                                    
                                 </div>
                             </div>
                         }
@@ -391,7 +393,7 @@
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Trip Rating</label>
                                 <Rating CurrentRating="@Trip!.CloseInfo!.Rating"
-                                        MaxRating="5" 
+                                        MaxRating="5"
                                         OnRatingChanged="SetRating" />
                                 @* <div class="flex items-center space-x-1">                                    
                                 </div> *@
@@ -468,7 +470,7 @@
 {
     <DischargeModal Data="@currentDischarge"
         IsVisible="@showDischargeModal"
-        Destination="@Trip.LoadingInfo.Destination"
+        Destination="@(Trip?.LoadingInfo.DispatchType == DispatchType.Depot ? Trip?.ArrivalInfo.Destination  : Trip?.LoadingInfo.Destination)"
         EditMode="false"        
         InitialQuantity="@InitialQuantity"
         OnClose="@CloseDischargeModal"
@@ -623,6 +625,11 @@
                 errors["WaybillNo"] = "WayBill No is required";
             }
 
+            if (Trip.LoadingInfo.DispatchType == DispatchType.Depot && Trip?.ReceivingDepotId is null)
+            {
+                errors["ReceivingDepotId"] = "Receiving Depot is required";
+            }
+
             if (string.IsNullOrWhiteSpace(Trip!.LoadingInfo.Destination))
             {
                 errors["Destination"] = "WayBill No is required";
@@ -636,14 +643,14 @@
                 if (Trip.ArrivalInfo.ArrivedDepot && Trip?.ArrivalInfo.DepotArrivalDateTime is null)
                 {
                     errors["DepotArrivalDateTime"] = "Arrival Date/Time is required";
-                }
-                if (Trip.ArrivalInfo.ArrivedDepot && Trip?.ReceivingDepotId is null)
-                {
-                    errors["ReceivingDepotId"] = "Station is required";
-                }
+                }                
                 if (Trip.ArrivalInfo.InvoiceIssued && Trip?.ArrivalInfo.InvoiceToStationDateTime is null)
                 {
-                    errors["InvoiceToStationDateTime"] = "Arrival Date/Time is required";
+                    errors["InvoiceToStationDateTime"] = "Issue Date/Time is required";
+                }
+                if (Trip.ArrivalInfo.InvoiceIssued && Trip?.ArrivalInfo.Destination is null)
+                {
+                    errors["ArrivalDestination"] = "Destination is required";
                 }
             }            
             else
