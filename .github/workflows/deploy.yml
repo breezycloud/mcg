@@ -42,7 +42,7 @@ jobs:
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
-          key: ${{ secrets.VPS_SSH_KEY }}
+          password: ${{ secrets.VPS_PASSWORD }}
           source: "./client/publish/*"
           target: ${{ secrets.CLIENT_TARGET }}
           rm: true  # Remove old files before copy
@@ -62,7 +62,7 @@ jobs:
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
-          key: ${{ secrets.VPS_SSH_KEY }}
+          password: ${{ secrets.VPS_PASSWORD }}
           source: "./api/publish/*"
           target: ${{ secrets.API_TARGET }}
           rm: true  # Remove old files before copy
