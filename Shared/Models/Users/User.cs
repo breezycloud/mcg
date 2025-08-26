@@ -3,7 +3,6 @@ using Shared.Enums;
 
 namespace Shared.Models.Users;
 
-
 public class User
 {
     [Key]
@@ -29,5 +28,4 @@ public class User
     {
         return $"{FirstName} {LastName}";
     }
-    
 }

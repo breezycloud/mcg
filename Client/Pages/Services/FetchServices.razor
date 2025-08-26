@@ -1,7 +1,7 @@
 @page "/requests"
 @inject IRequestService RequestService
 @inject IMaintenanceService SiteService
-@attribute [Authorize(Roles ="Admin, Master, Monitoring")]
+@attribute [Authorize(Roles ="Supervisor, Monitoring, Admin, Master")]
 <PageTitle>Requests</PageTitle>
 
 

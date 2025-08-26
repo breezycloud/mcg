@@ -119,7 +119,7 @@ var client = new SmtpClientOptions()
 builder.Services.AddSingleton<ISender>(x => new MailKitSender(client));
 
 builder.Services.AddTransient<IFluentEmailFactory, FluentEmailFactory>();
-builder.Services.AddFluentEmail("nerdyamin@gmail.com")
+builder.Services.AddFluentEmail("mustapha.aliyu@mcg.com.cn")
     .AddRazorRenderer()
     .AddMailKitSender(client);
 
