@@ -22,7 +22,7 @@ public class SeedData
         var scopeFactory = services.GetRequiredService<IServiceScopeFactory>();
         using var scope = scopeFactory.CreateScope();
         using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        //db.Database.EnsureDeleted();
+        db.Database.EnsureDeleted();
        
         if (db.Database.EnsureCreated())
         {

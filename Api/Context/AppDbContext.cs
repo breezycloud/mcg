@@ -44,4 +44,14 @@ public class AppDbContext : DbContext
     public DbSet<IncidentType> IncidentTypes { get; set; } = default!;
     public DbSet<IncidentHistory> IncidentHistories { get; set; } = default!;
 
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<User>()
+            .HasIndex(x => x.Email)
+            .IsUnique();
+
+        base.OnModelCreating(modelBuilder);
+    }
+
 }
