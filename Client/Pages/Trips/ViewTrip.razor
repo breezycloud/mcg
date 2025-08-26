@@ -1,6 +1,6 @@
 @page "/view-trip/{id:guid}"
 @inject ITripService TripService
-@attribute [Authorize]
+@attribute [Authorize (Roles = "Admin, Master, Monitoring, Supervisor")]
 
 <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-7 bg-gray-50 dark:bg-gray-900 min-h-screen">
     @if (AppState.IsBusy)
@@ -273,22 +273,26 @@
 
         <!-- Actions Section -->
         <div class="flex justify-end space-x-4">            
-            @if (Trip.Status != TripStatus.Completed)
-            {
-                <button class="px-6 py-2 mb-5 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-all duration-200 transform hover:-translate-y-0.5"
-                        @onclick="() => OnEditTrip()"
-                        aria-label="Edit trip details">
-                    Edit Trip
-                </button>
-            }            
-            else if (Trip!.Status == TripStatus.Closed && (Authentication is not null && Authentication.User.IsInRole("Supervisor") || Authentication.User.IsInRole("Admin") || Authentication.User.IsInRole("Master")))
-            {
-                <button class="px-6 py-2 mb-5 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-all duration-200 transform hover:-translate-y-0.5"
-                        @onclick="() => OnEditTrip()"
-                        aria-label="Edit trip details">
-                    Edit Trip
-                </button>
-            }
+            <AuthorizeView Roles="Admin, Master, Monitoring, Supervisor">
+                <Authorized>
+                    @if (Trip.Status != TripStatus.Completed)
+                    {
+                        <button class="px-6 py-2 mb-5 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-all duration-200 transform hover:-translate-y-0.5"
+                                @onclick="() => OnEditTrip()"
+                                aria-label="Edit trip details">
+                            Edit Trip
+                        </button>
+                    }
+                    else if (Trip!.Status == TripStatus.Closed && (Authentication is not null && Authentication.User.IsInRole("Supervisor") || Authentication.User.IsInRole("Admin") || Authentication.User.IsInRole("Master") || Authentication.User.IsInRole("Supervisor")))
+                    {
+                        <button class="px-6 py-2 mb-5 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-all duration-200 transform hover:-translate-y-0.5"
+                                @onclick="() => OnEditTrip()"
+                                aria-label="Edit trip details">
+                            Edit Trip
+                        </button>
+                    }                        
+                </Authorized>
+            </AuthorizeView>            
             <button class="px-6 py-2 mb-5 bg-gray-200 text-gray-800 rounded-lg shadow-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-all duration-200 transform hover:-translate-y-0.5"
                     @onclick="() => OnBackToTrips()"
                     aria-label="Return to trips list">

@@ -65,6 +65,7 @@ public class Auth : ControllerBase
         
         var claim = new Claim[]
         {
+            new Claim(ClaimTypes.NameIdentifier, credential.Id.ToString()),
             new Claim(ClaimTypes.Name, credential.ToString()!),
             new Claim(ClaimTypes.Email, _result.Email!),
             new Claim(ClaimTypes.Role, _result.Role.ToString())

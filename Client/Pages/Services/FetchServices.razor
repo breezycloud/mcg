@@ -1,7 +1,7 @@
 @page "/requests"
 @inject IRequestService RequestService
 @inject IMaintenanceService SiteService
-@attribute [Authorize(Roles ="Admin, Master")]
+@attribute [Authorize(Roles ="Admin, Master, Monitoring")]
 <PageTitle>Requests</PageTitle>
 
 
@@ -65,7 +65,7 @@
                         
                      }
                  </div>
-                <AuthorizeView Roles="Admin, Master">
+                <AuthorizeView Roles="Admin, Master, Supervisor">
                     <div class="flex flex-col items-stretch justify-end flex-shrink-0 w-full space-y-2 md:w-auto md:flex-row md:space-y-0 md:items-center md:space-x-3">
                     <button 
                         @onclick="AddRequest" 
