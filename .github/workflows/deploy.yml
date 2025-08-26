@@ -19,8 +19,8 @@ jobs:
         with:
           dotnet-version: '9.0.x'
 
-      - name: Restore Dependencies
-        run: dotnet restore
+      - name: Restore Client Dependencies
+        run: dotnet restore Client
 
       - name: Build and Publish Client
         run: dotnet publish Client -c Release -o ./client/publish
@@ -47,6 +47,9 @@ jobs:
           target: ${{ secrets.CLIENT_TARGET }}
           rm: true  # Remove old files before copy
       
+      - name: Restore Api Dependencies
+        run: dotnet restore Api
+
       - name: Build and Publish Api
         run: |
           dotnet publish Api \
