@@ -1,0 +1,40 @@
+name: Deploy Blazor App to VPS
+
+on:
+  push:
+    branches:
+      - main  # Change if using 'master'
+    paths:
+      - 'Client/**'   # Only trigger when files in Client/ are modified
+      - 'Shared/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore Client Dependencies
+        run: dotnet restore Client
+
+      - name: Build and Publish Client
+        run: dotnet publish Client -c Release -o ./publish
+    
+    
+      - name: Upload Client via SSH
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          source: "./publish/*"
+          target: ${{ secrets.CLIENT_TARGET }}
+          rm: true  # Remove old files before copy      
