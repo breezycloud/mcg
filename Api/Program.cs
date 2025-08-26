@@ -17,11 +17,13 @@ using Npgsql;
 using RazorLight;
 using Shared.Helpers;
 using Shared.Interfaces.Dashboards;
+using Shared.Models.MessageBroker;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+builder.Services.Configure<MessageBrokerSetting>(builder.Configuration?.GetSection("RabbitMQ"));
 var key = Encoding.ASCII.GetBytes(builder.Configuration["App:Key"]!);
 string MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 builder.Services.AddCors(options =>
@@ -105,6 +107,11 @@ builder.Services.AddSingleton(sp =>
 
 
 var smtp = builder.Configuration?.GetSection(SmtpOption.Key).Get<SmtpOption>();
+
+
+// var messageBrokerSetting = builder.Configuration.GetSection("RabbitMQ").Get<MessageBrokerSetting>();
+// Console.WriteLine(messageBrokerSetting.HostName);
+
 
 var client = new SmtpClientOptions()
 {
