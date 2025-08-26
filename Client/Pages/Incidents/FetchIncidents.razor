@@ -40,7 +40,7 @@
                         <option value="@status">@status</option>
                     }
                 </select>
-                <AuthorizeView Roles="Admin, Master">
+                <AuthorizeView Roles="Admin, Monitoring, Master">
                     <div class="flex flex-col items-stretch justify-end flex-shrink-0 w-full space-y-2 md:w-auto md:flex-row md:space-y-0 md:items-center md:space-x-3">                    
                     <button 
                         @onclick="AddIncident" 
@@ -192,11 +192,15 @@
     private MaintenanceSite[]? Sites;
     private MaintenanceSite? Site = new();
     private bool IsDisabled = false;
+    [CascadingParameter] public Task<AuthenticationState>? authenticationState { get; set; }
     protected override async Task OnInitializedAsync()
     {
         // Load trucks and sites here
         AppState.IsBusy = true;  
-        request = new GridDataRequest { Page = 0, PageSize = 10};                      
+        request = new GridDataRequest { Page = 0, PageSize = 10};        
+        var authentication = await authenticationState!;
+        if (authentication.User.IsInRole("Monitoring"))        
+            request.Id = await localStorage.GetItemAsync<Guid>("uid");
         await LoadIncidents();
         AppState.IsBusy = false;
     }

@@ -1,7 +1,6 @@
 @page "/driver/{id:guid}"
 @inject IDriverService DriverService
-
-
+@attribute [Authorize(Roles = "Supervisor, Admin, Master")]
 @inject IDriverService DriverService
 
 

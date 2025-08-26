@@ -33,7 +33,7 @@ public class IncidentsController : ControllerBase
 
             if (request.Id.HasValue)
             {
-                query = query.Where(x => x.TripId == request.Id.Value || x.DriverId == request.Id.Value || x.TruckId == request.Id.Value);
+                query = query.Where(x => x.TripId == request.Id.Value || x.DriverId == request.Id.Value || x.TruckId == request.Id.Value || x.CreatedById == request.Id.Value);
             }
             
             if (!string.IsNullOrEmpty(request.SearchTerm))
