@@ -35,7 +35,7 @@ public class EmailConsumerService : BackgroundService
             Password = rabbitConfig.Value.Password,
             Port = rabbitConfig.Value.Port
         };
-
+        Console.WriteLine("{0} {1} {2} {3}", factory.HostName, factory.UserName, factory.Password, factory.Port);
         _connection = factory.CreateConnection();
         _channel = _connection.CreateModel();
 
