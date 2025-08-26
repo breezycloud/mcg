@@ -42,11 +42,13 @@ public class IncidentsController : ControllerBase
                 query = query.Where(x => EF.Functions.ILike(x.Truck!.TruckNo, pattern));
             }
 
+            if (!string.IsNullOrEmpty(request.Status))
+            {
+                string pattern = $"%{request.Status}%";
+                query = query.Where(x => EF.Functions.ILike(x.Status.ToString()!, pattern));
+            }
             
-
             response.Total = await query.CountAsync(cancellationToken);
-
-
 
             response.Data = [];
             var pagedQuery = query.OrderByDescending(x => x.CreatedAt).ThenByDescending(x => x.TreatedAt).Skip(request.Paging).Take(request.PageSize).AsAsyncEnumerable();

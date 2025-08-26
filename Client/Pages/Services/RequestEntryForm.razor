@@ -279,7 +279,7 @@
         {
             errors["MaintenanceSiteId"] = "Maintenance Site is required";
         }
-        if (CurrentRequest.Cost is null)
+        if (Id.HasValue && CurrentRequest.Cost is null)
         {
             errors["Cost"] = "Cost is required";
         }
