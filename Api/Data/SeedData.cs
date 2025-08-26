@@ -96,7 +96,6 @@ public class SeedData
                     Console.WriteLine("{0} {1} {2}", truck.TruckNo, truck.VIN, truck.EngineNo);
                     if (!KDrivers.Any(x => x.LicensePlate == truck.LicensePlate))
                     {
-
                         truck.DriverId = null;
                     }
                     else
