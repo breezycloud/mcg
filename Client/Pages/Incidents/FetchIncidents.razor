@@ -29,6 +29,17 @@
                             @bind-value="@request.SearchTerm" @bind-value:event="oninput" @onkeyup="async () => await HandleSearch(request.SearchTerm!)"/>
                     </div>
                 </div>
+                <select 
+                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                    value="Status"    
+                    style="width: 10rem;"                        
+                    @onchange="OnStatusChanged">
+                    <option value="">All Statuses</option>
+                    @foreach (var status in Enum.GetValues(typeof(IncidentStatus)))
+                    {
+                        <option value="@status">@status</option>
+                    }
+                </select>
                 <AuthorizeView Roles="Admin, Master">
                     <div class="flex flex-col items-stretch justify-end flex-shrink-0 w-full space-y-2 md:w-auto md:flex-row md:space-y-0 md:items-center md:space-x-3">                    
                     <button 
@@ -172,7 +183,7 @@
 @code {
     private GridDataResponse<Incident>? response = null;
     private GridDataRequest request = new();
-
+    private IncidentStatus? Status;
     private bool IsVisible = false;
 
     private IncidentType? IncidentType  = new();
@@ -224,6 +235,23 @@
         else
             request.SearchTerm = search;
         request.Page = 0; // Reset to first page when searching
+        await LoadIncidents();
+    }
+
+    private async Task OnStatusChanged(ChangeEventArgs e)
+    {
+        response = null;
+        if (Enum.TryParse<IncidentStatus>(e.Value?.ToString(), out var selected))
+        {
+            Status = selected;
+            request.Status = Status.ToString();
+        }
+        else
+        {
+            request.Status = null;
+        }                        
+        await Task.Yield();
+        request.Page = 0;
         await LoadIncidents();
     }
     

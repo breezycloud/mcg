@@ -42,6 +42,12 @@ public class ServiceRequestsController : ControllerBase
                 query = query.Include(x => x.Truck).Where(x => EF.Functions.ILike(x.Truck!.TruckNo, pattern));
             }
 
+            if (!string.IsNullOrEmpty(request.Status))
+            {
+                string pattern = $"%{request.Status}%";
+                query = query.Where(x => EF.Functions.ILike(x.Status.ToString()!, pattern));
+            }
+
             
 
             response.Total = await query.CountAsync(cancellationToken);
