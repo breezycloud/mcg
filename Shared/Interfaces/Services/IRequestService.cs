@@ -11,4 +11,5 @@ public interface IRequestService
     Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken);
     Task<ServiceRequest?> GetAsync(Guid id, CancellationToken cancellationToken);
     Task<GridDataResponse<ServiceRequest>?> GetPagedAsync(GridDataRequest request, CancellationToken cancellationToken);
+    Task<GridDataResponse<ServiceRequest>?> ReportPagedAsync(GridDataRequest request, CancellationToken cancellationToken);
 }

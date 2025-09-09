@@ -101,7 +101,28 @@
 
                 <!-- Loading Point -->
                 <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    <StationAutocomplete                             
+                            @bind-Value="SelectedStation"
+                            StationType="StationType.LoadingDepot"
+                            Label="Select Loading Station"
+                            Placeholder="Start typing station name..."
+                            ShowDetails="true"
+                            AllowClear="true" />
+
+                        @if (SelectedStation != null)
+                        {
+                            <div class="mt-4 p-4 bg-green-50 rounded">
+                                <h4 class="font-bold">Selected Station:</h4>
+                                <p>@SelectedStation.Name</p>
+                                <p><small>@(StringConverter.ToDescription(SelectedStation.Type))</small></p>
+                            </div>
+                        }
+                        @* @if (errors.ContainsKey("LoadingPointId"))
+                        {
+                            <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["LoadingPointId"]</p>
+                        } *@
+
+                    @* <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                         Loading Point <span class="text-red-500">*</span>
                     </label>
                     <InputSelect @bind-Value="tripLoading.LoadingPointId" class="@GetInputClass("LoadingPointId")">
@@ -114,7 +135,7 @@
                     @if (errors.ContainsKey("LoadingPointId"))
                     {
                         <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["LoadingPointId"]</p>
-                    }
+                    } *@
                 </div>                               
 
              <!-- Timestamps -->
@@ -185,11 +206,13 @@
     private Station[]? Depots = [];
     private Station[]? Destionations = [];
 
+    private Station? SelectedStation;
+
     protected override async Task OnInitializedAsync()
     {
         AppState.IsBusy = true;
         Trucks = await TruckService.GetAsync(TripStatus.Closed.ToString(), AppState.GetCancellationToken());
-        Depots = await StationService.GetAsync(StationType.LoadingDepot.ToString(), AppState.GetCancellationToken());
+        @* Depots = await StationService.GetAsync(StationType.LoadingDepot.ToString(), AppState.GetCancellationToken()); *@
         Destionations = await StationService.GetAsync(StationType.DischargeStation.ToString(), AppState.GetCancellationToken());
         Drivers = await DriverService.GetAsync(AppState.GetCancellationToken());
         if (Id.HasValue)
@@ -215,6 +238,30 @@
     {
         tripLoading!.Destination = location;
         StateHasChanged();
+    }
+
+    private void OnStationSelected(Station station)
+    {
+        SelectedStation = station;
+        tripLoading!.LoadingPointId = station.Id;
+        StateHasChanged();
+    }
+
+     private async Task<List<Station>> SearchStationsAsync(string searchText, int page, CancellationToken token)
+    {
+        var request = new GridDataRequest
+        {
+            Page = page,
+            PageSize = 10,
+            SearchTerm = searchText
+        };
+
+        var response = await StationService.GetPagedAsync(
+            StationType.LoadingDepot.ToString(),
+            request,
+            token);
+
+        return response.Data?.ToList() ?? new();
     }
 
     private string GetInputClass(string fieldName)

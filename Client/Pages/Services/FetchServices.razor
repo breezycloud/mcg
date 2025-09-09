@@ -67,15 +67,24 @@
                  </div>
                 <AuthorizeView Roles="Admin, Master, Supervisor">
                     <div class="flex flex-col items-stretch justify-end flex-shrink-0 w-full space-y-2 md:w-auto md:flex-row md:space-y-0 md:items-center md:space-x-3">
-                    <button 
-                        @onclick="AddRequest" 
-                        type="button" 
-                        class="flex items-center justify-center text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">
-                        <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                            <path clip-rule="evenodd" fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" />
-                        </svg>
-                        Add Request
-                    </button>
+                        <a 
+                            href="service-report" 
+                            type="button" 
+                            class="flex items-center justify-center text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-4 py-2.5 dark:bg-green-500 dark:hover:bg-green-600 focus:outline-none dark:focus:ring-green-700">
+                            <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                <path clip-rule="evenodd" fill-rule="evenodd" d="M5.999 2.5a1.5 1.5 0 011.5 1.5v10.5a1.5 1.5 0 01-3 0V4a1.5 1.5 0 011.5-1.5zM10 2.5a1.5 1.5 0 011.5 1.5v10.5a1.5 1.5 0 01-3 0V4a1.5 1.5 0 011.5-1.5zM14.001 4a1.5 1.5 0 00-1.5 1.5v6.5a1.5 1.5 0 003 0V5.5a1.5 1.5 0 00-1.5-1.5z"></path>
+                            </svg>
+                            Report
+                        </a>
+                        <button 
+                            @onclick="AddRequest" 
+                            type="button" 
+                            class="flex items-center justify-center text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">
+                            <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                <path clip-rule="evenodd" fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" />
+                            </svg>
+                            Add Request
+                        </button>
                 </div>
                 </AuthorizeView>
                 

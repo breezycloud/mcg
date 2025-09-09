@@ -1,4 +1,4 @@
-﻿@inherits LayoutComponentBase
+﻿@* @inherits LayoutComponentBase
 <div class="antialiased bg-gray-50 dark:bg-gray-900">
     <nav class="bg-white border-b border-gray-200 px-4 py-2.5 dark:bg-gray-800 dark:border-gray-700 fixed left-0 right-0 top-0 z-50">
       <div class="flex flex-wrap justify-between items-center">
@@ -57,9 +57,86 @@
       </div>
     </aside>
 
-    <main class="p-0 md:ml-64 pt-20">
+    <main class="p-0 md:ml-64 pt-20 min-h-screen">
       <Toast />
       <Updater/>
         @Body            
     </main>
-  </div>
+  </div> *@
+
+  @inherits LayoutComponentBase
+
+<div class="antialiased bg-gray-50 dark:bg-gray-900">
+  
+  <nav class="bg-white border-b border-gray-200 px-4 py-2.5 dark:bg-gray-800 dark:border-gray-700 fixed left-0 right-0 top-0 z-50">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center">
+        
+        <button @onclick="ToggleSidebar"
+                aria-expanded="@SidebarOpen.ToString().ToLower()"
+                class="p-2 mr-2 text-gray-600 rounded-lg hover:text-gray-900 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-100 dark:focus:ring-gray-700">
+          @if (SidebarOpen)
+          {            
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          }
+          else
+          {
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M3 5h14a1 1 0 010 2H3a1 1 0 010-2zm0 4h14a1 1 0 010 2H3a1 1 0 010-2zm0 4h14a1 1 0 010 2H3a1 1 0 010-2z" />
+            </svg>
+          }
+          <span class="sr-only">Toggle sidebar</span>
+        </button>
+
+        <a href="/" class="flex items-center">
+          <img src="favicon.png" alt="logo" class="h-8 w-8 mr-3" />
+          <span class="text-2xl font-semibold dark:text-white">MCC</span>
+        </a>
+      </div>
+
+      <LoginStatus />
+    </div>
+  </nav>
+  
+  <div class="@($"fixed inset-0 bg-black bg-opacity-40 z-30 md:hidden {(SidebarOpen ? "block" : "hidden")}")"
+       @onclick="CloseSidebarIfMobile"
+       aria-hidden="true"></div>
+
+  
+  <aside id="drawer-navigation"
+         aria-label="Sidenav"
+         class="@(
+           "fixed top-0 left-0 z-40 w-64 h-screen pt-14 bg-white border-r border-gray-200 dark:bg-gray-800 dark:border-gray-700 " +
+           "transform transition-transform duration-300 " +
+           (SidebarOpen ? "translate-x-0" : "-translate-x-full")
+         )">
+    <div class="overflow-y-auto py-5 px-3 h-full">
+      <NavMenu />
+    </div>
+  </aside>
+
+  
+  <main class="pt-20 min-h-screen transition-all duration-300"
+        style=@($"margin-left:{(SidebarOpen ? "16rem" : "0")};")>
+    <Toast />
+    <Updater />
+    @Body
+  </main>
+</div>
+
+@code {
+  private bool SidebarOpen { get; set; } = false;
+
+  private void ToggleSidebar()
+  {
+    SidebarOpen = !SidebarOpen;
+  }
+
+  private void CloseSidebarIfMobile()
+  {
+    SidebarOpen = false;
+    StateHasChanged();
+  }
+}

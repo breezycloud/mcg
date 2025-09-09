@@ -1,0 +1,238 @@
+@using Microsoft.AspNetCore.Components.Web
+@using System.Linq.Expressions
+@using System.Timers
+
+@typeparam TItem
+
+<div class="relative">
+    <input
+        id="autocomplete-input"
+        type="text"
+        class="w-full bg-gray-50 border border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-700 dark:text-white
+               text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 pr-10"
+        placeholder="@Placeholder"
+        @bind="SearchText"
+        @bind:event="oninput"
+        @onkeydown="OnKeyDown"
+        role="combobox"
+        aria-autocomplete="list"
+        aria-controls="autocomplete-list"
+        aria-expanded="@showList.ToString().ToLower()"
+        aria-activedescendant="@GetActiveDescendantId()"
+        autocomplete="off" />
+
+    @if (!string.IsNullOrWhiteSpace(SearchText))
+    {
+        <button type="button"
+                class="absolute inset-y-0 right-2 flex items-center text-gray-400 hover:text-gray-600"
+                @onclick="ClearInput"
+                aria-label="Clear input">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd"
+                      d="M6 4a1 1 0 011.41 0L10 6.59 12.59 4A1 1 0 0114 5.41L11.41 8 14 10.59A1 1 0 0112.59 12L10 9.41 7.41 12A1 1 0 016 10.59L8.59 8 6 5.41A1 1 0 016 4z"
+                      clip-rule="evenodd" />
+            </svg>
+        </button>
+    }
+
+    @if (isLoading && isFirstLoad)
+    {
+        <div class="absolute inset-y-0 right-8 flex items-center pr-2">
+            <svg class="w-5 h-5 text-gray-200 animate-spin fill-blue-600"
+                 viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M100 50.59c0 27.61-22.39 50-50 50s-50-22.39-50-50
+                        22.39-50 50-50 50 22.39 50 50zm-9.08 0A40.92 40.92 0
+                        1050 91.51 40.92 40.92 0 0090.92 50.59z" fill="currentColor" />
+                <path d="M93.97 39.04a5.001 5.001 0 00-6.65-2.9
+                        47.001 47.001 0 01-61.72 61.72 5 5 0
+                        00-2.9 6.65A49.93 49.93 0 0050 100c27.61 0
+                        50-22.39 50-50 0-6.44-1.2-12.6-3.39-18.34z"
+                      fill="currentFill" />
+            </svg>
+        </div>
+    }
+
+    @if (showList && FilteredItems?.Any() == true)
+    {
+        <ul id="autocomplete-list"
+            class="absolute z-10 w-full bg-white border border-gray-300 dark:bg-gray-800 dark:border-gray-700 
+                   rounded-lg shadow-lg mt-1 max-h-60 overflow-auto
+                   transition-opacity duration-200 ease-in-out"
+            role="listbox">
+            <Virtualize Items="@FilteredItems"
+                        ItemSize="36"
+                        OverscanCount="5"
+                        Context="item">
+                @{
+                    var index = FilteredItems.IndexOf(item);
+                    var isHighlighted = index == highlightedIndex;
+                }
+                <li id="@GetItemId(item)"
+                    role="option"
+                    aria-selected="@isHighlighted.ToString().ToLower()"
+                    class="px-3 py-2 cursor-pointer @(isHighlighted 
+                            ? "bg-blue-100 text-blue-800 dark:bg-blue-700 dark:text-white" 
+                            : "hover:bg-gray-100 dark:hover:bg-gray-700")"
+                    @onclick="() => SelectItem(item)">
+                    <div>@OptionTemplate(item)</div>
+                </li>
+            </Virtualize>
+
+            @if (hasMore)
+            {
+                <li class="px-3 py-2 text-sm text-center cursor-pointer 
+                           text-blue-600 hover:text-blue-800 hover:bg-blue-50 
+                           dark:text-blue-400 dark:hover:text-white dark:hover:bg-blue-600 transition-colors duration-150"
+                    @onclick="LoadMore">
+                    Load more...
+                </li>
+            }
+        </ul>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public Func<string, int, CancellationToken, Task<List<TItem>>> SearchFunc { get; set; } = default!;
+    [Parameter] public string Placeholder { get; set; } = "";
+    [Parameter] public EventCallback<TItem> SelectedChanged { get; set; }
+    [Parameter] public RenderFragment<TItem> OptionTemplate { get; set; } = default!;
+
+    private string _searchText = "";
+    private string SearchText
+    {
+        get => _searchText;
+        set
+        {
+            if (_searchText != value)
+            {
+                _searchText = value;
+                DebouncedSearch();
+            }
+        }
+    }
+
+    private List<TItem> FilteredItems { get; set; } = new();
+    private bool showList = false;
+    private CancellationTokenSource? debounceCts;
+    private bool isLoading = false;
+    private bool isFirstLoad = true;
+    private int currentPage = 0;
+    private const int PageSize = 10;
+    private bool hasMore = false;
+
+    private int highlightedIndex = -1;
+
+    private void DebouncedSearch()
+    {
+        debounceCts?.Cancel();
+        debounceCts = new CancellationTokenSource();
+        var token = debounceCts.Token;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(300, token);
+                if (!token.IsCancellationRequested)
+                {
+                    await ExecuteSearchAsync(token, resetPage: true);
+                    await InvokeAsync(StateHasChanged);
+                }
+            }
+            catch (TaskCanceledException) { }
+        });
+    }
+
+    private async Task ExecuteSearchAsync(CancellationToken token, bool resetPage)
+    {
+        if (string.IsNullOrWhiteSpace(SearchText))
+        {
+            FilteredItems.Clear();
+            showList = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        if (resetPage)
+        {
+            currentPage = 0;
+            FilteredItems = new List<TItem>();
+            hasMore = false;
+            isFirstLoad = true;
+            highlightedIndex = -1;
+        }
+
+        isLoading = true;
+
+        var results = await SearchFunc(SearchText, currentPage, token);
+        if (token.IsCancellationRequested) return;
+
+        hasMore = results.Count == PageSize;
+
+        if (resetPage)
+            FilteredItems = results;
+        else
+            FilteredItems.AddRange(results);
+
+        showList = FilteredItems.Any();
+        isLoading = false;
+        isFirstLoad = false;
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task LoadMore()
+    {
+        if (isLoading) return;
+        currentPage++;
+        await ExecuteSearchAsync(debounceCts?.Token ?? CancellationToken.None, resetPage: false);
+    }
+
+    private async Task SelectItem(TItem item)
+    {
+        SearchText = item?.ToString() ?? "";
+        showList = false;
+        await SelectedChanged.InvokeAsync(item);
+    }
+
+    private void ClearInput()
+    {
+        SearchText = "";
+        FilteredItems.Clear();
+        showList = false;
+    }
+
+    private void OnKeyDown(KeyboardEventArgs e)
+    {
+        if (FilteredItems == null || !FilteredItems.Any()) return;
+
+        switch (e.Key)
+        {
+            case "ArrowDown":
+                highlightedIndex = (highlightedIndex + 1) % FilteredItems.Count;
+                break;
+            case "ArrowUp":
+                highlightedIndex = (highlightedIndex - 1 + FilteredItems.Count) % FilteredItems.Count;
+                break;
+            case "Enter":
+                if (highlightedIndex >= 0 && highlightedIndex < FilteredItems.Count)
+                {
+                    _ = SelectItem(FilteredItems[highlightedIndex]);
+                }
+                break;
+        }
+    }
+
+    private string GetItemId(TItem item) => $"option-{item?.GetHashCode()}";
+
+    private string GetActiveDescendantId()
+    {
+        if (highlightedIndex >= 0 && highlightedIndex < FilteredItems?.Count)
+        {
+            var item = FilteredItems[highlightedIndex];
+            return GetItemId(item);
+        }
+        return string.Empty;
+    }
+}

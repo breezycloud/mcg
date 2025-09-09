@@ -1,0 +1,298 @@
+@page "/service-report"
+@using System.Text
+@attribute [Authorize]
+@inject IRequestService RequestService
+@inject IJSRuntime JS
+
+<section id="service-report-section" class="p-6 bg-gray dark:bg-gray-900 dark:text-gray-200 min-h-screen transition-colors duration-300">
+    <h2 class="text-3xl font-bold mb-8 text-center">🛠️ Service Request</h2>
+
+    
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
+        
+        <input type="text" @bind="filter.SearchTerm" @bind:event="oninput"
+               class="p-3 border rounded-lg w-full dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-blue-500"
+               placeholder="🔍 Search requests..." />
+
+        
+        <input type="date" @bind="filterDate" @bind:event="oninput" @onchange="OnFilterChanged"
+               class="p-3 border rounded-lg w-full dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-blue-500" />
+        
+        <select @bind="filter.Status"
+                class="p-3 border rounded-lg w-full dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-blue-500">
+            <option value="">-- All Statuses --</option>
+            @foreach (RequestStatus s in Enum.GetValues<RequestStatus>())
+            {
+                <option value="@s">@s</option>
+            }
+        </select>
+        
+        @* <select @bind="filter.Type" @onchange="OnFilterChanged"
+                class="p-3 border rounded-lg w-full dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-blue-500">
+            <option value="">-- All Types --</option>
+            @foreach (ServiceType t in Enum.GetValues<ServiceType>())
+            {
+                <option value="@t">@t</option>
+            }
+        </select> *@
+
+
+        
+        @* <select @bind="filter.Item" @onchange="OnFilterChanged"
+                class="p-3 border rounded-lg w-full dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-blue-500">
+            <option value="">-- All Items --</option>
+            @foreach (ServiceItem i in Enum.GetValues<ServiceItem>())
+            {
+                <option value="@i">@i</option>
+            }
+        </select> *@
+    </div>
+    
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6 mb-12">
+        @foreach (var kpi in kpis)
+        {
+            <div class="p-6 rounded-2xl shadow-md text-center hover:shadow-lg transition @kpi.BgColor">
+                <h3 class="text-sm uppercase">@kpi.Label</h3>
+                <p class="text-3xl font-bold">@kpi.Value</p>
+            </div>
+        }
+    </div>
+
+    
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div class="p-6 rounded-2xl shadow-md bg-gray-100 dark:bg-gray-800">
+            <h3 class="text-lg font-semibold mb-4 text-center">Requests by Status</h3>
+            <canvas id="statusChart"></canvas>
+        </div>
+
+        <div class="p-6 rounded-2xl shadow-md bg-gray-100 dark:bg-gray-800">
+            <h3 class="text-lg font-semibold mb-4 text-center">Requests by Service Type</h3>
+            <canvas id="typeChart"></canvas>
+        </div>
+    </div>
+
+    <div class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div class="p-6 rounded-2xl shadow-md bg-gray-100 dark:bg-gray-800">
+            <h3 class="text-lg font-semibold mb-4 text-center">Requests by Service Item</h3>
+            <canvas id="itemChart"></canvas>
+        </div>
+
+        <div class="p-6 rounded-2xl shadow-md bg-gray-100 dark:bg-gray-800">
+            <h3 class="text-lg font-semibold mb-4 text-center">Requests Trend Over Time</h3>
+            <canvas id="trendChart"></canvas>
+        </div>
+    </div>
+
+    <div class="mt-8 p-6 rounded-2xl shadow-md bg-gray-100 dark:bg-gray-800">
+        <h3 class="text-lg font-semibold mb-4 text-center">Average Cost per Service Type</h3>
+        <canvas id="costChart"></canvas>
+    </div>
+
+    
+    <div class="flex justify-center mt-10 space-x-4">
+        <button @onclick="ExportToPdf"
+                class="px-6 py-3 rounded-xl bg-red-600 text-white font-semibold shadow hover:bg-red-700 hover:scale-105 transition">
+            📄 Export PDF
+        </button>
+        <button @onclick="ExportServiceRequests" disabled="@IsExporting"
+                class="px-6 py-3 rounded-xl bg-green-600 text-white font-semibold shadow hover:bg-green-700 hover:scale-105 transition">
+            📊 Export CSV
+        </button>
+    </div>
+</section>
+
+@if (IsExporting)
+{
+    <div class="fixed inset-0 bg-gray bg-opacity-50 flex justify-center items-center z-50">
+        <div class="bg-white dark:bg-gray-800 p-6 rounded shadow-md w-96">
+            <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">Exporting...</h2>
+            <div class="w-full bg-gray-200 rounded-full h-4 mb-4 dark:bg-gray-700">
+                <div class="bg-green-500 h-4 rounded-full transition-all duration-300" style="width:@Progress%"></div>
+            </div>
+            <p class="text-sm text-gray-600 dark:text-gray-300">Please wait while we generate the report...</p>
+        </div>
+    </div>
+}
+
+@code {
+    private GridDataRequest filter = new();
+    private DateTime? filterDate;
+    private GridDataResponse<ServiceRequest>? response;
+
+    private List<(string Label, int Value, string BgColor)> kpis = new();
+
+    private bool IsExporting = false;
+    private int Progress = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var shopId = await localStorage.GetItemAsync<Guid?>("shopId");
+        if (shopId is not null || shopId.Equals(Guid.Empty))
+        {
+            filter.Id = shopId.Value;
+        }
+        await LoadDataAsync();
+    }
+
+    private async Task OnFilterChanged()
+    {
+        if (filterDate.HasValue)
+            filter.Date = DateOnly.FromDateTime(filterDate.Value);
+        else
+            filter.Date = default;
+        
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {        
+        response = await RequestService.GetPagedAsync(filter, CancellationToken.None);
+
+        if (response?.Data != null)
+        {
+            BuildSnapshotKpis();
+
+            await RenderCharts();
+        }
+    }
+
+    private void BuildSnapshotKpis()
+    {
+        var data = response!.Data!;
+        kpis = new()
+        {
+            ("Total Requests", data.Count, "bg-gray-200 dark:bg-gray-700"),
+            ("Pending", data.Count(x => x.Status == RequestStatus.Pending), "bg-yellow-100 dark:bg-yellow-900"),
+            ("In Progress", data.Count(x => x.Status == RequestStatus.InProgress), "bg-blue-100 dark:bg-blue-900"),
+            ("Escalated", data.Count(x => x.Status == RequestStatus.Escalated), "bg-red-100 dark:bg-red-900"),
+            ("Closed", data.Count(x => x.Status == RequestStatus.Closed), "bg-green-100 dark:bg-green-900"),
+            ("Treated", data.Count(x => x.Status == RequestStatus.Treated), "bg-purple-100 dark:bg-purple-900")
+        };
+    }
+
+    private async Task RenderCharts()
+    {
+        var data = response!.Data!;
+
+
+        var statusGroups = data.GroupBy(x => x.Status)
+                               .Select(g => new { Status = g.Key.ToString(), Count = g.Count() });
+        await JS.InvokeVoidAsync("chartJsInterop.renderChart", "statusChart", "pie",
+            new { labels = statusGroups.Select(x => x.Status), datasets = new[] { new { data = statusGroups.Select(x => x.Count) } } },
+            new { responsive = true });
+
+
+        var typeGroups = data.GroupBy(x => x.Type)
+                             .Select(g => new { Type = g.Key.ToString(), Count = g.Count() });
+        await JS.InvokeVoidAsync("chartJsInterop.renderChart", "typeChart", "bar",
+            new { labels = typeGroups.Select(x => x.Type), datasets = new[] { new { label = "Requests", data = typeGroups.Select(x => x.Count) } } },
+            new { responsive = true });
+
+        var itemGroups = data.GroupBy(x => x.Item)
+                             .Select(g => new { Item = g.Key.ToString(), Count = g.Count() });
+        await JS.InvokeVoidAsync("chartJsInterop.renderChart", "itemChart", "bar",
+            new { labels = itemGroups.Select(x => x.Item), datasets = new[] { new { label = "Requests", data = itemGroups.Select(x => x.Count) } } },
+            new { responsive = true });
+
+        var trendGroups = data.GroupBy(x => x.CreatedAt.Month)
+                              .Select(g => new { Month = g.Key, Count = g.Count() })
+                              .OrderBy(x => x.Month);
+        await JS.InvokeVoidAsync("chartJsInterop.renderChart", "trendChart", "line",
+            new { labels = trendGroups.Select(x => $"M{x.Month}"), datasets = new[] { new { label = "Requests", data = trendGroups.Select(x => x.Count) } } },
+            new { responsive = true });
+        
+        var costGroups = data.GroupBy(x => x.Type)
+                             .Select(g => new { Type = g.Key.ToString(), Avg = g.Average(x => x.Cost ?? 0) });
+        await JS.InvokeVoidAsync("chartJsInterop.renderChart", "costChart", "bar",
+            new { labels = costGroups.Select(x => x.Type), datasets = new[] { new { label = "Avg Cost", data = costGroups.Select(x => x.Avg) } } },
+            new { responsive = true });
+    }
+
+    private async Task ExportToPdf()
+    {
+        await JS.InvokeVoidAsync("exportPdf", "service-report-section", $"ServiceRequests_{DateTime.Now:yyyyMMdd}.pdf");
+    }
+    private async Task ExportServiceRequests()
+    {   
+        IsExporting = true;
+        Progress = 5;
+        StateHasChanged();
+
+        try
+        {
+            var exportRequest = new GridDataRequest
+            {
+                Id = filter.Id,
+                Page = 0,
+                PageSize = int.MaxValue,
+                SearchTerm = filter.SearchTerm,
+                Status = filter.Status            
+            };
+
+            var exportResponse = await RequestService.ReportPagedAsync(exportRequest, CancellationToken.None);
+            var requests = exportResponse?.Data?.ToList() ?? new();
+
+            if (!requests.Any())
+            {
+                ToastService.ShowWarning("No service requests to export.");
+                return;
+            }
+
+            Progress = 20;
+            StateHasChanged();
+
+            var csv = new StringBuilder();
+            csv.AppendLine("Type,Item,Description,Status,Cost,Created At,Created By,Treated At,Treated By,Closed At,Closed By,Truck,Driver,Trip,Site,History");
+
+            int count = requests.Count;
+            for (int i = 0; i < count; i++)
+            {
+                var req = requests[i];
+
+                var historyNotes = string.Join(" | ", req.History.Select(h =>
+                    $"[{h.ChangedAt:yyyy-MM-dd}] {h.Status} by {h.ChangedBy?.ToString() ?? "Unknown"}: {h.Notes}"
+                ));
+
+                csv.AppendLine(
+                    $"\"{req.Type}\"," +
+                    $"\"{req.Item}\"," +
+                    $"\"{req.Description}\"," +
+                    $"\"{req.Status}\"," +
+                    $"\"{req.Cost ?? 0:0.00}\"," +
+                    $"\"{req.CreatedAt:yyyy-MM-dd HH:mm}\"," +
+                    $"\"{req.CreatedBy?.ToString() ?? "Unknown"}\"," +
+                    $"\"{req.TreatedAt?.ToString("yyyy-MM-dd HH:mm") ?? ""}\"," +
+                    $"\"{req.TreatedBy?.ToString() ?? ""}\"," +
+                    $"\"{req.ClosedAt?.ToString("yyyy-MM-dd HH:mm") ?? ""}\"," +
+                    $"\"{req.ClosedBy?.ToString() ?? ""}\"," +
+                    $"\"{req.Truck?.LicensePlate ?? ""}\"," +
+                    $"\"{req.Driver?.ToString() ?? ""}\"," +
+                    $"\"{req.Trip?.DispatchId ?? ""}\"," +
+                    $"\"{req.Site?.Name?.ToString() ?? ""}\"," +
+                    $"\"{historyNotes}\""
+                );
+
+                // Update progress
+                Progress = 20 + (int)(((i + 1) / (double)count) * 75);
+                StateHasChanged();
+                await Task.Delay(10); // optional, simulates processing
+            }
+
+            // Convert to file & download
+            var bytes = Encoding.UTF8.GetBytes(csv.ToString());
+            var fileName = $"ServiceRequests_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+            await _js.InvokeVoidAsync("downloadReport", fileName,  Convert.ToBase64String(bytes));
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError("Export failed. Try again later.");
+        }
+        finally
+        {
+            Progress = 100;
+            await Task.Delay(500);
+            IsExporting = false;
+            StateHasChanged();
+        }
+    }
+}

@@ -1,73 +1,102 @@
 @inject IDashboardService DashboardService
+@implements IDisposable
 
-<div class="@GridCols">
-    <!-- Total Trips Card -->
-    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-        <div class="flex items-center justify-between">
-            <div>
-                <h3 class="text-gray-500 dark:text-gray-300 font-medium">Total Trips</h3>
-                <p class="text-xs text-gray-400 dark:text-gray-400 mt-1">@TimeRangeLabel</p>
-            </div>
-            <i class="fas fa-truck text-blue-500 text-xl"></i>
+@if (IsLoading)
+{
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <!-- Card 1 -->
+        <div class="skeleton-card">
+            <div class="skeleton w-40 h-6 skeleton-text"></div>
+            <div class="skeleton w-32 h-10 mt-2 rounded"></div>
+            <div class="skeleton w-24 h-4 mt-2 rounded"></div>
         </div>
-        <p class="text-3xl font-bold mt-2 text-gray-900 dark:text-white">@metrics?.TotalTrips</p>
-        <div class="mt-2 text-sm @GetTrendClass(trends?.TotalTripsTrend)">
-            <i class="@GetTrendIcon(trends?.TotalTripsTrend) mr-1"></i>
-            @trends?.TotalTripsTrend%
+
+        <!-- Card 2 -->
+        <div class="skeleton-card">
+            <div class="skeleton w-40 h-6 skeleton-text"></div>
+            <div class="skeleton w-32 h-10 mt-2 rounded"></div>
+            <div class="skeleton w-36 h-4 mt-2 rounded"></div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="skeleton-card">
+            <div class="skeleton w-40 h-6 skeleton-text"></div>
+            <div class="skeleton w-32 h-10 mt-2 rounded"></div>
+            <div class="skeleton w-28 h-4 mt-2 rounded"></div>
         </div>
     </div>
-
-    <!-- Active Trips Card -->
-    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-        <div class="flex items-center justify-between">
-            <div>
-                <h3 class="text-gray-500 dark:text-gray-300 font-medium">Active Trips</h3>
-                <p class="text-xs text-gray-400 dark:text-gray-400 mt-1">@TimeRangeLabel</p>
-            </div>
-            <i class="fas fa-spinner text-yellow-500 text-xl"></i>
-        </div>
-        <p class="text-3xl font-bold mt-2 text-gray-900 dark:text-white">@metrics?.ActiveTrips</p>
-        <div class="mt-2 text-sm @GetTrendClass(trends?.ActiveTripsTrend)">
-            <i class="@GetTrendIcon(trends?.ActiveTripsTrend) mr-1"></i>
-            @trends?.ActiveTripsTrend%
-        </div>
-    </div>
-
-    <!-- Completed Trips Card -->
-    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-        <div class="flex items-center justify-between">
-            <div>
-                <h3 class="text-gray-500 dark:text-gray-300 font-medium">Completed Trips</h3>
-                <p class="text-xs text-gray-400 dark:text-gray-400 mt-1">@TimeRangeLabel</p>
-            </div>
-            <i class="fas fa-check-circle text-green-500 text-xl"></i>
-        </div>
-        <p class="text-3xl font-bold mt-2 text-gray-900 dark:text-white">@metrics?.ClosedTrips</p>
-        <div class="mt-2 text-sm @GetTrendClass(trends?.ClosedTripsTrend)">
-            <i class="@GetTrendIcon(trends?.ClosedTripsTrend) mr-1"></i>
-            @trends?.ClosedTripsTrend%
-        </div>
-    </div>
-
-    <!-- Avg. Duration Card -->
-    @if (Product != ProductFilter.All)
-    {
+}
+else
+{
+    <div class="@GridCols">
+        <!-- Total Trips Card -->
         <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
             <div class="flex items-center justify-between">
                 <div>
-                    <h3 class="text-gray-500 dark:text-gray-300 font-medium">Avg. Duration</h3>
+                    <h3 class="text-gray-500 dark:text-gray-300 font-medium">Total Trips</h3>
                     <p class="text-xs text-gray-400 dark:text-gray-400 mt-1">@TimeRangeLabel</p>
                 </div>
-                <i class="fas fa-clock text-purple-500 text-xl"></i>
+                <i class="fas fa-truck text-blue-500 text-xl"></i>
             </div>
-            <p class="text-3xl font-bold mt-2 text-gray-900 dark:text-white">@(metrics?.AvgTripDurationDays.ToString("0.0")) days</p>
-            <div class="mt-2 text-sm @GetTrendClass(trends?.AvgDurationTrend)">
-                <i class="@GetTrendIcon(trends?.AvgDurationTrend) mr-1"></i>
-                @trends?.AvgDurationTrend%
+            <p class="text-3xl font-bold mt-2 text-gray-900 dark:text-white">@metrics?.TotalTrips</p>
+            <div class="mt-2 text-sm @GetTrendClass(trends?.TotalTripsTrend)">
+                <i class="@GetTrendIcon(trends?.TotalTripsTrend) mr-1"></i>
+                @* @trends?.TotalTripsTrend% *@
             </div>
         </div>
-    }    
-</div>
+
+        <!-- Active Trips Card -->
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-gray-500 dark:text-gray-300 font-medium">Active Trips</h3>
+                    <p class="text-xs text-gray-400 dark:text-gray-400 mt-1">@TimeRangeLabel</p>
+                </div>
+                <i class="fas fa-spinner text-yellow-500 text-xl"></i>
+            </div>
+            <p class="text-3xl font-bold mt-2 text-gray-900 dark:text-white">@metrics?.ActiveTrips</p>
+            <div class="mt-2 text-sm @GetTrendClass(trends?.ActiveTripsTrend)">
+                <i class="@GetTrendIcon(trends?.ActiveTripsTrend) mr-1"></i>
+                @* @trends?.ActiveTripsTrend% *@
+            </div>
+        </div>
+
+        <!-- Completed Trips Card -->
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-gray-500 dark:text-gray-300 font-medium">Completed Trips</h3>
+                    <p class="text-xs text-gray-400 dark:text-gray-400 mt-1">@TimeRangeLabel</p>
+                </div>
+                <i class="fas fa-check-circle text-green-500 text-xl"></i>
+            </div>
+            <p class="text-3xl font-bold mt-2 text-gray-900 dark:text-white">@metrics?.ClosedTrips</p>
+            <div class="mt-2 text-sm @GetTrendClass(trends?.ClosedTripsTrend)">
+                <i class="@GetTrendIcon(trends?.ClosedTripsTrend) mr-1"></i>
+                @* @trends?.ClosedTripsTrend% *@
+            </div>
+        </div>
+
+        <!-- Avg. Duration Card -->
+        @if (Product != ProductFilter.All)
+        {
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-gray-500 dark:text-gray-300 font-medium">Avg. Duration</h3>
+                        <p class="text-xs text-gray-400 dark:text-gray-400 mt-1">@TimeRangeLabel</p>
+                    </div>
+                    <i class="fas fa-clock text-purple-500 text-xl"></i>
+                </div>
+                <p class="text-3xl font-bold mt-2 text-gray-900 dark:text-white">@(metrics?.AvgTripDurationDays.ToString("0.0")) days</p>
+                <div class="mt-2 text-sm @GetTrendClass(trends?.AvgDurationTrend)">
+                    <i class="@GetTrendIcon(trends?.AvgDurationTrend) mr-1"></i>
+                    @* @trends?.AvgDurationTrend% *@
+                </div>
+            </div>
+        }    
+    </div>
+}
 
 @code {
     [Parameter]
@@ -77,23 +106,29 @@
     public DateOnly? EndDate { get; set; }
     [Parameter]
     public ProductFilter Product { get; set; } = ProductFilter.All;
-
     private DashboardMetricsDto? metrics;
     private MetricsTrendDto? trends;
     private string TimeRangeLabel => GetTimeRangeLabel();
-
-    private string GridCols => Product == ProductFilter.All ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4";
-
+    private string GridCols => Product == ProductFilter.All ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4";        
+    private bool IsLoading = false;
     protected override async Task OnParametersSetAsync()
     {
-        await LoadData();
+        AppState.FilterChanged += OnFilterChanged!;
+        await LoadData();        
     }
 
     private async Task LoadData()
     {
+        IsLoading = true;
         metrics = await DashboardService.GetMetricsAsync(StartDate, EndDate, Product.ToString());
         trends = await DashboardService.GetMetricsTrendsAsync(StartDate, EndDate, Product.ToString());
+        IsLoading = false;
         StateHasChanged();
+    }
+
+    private async void OnFilterChanged(object sender, EventArgs args)
+    {
+        await LoadData();
     }
 
     private string GetTimeRangeLabel()
@@ -123,5 +158,11 @@
     {
         if (!trend.HasValue) return "fas fa-minus";
         return trend.Value >= 0 ? "fas fa-arrow-up" : "fas fa-arrow-down";
+    }
+
+
+    public void Dispose()
+    {
+        AppState.FilterChanged -= OnFilterChanged!;
     }
 }

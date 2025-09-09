@@ -66,6 +66,44 @@
     <script src="_framework/blazor.webassembly.js"></script>
     <script>navigator.serviceWorker.register('service-worker.js');</script>
     <script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" async defer></script>
+    <script>
+        window.chartJsInterop = {
+            charts: {},
+
+            renderChart: function (canvasId, chartType, data, options) {
+                const ctx = document.getElementById(canvasId).getContext('2d');
+
+                // Destroy existing chart if it exists
+                if (this.charts[canvasId]) {
+                    this.charts[canvasId].destroy();
+                }
+
+                this.charts[canvasId] = new Chart(ctx, {
+                    type: chartType,
+                    data: data,
+                    options: options
+                });
+            }
+        };
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script>
+        window.exportPdf = async (elementId, filename) => {
+            const { jsPDF } = window.jspdf;
+            const element = document.getElementById(elementId);
+            const canvas = await html2canvas(element, { scale: 2 });
+            const imgData = canvas.toDataURL("image/png");
+            const pdf = new jsPDF("p", "mm", "a4");
+            const imgProps = pdf.getImageProperties(imgData);
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+            pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+            pdf.save(filename || "report.pdf");
+        }
+    </script>
+
 </body>
 
 </html>

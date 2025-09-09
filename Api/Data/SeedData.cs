@@ -22,22 +22,22 @@ public class SeedData
         var scopeFactory = services.GetRequiredService<IServiceScopeFactory>();
         using var scope = scopeFactory.CreateScope();
         using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        db.Database.EnsureDeleted();
+        //db.Database.EnsureDeleted();
        
-        if (db.Database.EnsureCreated())
-        {
-            stopWatch = new();
-            stopWatch.Start();
-            AddUsers(db);            
-            await AddDrivers(db);
-            await AddTrucks(db);
-            await AddStations(db);
-            await db.SaveChangesAsync();
-            stopWatch.Stop();
-            var ts = stopWatch.Elapsed;
-            var elapsedTime = $"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}.{ts.Milliseconds / 10:00}";
-            Console.WriteLine($"Data Successfully Imported in {elapsedTime}");
-        }
+        // if (db.Database.EnsureCreated())
+        // {
+        //     stopWatch = new();
+        //     stopWatch.Start();
+        //     AddUsers(db);            
+        //     await AddDrivers(db);
+        //     await AddTrucks(db);
+        //     await AddStations(db);
+        //     await db.SaveChangesAsync();
+        //     stopWatch.Stop();
+        //     var ts = stopWatch.Elapsed;
+        //     var elapsedTime = $"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}.{ts.Milliseconds / 10:00}";
+        //     Console.WriteLine($"Data Successfully Imported in {elapsedTime}");
+        // }
     }
 
     public record Drivers(Guid Id, string FirstName, string LastName,string PhoneNo, string LicensePlate);

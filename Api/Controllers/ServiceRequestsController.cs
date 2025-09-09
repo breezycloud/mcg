@@ -22,7 +22,7 @@ public class ServiceRequestsController : ControllerBase
         _context = context;
     }
 
-     // POST: api/Paged
+    // POST: api/Paged
     [HttpPost("paged")]
     public async Task<ActionResult<GridDataResponse<ServiceRequest>?>> GetPagedDatAsync(GridDataRequest request, CancellationToken cancellationToken = default)
     {
@@ -66,6 +66,63 @@ public class ServiceRequestsController : ControllerBase
             return response;
 
             
+        }
+        catch (System.Exception)
+        {
+
+            throw;
+        }
+    }
+
+    // POST: api/Paged
+    [HttpPost("paged-report")]
+    public async Task<ActionResult<GridDataResponse<ServiceRequest>?>> PagedDataAsync(GridDataRequest request, CancellationToken cancellationToken = default)
+    {
+        GridDataResponse<ServiceRequest> response = new();
+        try
+        {
+            var query = _context.ServiceRequest.AsNoTracking()
+                                               .Include(x => x.Site)
+                                               .Include(x => x.Truck)
+                                               .Include(x => x.Driver)
+                                               .Include(x => x.CreatedBy)
+                                               .Include(x => x.TreatedBy)
+                                               .Include(x => x.ClosedBy)
+                                               .Include(x => x.History).ThenInclude(x => x.ChangedBy)
+                                               .AsSplitQuery()
+                                               .AsQueryable();
+
+            if (request.Id.HasValue)
+            {
+                query = query.Where(x => x.MaintenanceSiteId == request.Id.Value);
+            }
+            
+            if (!string.IsNullOrEmpty(request.SearchTerm))
+            {
+                string pattern = $"%{request.SearchTerm}%";
+                query = query.Include(x => x.Truck).Where(x => EF.Functions.ILike(x.Truck!.TruckNo, pattern));
+            }
+
+            if (!string.IsNullOrEmpty(request.Status))
+            {
+                string pattern = $"%{request.Status}%";
+                query = query.Where(x => EF.Functions.ILike(x.Status.ToString()!, pattern));
+            }
+
+            
+
+            response.Total = await query.CountAsync(cancellationToken);
+
+
+
+            response.Data = [];
+            var pagedQuery = query.OrderByDescending(x => x.CreatedAt).ThenByDescending(x => x.TreatedAt).Skip(request.Paging).Take(request.PageSize).AsAsyncEnumerable();
+
+            await foreach (var item in pagedQuery)
+            {
+                response.Data.Add(item);
+            }
+            return response;        
         }
         catch (System.Exception)
         {

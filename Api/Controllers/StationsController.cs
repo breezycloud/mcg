@@ -22,7 +22,7 @@ public class StationsController : ControllerBase
         _context = context;
     }
 
-     // POST: api/Paged
+    // POST: api/Paged
     [HttpPost("paged")]
     public async Task<ActionResult<GridDataResponse<Station>?>> GetPagedDatAsync(GridDataRequest request, CancellationToken cancellationToken = default)
     {
@@ -30,6 +30,46 @@ public class StationsController : ControllerBase
         try
         {
             var query = _context.Stations.AsQueryable();
+            
+            if (!string.IsNullOrEmpty(request.SearchTerm))
+            {
+                string pattern = $"%{request.SearchTerm}%";
+                query = query.Where(x => EF.Functions.ILike(x.Name, pattern)
+                || EF.Functions.ILike(x.Address!.State, pattern)
+                || EF.Functions.ILike(x.Address!.Location, pattern)
+                || EF.Functions.ILike(x.Address!.ContactAddress!, pattern)
+                || EF.Functions.ILike(x.Type.ToString(), pattern));
+            }
+
+            response.Total = await query.CountAsync();
+            response.Data = [];
+            var pagedQuery = query.OrderByDescending(x => x.CreatedAt).ThenByDescending(x => x.UpdatedAt).Skip(request.Paging).Take(request.PageSize).AsAsyncEnumerable();
+
+            await foreach (var item in pagedQuery)
+            {
+                response.Data.Add(item);
+            }
+
+
+            return response;
+
+            
+        }
+        catch (System.Exception)
+        {
+
+            throw;
+        }
+    }
+
+    // POST: api/Paged
+    [HttpPost("paged-type")]
+    public async Task<ActionResult<GridDataResponse<Station>?>> GetPagedDatAsync(string type, GridDataRequest request, CancellationToken cancellationToken = default)
+    {
+        GridDataResponse<Station> response = new();
+        try
+        {
+            var query = _context.Stations.Where(x => x.Type.ToString() == type).AsQueryable();
             
             if (!string.IsNullOrEmpty(request.SearchTerm))
             {

@@ -1,0 +1,378 @@
+@page "/incident-report"
+@attribute [Authorize]
+@using Shared.Interfaces.Incidents
+@using Shared.Models.Incidents
+@using System.Text
+@inject IIncidentService IncidentService
+
+<section id="report-section" class="p-6 bg-gray dark:bg-gray-900 dark:text-gray-200 min-h-screen transition-colors duration-300">
+    <h2 class="text-3xl font-bold mb-8 text-center">📊 Incident Report</h2>
+
+    <!-- 🔍 Filters -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <!-- Search -->
+        <input type="text" @bind="filter.SearchTerm" @bind:event="oninput" @onchange="OnFilterChanged"
+               class="p-3 border rounded-lg w-full dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-blue-500"
+               placeholder="🔍 Search incidents..." />
+
+        <!-- Date -->
+        <input type="date" @bind="filterDate" @bind:event="oninput" @onchange="OnFilterChanged"
+               class="p-3 border rounded-lg w-full dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-blue-500" />
+
+        <!-- Status -->
+        <select @bind="filter.Status"
+                class="p-3 border rounded-lg w-full dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-blue-500">
+            <option value="">-- All Statuses --</option>
+            @foreach (var s in Enum.GetValues<IncidentStatus>())
+            {
+                <option value="@s">@s</option>
+            }
+        </select>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        <div class="p-6 rounded-2xl shadow-md bg-gray-100 dark:bg-gray-800 text-center hover:shadow-lg transition">
+            <h3 class="text-sm uppercase text-gray-500 dark:text-gray-400">Total Incidents</h3>
+            <p class="text-3xl font-bold">@response?.Total</p>
+        </div>
+        <div class="p-6 rounded-2xl shadow-md bg-yellow-100 dark:bg-yellow-900 text-center hover:shadow-lg transition">
+            <h3 class="text-sm uppercase text-yellow-600 dark:text-yellow-300">Open</h3>
+            <p class="text-3xl font-bold text-yellow-700 dark:text-yellow-200">@openCount</p>
+        </div>
+        <div class="p-6 rounded-2xl shadow-md bg-green-100 dark:bg-green-900 text-center hover:shadow-lg transition">
+            <h3 class="text-sm uppercase text-green-600 dark:text-green-300">Resolved</h3>
+            <p class="text-3xl font-bold text-green-700 dark:text-green-200">@resolvedCount</p>
+        </div>
+        <div class="p-6 rounded-2xl shadow-md bg-red-100 dark:bg-red-900 text-center hover:shadow-lg transition">
+            <h3 class="text-sm uppercase text-red-600 dark:text-red-300">Closed</h3>
+            <p class="text-3xl font-bold text-red-700 dark:text-red-200">@closedCount</p>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div class="p-6 rounded-2xl shadow-md bg-gray-100 dark:bg-gray-800">
+            <h3 class="text-lg font-semibold mb-4 text-center">Incidents by Status</h3>
+            <canvas id="statusChart"></canvas>
+        </div>
+
+        <div class="p-6 rounded-2xl shadow-md bg-gray-100 dark:bg-gray-800">
+            <h3 class="text-lg font-semibold mb-4 text-center">Incidents by Type</h3>
+            <canvas id="typeChart"></canvas>
+        </div>
+    </div>
+
+    <div class="mt-8 p-6 rounded-2xl shadow-md bg-gray-100 dark:bg-gray-800">
+        <h3 class="text-lg font-semibold mb-4 text-center">Incidents by Status Over Time</h3>
+        <canvas id="trendChart"></canvas>
+    </div>
+
+    <div class="mt-8 p-6 rounded-2xl shadow-md bg-gray-100 dark:bg-gray-800">
+        <h3 class="text-lg font-semibold mb-4 text-center">Average Hours per Status</h3>
+        <canvas id="durationChart"></canvas>
+    </div>
+
+    
+    
+    <div class="flex justify-center mt-10 space-x-4">
+        <button @onclick="ExportToPdf"
+                class="px-6 py-3 rounded-xl bg-red-600 text-white font-semibold shadow hover:bg-red-700 hover:scale-105 transition">
+            📄 Export PDF
+        </button>
+        <button @onclick="ExportIncidents" disabled="@IsExporting"
+                class="px-6 py-3 rounded-xl bg-green-600 text-white font-semibold shadow hover:bg-green-700 hover:scale-105 transition">
+            📊 Export CSV
+        </button>    
+    </div>
+</section>
+
+@if (IsExporting)
+{
+    <div class="fixed inset-0 bg-gray bg-opacity-50 flex justify-center items-center z-50">
+        <div class="bg-white dark:bg-gray-800 p-6 rounded shadow-md w-96">
+            <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">Exporting...</h2>
+            <div class="w-full bg-gray-200 rounded-full h-4 mb-4 dark:bg-gray-700">
+                <div class="bg-green-500 h-4 rounded-full transition-all duration-300" style="width:@Progress%"></div>
+            </div>
+            <p class="text-sm text-gray-600 dark:text-gray-300">Please wait while we generate the report...</p>
+        </div>
+    </div>
+}
+
+@code {
+    private GridDataRequest filter = new();
+    private DateTime? filterDate;
+    private GridDataResponse<Incident>? response;
+    private int openCount, resolvedCount, closedCount;
+
+    private bool IsExporting = false;
+    private int Progress = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        filter = new GridDataRequest { Page = 0, PageSize = 10};        
+        await LoadDataAsync();
+    }
+
+    private async Task OnFilterChanged()
+    {
+        if (filterDate.HasValue)
+            filter.Date = DateOnly.FromDateTime(filterDate.Value);
+        else
+            filter.Date = default;
+
+        await LoadDataAsync();
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && response?.Data != null)
+        {
+            BuildSnapshotKpis();
+
+            await RenderStatusChart();
+            await RenderTypeChart();
+            await RenderTrendChart();
+            await RenderDurationChart();
+        }
+    }
+
+    private async Task LoadDataAsync()
+    {
+        // Replace with API call
+        response = await IncidentService.GetPagedAsync(filter, CancellationToken.None);
+
+        if (response?.Data != null)
+        {
+            BuildSnapshotKpis();
+
+            await RenderStatusChart();
+            await RenderTypeChart();
+            await RenderTrendChart();
+            await RenderDurationChart();
+        }
+    }
+
+    private void BuildSnapshotKpis()
+    {
+        openCount = response.Data.Count(x => x.Status == IncidentStatus.New || x.Status == IncidentStatus.Treated);
+        resolvedCount = response.Data.Count(x => x.Status == IncidentStatus.Resolved);
+        closedCount = response.Data.Count(x => x.Status == IncidentStatus.Closed);
+    }
+
+    private async Task RenderStatusChart()
+    {
+        var grouped = response.Data
+            .Select(i => i.History.OrderByDescending(h => h.ChangedAt).FirstOrDefault()?.Status ?? i.Status)
+            .GroupBy(s => s)
+            .Select(g => new { Status = g.Key.ToString(), Count = g.Count() })
+            .ToList();
+
+        var data = new
+        {
+            labels = grouped.Select(g => g.Status).ToArray(),
+            datasets = new[] {
+                new {
+                    label = "Incidents",
+                    data = grouped.Select(g => g.Count).ToArray(),
+                    backgroundColor = grouped.Select(g => GetStatusColor(Enum.Parse<IncidentStatus>(g.Status))).ToArray()
+                }
+            }
+        };
+
+        await _js.InvokeVoidAsync("chartJsInterop.renderChart", "statusChart", "pie", data, new { responsive = true });
+    }
+
+    private async Task RenderTypeChart()
+    {
+        var grouped = response.Data
+            .GroupBy(i => i.IncidentType?.Type ?? "Unknown")
+            .Select(g => new { Type = g.Key, Count = g.Count() })
+            .ToList();
+
+        var data = new
+        {
+            labels = grouped.Select(g => g.Type).ToArray(),
+            datasets = new[] {
+                new {
+                    label = "Incidents",
+                    data = grouped.Select(g => g.Count).ToArray(),
+                    borderColor = "#36A2EB",
+                    backgroundColor = "#36A2EB",
+                    fill = false
+                }
+            }
+        };
+
+        await _js.InvokeVoidAsync("chartJsInterop.renderChart", "typeChart", "line", data, new { responsive = true });
+    }
+
+    private async Task RenderTrendChart()
+    {
+        var historyPoints = response.Data
+            .SelectMany(i => i.History)
+            .GroupBy(h => new { Month = h.ChangedAt.ToString("yyyy-MM"), h.Status })
+            .OrderBy(g => g.Key.Month)
+            .Select(g => new { g.Key.Month, g.Key.Status, Count = g.Count() })
+            .ToList();
+
+        var months = historyPoints.Select(h => h.Month).Distinct().OrderBy(m => m).ToList();
+
+        var datasets = Enum.GetValues(typeof(IncidentStatus))
+            .Cast<IncidentStatus>()
+            .Select(status => new
+            {
+                label = status.ToString(),
+                data = months.Select(m => historyPoints
+                    .Where(h => h.Month == m && h.Status == status)
+                    .Sum(h => h.Count)).ToArray(),
+                backgroundColor = GetStatusColor(status)
+            });
+
+        var data = new { labels = months, datasets };
+
+        await _js.InvokeVoidAsync("chartJsInterop.renderChart", "trendChart", "bar", data, new { responsive = true, stacked = true });
+    }
+
+    private async Task RenderDurationChart()
+    {
+        var durations = BuildAvgDurations();
+        var labels = durations.Keys.Select(s => s.ToString()).ToArray();
+        var values = durations.Values.ToArray();
+
+        var data = new
+        {
+            labels,
+            datasets = new[] {
+                new {
+                    label = "Avg Hours",
+                    data = values,
+                    backgroundColor = durations.Keys.Select(s => GetStatusColor(s)).ToArray()
+                }
+            }
+        };
+
+        await _js.InvokeVoidAsync("chartJsInterop.renderChart", "durationChart", "bar", data, new { responsive = true });
+    }
+
+    private Dictionary<IncidentStatus, double> BuildAvgDurations()
+    {
+        var durations = new Dictionary<IncidentStatus, List<double>>();
+
+        foreach (var incident in response.Data)
+        {
+            var ordered = incident.History.OrderBy(h => h.ChangedAt).ToList();
+            for (int i = 0; i < ordered.Count - 1; i++)
+            {
+                var status = ordered[i].Status;
+                var duration = (ordered[i + 1].ChangedAt - ordered[i].ChangedAt).TotalHours;
+
+                if (!durations.ContainsKey(status))
+                    durations[status] = new List<double>();
+
+                durations[status].Add(duration);
+            }
+        }
+
+        return durations.ToDictionary(d => d.Key, d => d.Value.Count > 0 ? d.Value.Average() : 0);
+    }
+
+    private string GetStatusColor(IncidentStatus status) => status switch
+    {
+        IncidentStatus.New => "#FFC107",
+        IncidentStatus.Treated => "#2196F3",
+        IncidentStatus.Reported => "#00BCD4",
+        IncidentStatus.Resolved => "#4CAF50",
+        IncidentStatus.Closed => "#F44336",
+        _ => "#9E9E9E"
+    };
+
+    private async Task ExportToPdf()
+    {
+        await _js.InvokeVoidAsync("exportPdf", "report-section", $"Incidents_{DateTime.Now:yyyyMMdd}.pdf");
+    }
+
+    private async Task ExportIncidents()
+    {
+        IsExporting = true;
+        Progress = 5;
+        StateHasChanged();
+
+        try
+        {
+            var exportRequest = new GridDataRequest
+            {
+                Page = 0,
+                PageSize = int.MaxValue,
+                SearchTerm = filter.SearchTerm,
+                Status = filter.Status,
+            };
+
+            var exportResponse = await IncidentService.GetPagedAsync(exportRequest, AppState.GetCancellationToken());
+            var incidents = exportResponse?.Data?.ToList() ?? new();
+
+            if (!incidents.Any())
+            {
+                ToastService.ShowWarning("No incidents to export.");
+                return;
+            }
+
+            Progress = 25;
+            StateHasChanged();
+
+            var csv = new StringBuilder();
+            csv.AppendLine("Incident Type,Description,Status,Created At,Created By,Treated At,Treated By,Closed At,Closed By,Truck Manufacturer,License Plate,Driver,Trip Dispatch ID,History");
+
+            int count = incidents.Count;
+            for (int i = 0; i < count; i++)
+            {
+                var incident = incidents[i];
+
+                var historyNotes = string.Join(" | ", incident.History.Select(h =>
+                    $"[{h.ChangedAt:yyyy-MM-dd}] {h.Status} by {h.ChangedBy?.ToString() ?? "Unknown"}: {h.Notes}"
+                ));
+
+                csv.AppendLine(
+                    $"\"{incident.IncidentType?.Type}\"," +
+                    $"\"{incident.Description}\"," +
+                    $"\"{incident.Status}\"," +
+                    $"\"{incident.CreatedAt:yyyy-MM-dd HH:mm}\"," +
+                    $"\"{incident.CreatedBy?.ToString() ?? "Unknown"}\"," +
+                    $"\"{incident.TreatedAt?.ToString("yyyy-MM-dd HH:mm") ?? ""}\"," +
+                    $"\"{incident.TreatedBy?.ToString() ?? ""}\"," +
+                    $"\"{incident.ClosedAt?.ToString("yyyy-MM-dd HH:mm") ?? ""}\"," +
+                    $"\"{incident.ClosedBy?.ToString() ?? ""}\"," +
+                    $"\"{incident.Truck?.Manufacturer ?? ""}\"," +
+                    $"\"{incident.Truck?.LicensePlate ?? ""}\"," +
+                    $"\"{incident.Driver?.ToString() ?? ""}\"," +
+                    $"\"{incident.Trip?.DispatchId ?? ""}\"," +
+                    $"\"{historyNotes}\""
+                );
+
+                // Update progress (simulate processing time)
+                Progress = 25 + (int)(((i + 1) / (double)count) * 70);
+                StateHasChanged();
+                await Task.Delay(10); // Simulate delay (optional)
+            }
+
+            // Convert to byte array and trigger download
+            var bytes = Encoding.UTF8.GetBytes(csv.ToString());
+            var fileName = $"Incidents_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+            await _js.InvokeVoidAsync("downloadReport", fileName,  Convert.ToBase64String(bytes));
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError("Export failed. Try again later.");
+        }
+        finally
+        {
+            Progress = 100;
+            await Task.Delay(500); // Let progress bar fill
+            IsExporting = false;
+            StateHasChanged();
+        }
+    }
+
+
+
+}

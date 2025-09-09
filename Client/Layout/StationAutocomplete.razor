@@ -1,0 +1,219 @@
+@inject IStationService StationService
+<div @ref="containerRef" class="relative w-full" @onfocusout="OnFocusOut">
+    <label class="block text-sm font-medium text-gray-700 mb-1">@Label</label>
+    <div class="relative">
+        <input 
+            @ref="inputRef"
+            @bind="searchText"
+            @bind:event="oninput"
+            @onkeydown="OnKeyDown"
+            @onkeyup="async () => await OnSearchChanged()"
+            @onfocus="OnInputFocus"
+            type="text"
+            placeholder="@Placeholder"
+            class="w-full px-4 py-2 pr-10 border @GetInputBorderColor() rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+            autocomplete="off"
+            aria-autocomplete="list"
+            aria-controls="station-list"
+            aria-expanded="@IsOpen"
+            aria-activedescendant="station-option-@highlightedIndex"
+        />
+
+        @if (Value != null && AllowClear)
+        {
+            <button type="button"
+                    @onclick:preventDefault
+                    @onclick="ClearSelection"
+                    class="absolute right-10 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-gray-200 text-gray-500">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        }
+
+        <div class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+        </div>
+    </div>
+
+    @if (IsOpen && filteredStations != null && filteredStations.Any())
+    {
+        <ul id="station-list" 
+            class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+            @for (int i = 0; i < filteredStations.Count; i++)
+            {
+                var station = filteredStations[i];
+                var isActive = i == highlightedIndex;
+
+                <li id="station-option-@i"
+                    @onclick="() => SelectStation(station)"
+                    @onmouseenter="() => highlightedIndex = i"
+                    class="px-4 py-2 cursor-pointer hover:bg-blue-50 @GetOptionClass(isActive)"
+                    role="option"
+                    aria-selected="@isActive">
+                    <div class="font-medium">@station.Name</div>
+                    @if (ShowDetails)
+                    {
+                        <div class="text-xs text-gray-500">
+                            @StringConverter.ToDescription(station.Type)
+                            @if (station.Address != null)
+                            {
+                                <span> • @station.Address.Location, @station.Address.State</span>
+                            }
+                        </div>
+                    }
+                </li>
+            }
+        </ul>
+    }
+    else if (IsOpen && isLoading)
+    {
+        <div class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-3 text-center text-gray-500">
+            Loading...
+        </div>
+    }
+    else if (IsOpen && !string.IsNullOrWhiteSpace(searchText))
+    {
+        <div class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-3 text-center text-gray-500">
+            No stations found.
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public Station? Value { get; set; }
+    [Parameter] public EventCallback<Station?> ValueChanged { get; set; }
+    [Parameter] public StationType? StationType { get; set; }
+    [Parameter] public string? Destionation { get; set; }
+    [Parameter] public string Label { get; set; } = "Station";
+    [Parameter] public string Placeholder { get; set; } = "Search for a station...";
+    [Parameter] public bool ShowDetails { get; set; } = true;
+    [Parameter] public bool AllowClear { get; set; } = true;
+
+
+    private ElementReference containerRef;
+    private ElementReference inputRef;
+    private string searchText = string.Empty;
+    private bool IsOpen { get; set; } = false;
+    private bool isLoading = false;
+    private Station[]? allStations { get; set; } = [];
+    private List<Station> filteredStations { get; set; } = new();
+    private int highlightedIndex = -1;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadStationsAsync();
+    }
+
+    private async Task LoadStationsAsync()
+    {
+        isLoading = true;
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(Destionation))
+                allStations = await StationService.GetAsync(StationType!.Value.ToString()!, Destionation!, AppState.GetCancellationToken());
+            else
+                allStations = await StationService.GetAsync(StationType!.Value.ToString()!, AppState.GetCancellationToken());
+            ApplyFilter();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void ApplyFilter()
+    {
+        if (string.IsNullOrWhiteSpace(searchText))
+        {
+            filteredStations = allStations.ToList();
+        }
+        else
+        {
+            var lowerSearch = searchText.ToLowerInvariant();
+            filteredStations = allStations
+                .Where(s => s.Name.ToLowerInvariant().Contains(lowerSearch))
+                .ToList();
+        }
+
+        highlightedIndex = filteredStations.Any() ? 0 : -1;
+    }
+
+    private async Task OnSearchChanged()
+    {
+        isLoading = true;
+        await Task.Delay(500);
+        ApplyFilter();
+        isLoading = false;
+        IsOpen = true;
+    }
+
+    private async Task SelectStation(Station station)
+    {
+        searchText = station.Name;
+        Value = station;
+        IsOpen = false;
+        highlightedIndex = -1;
+        await ValueChanged.InvokeAsync(station);
+    }
+
+    private void ClearSelection()
+    {
+        searchText = string.Empty;
+        Value = null;
+        IsOpen = false;
+        highlightedIndex = -1;
+        ApplyFilter();
+        ValueChanged.InvokeAsync(null);
+    }
+
+    private void OnInputFocus()
+    {
+        IsOpen = true;
+        if (Value != null && string.IsNullOrWhiteSpace(searchText))
+        {
+            searchText = Value.Name;
+        }
+    }
+
+    private void OnFocusOut(FocusEventArgs args)
+    {
+        // Delay to allow click events on options to register
+        Task.Delay(200).ContinueWith(_ =>
+        {
+            InvokeAsync(() =>
+            {
+                IsOpen = false;
+                StateHasChanged();
+            });
+        });
+    }
+
+    private async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "ArrowDown")
+        {
+            highlightedIndex = Math.Min(highlightedIndex + 1, filteredStations.Count - 1);
+        }
+        else if (e.Key == "ArrowUp")
+        {
+            highlightedIndex = Math.Max(highlightedIndex - 1, 0);
+        }
+        else if (e.Key == "Enter" && highlightedIndex >= 0 && highlightedIndex < filteredStations.Count)
+        {
+            await SelectStation(filteredStations[highlightedIndex]);
+        }
+        else if (e.Key == "Escape")
+        {
+            IsOpen = false;
+        }
+    }
+
+    private string GetInputBorderColor() => IsOpen ? "border-blue-500" : "border-gray-300";
+
+    private string GetOptionClass(bool isActive) => isActive 
+        ? "bg-blue-100 text-blue-900" 
+        : "text-gray-900";    
+}
