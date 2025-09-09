@@ -121,4 +121,19 @@ public class StationService(IHttpClientFactory _httpClient) : IStationService
             throw;
         }
     }
+
+    public async Task<GridDataResponse<Station>?> GetPagedAsync(string type, GridDataRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var response = await _httpClient.CreateClient("AppUrl").PostAsJsonAsync($"Stations/paged-type?type={type}", request, cancellationToken);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<GridDataResponse<Station>?>();
+        }
+        catch (System.Exception)
+        {
+
+            throw;
+        }
+    }
 }

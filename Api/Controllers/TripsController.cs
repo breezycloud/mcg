@@ -90,6 +90,7 @@ public class TripsController : ControllerBase
                                       .ThenInclude(x => x.Station)
                                       .Include(x => x.ClosedBy)
                                       .Include(x => x.CompletedBy)
+                                      .Where(x => x.Date.Month == request.Date.Month && x.Date.Year == request.Date.Year)
                                       .AsSplitQuery()
                                       .AsQueryable();
             
@@ -116,7 +117,7 @@ public class TripsController : ControllerBase
 
             response.Total = await query.CountAsync();
             response.Data = [];
-            var pagedQuery = query.OrderByDescending(x => x.CreatedAt).ThenByDescending(x => x.UpdatedAt).Skip(request.Paging).Take(request.PageSize).AsAsyncEnumerable();
+            var pagedQuery = query.OrderByDescending(x => x.DispatchId).Skip(request.Paging).Take(request.PageSize).AsAsyncEnumerable();
 
             await foreach (var item in pagedQuery)
             {

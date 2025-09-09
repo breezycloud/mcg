@@ -4,13 +4,16 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 namespace Api.Util;
 public class MultiDateFormatBinder : IModelBinder
 {
-   private static readonly string[] SupportedFormats = 
-    { 
+   private static readonly string[] SupportedFormats =
+    {
         "yyyy-MM-dd",    // ISO 8601
         "dd/MM/yyyy",    // European format
         "MM/dd/yyyy",    // US format
         "yyyyMMdd",      // Compact format
-        "dd-MM-yyyy"     // Alternative European
+        "dd-MM-yyyy",     // Alternative European
+        "MM-dd-yyyy",
+        "M/d/yyyy",
+        "M-d-yyyy"
     };
 
     public Task BindModelAsync(ModelBindingContext bindingContext)

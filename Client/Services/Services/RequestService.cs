@@ -95,4 +95,19 @@ public class RequestService(IHttpClientFactory _httpClient) : IRequestService
             throw;
         }
     }
+
+    public async Task<GridDataResponse<ServiceRequest>?> ReportPagedAsync(GridDataRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var response = await _httpClient.CreateClient("AppUrl").PostAsJsonAsync("servicerequests/paged-report", request, cancellationToken);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<GridDataResponse<ServiceRequest>?>();
+        }
+        catch (System.Exception)
+        {
+
+            throw;
+        }        
+    }
 }

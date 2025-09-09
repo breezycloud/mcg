@@ -19,17 +19,17 @@
                     <span class="sr-only">Close modal</span>
                 </button>
             </div>
+            @if (IsLoading)
+            {
+                <div class="m-4 p-4">
+                    <LoadingSpinner/>
+                </div>
+            }
+            else
+            {
             
             <!-- Modal body -->
-            <div class="p-6 space-y-4">
-                @if (AppState.IsBusy)
-                {
-                    <div class="pb-4 space-y-3">
-                        <LoadingSpinner/>
-                    </div>
-                }
-                else
-                {
+                <div class="p-6 space-y-4">                
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label for="arrival-date-time" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Arrival Date/Time</label>
@@ -38,7 +38,24 @@
                         </div>
 
                         <div>
-                            <label for="StationId" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Station</label>
+                            <StationAutocomplete 
+                                @bind-Value="SelectedStation"
+                                Destionation="@Destination"
+                                StationType="StationType.DischargeStation"
+                                Label="Select Discharge Station"
+                                Placeholder="Start typing station name..."
+                                ShowDetails="true"
+                                AllowClear="true" />
+
+                            @* @if (SelectedStation != null)
+                            {
+                                <div class="mt-4 p-4 bg-green-50 rounded">
+                                    <h4 class="font-bold">Selected Station:</h4>
+                                    <p>@SelectedStation.Name</p>
+                                    <p><small>@(StringConverter.ToDescription(SelectedStation.Type))</small></p>
+                                </div>
+                            } *@
+                            @* <label for="StationId" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Station</label>
                             <InputSelect id="StationId"
                                 class="@GetInputClass("StationId")"
                                 @bind-Value="Data.StationId"
@@ -48,7 +65,7 @@
                                 {
                                     <option value="@state.Id">@StringConverter.ConvertToTitleCase(state.Name)</option>
                                 }                                
-                            </InputSelect>
+                            </InputSelect> *@
                             @if (errors.ContainsKey("StationId"))
                             {
                                 <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["StationId"]</p>
@@ -89,9 +106,9 @@
                         <label for="notes" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notes</label>
                         <textarea id="notes" rows="3" maxlength="500" @bind="Data.Notes"
                                 class="@GetInputClass(nameof(Data.Notes))"></textarea>
-                    </div>                                
-                }
-            </div>
+                    </div>                                                
+                </div>
+            }
             
             <!-- Modal footer -->
             <div class="flex items-center justify-end p-6 space-x-2 border-t border-gray-200 rounded-b dark:border-gray-600">
@@ -128,16 +145,24 @@
     public EventCallback OnClose { get; set; }
 
     private Dictionary<string, string> errors = new();
+    private bool IsLoading = false;
+
+    private Station? SelectedStation;
     
     private Station[]? Stations = [];
 
     protected override async Task OnInitializedAsync()
-    {
-        AppState.IsBusy = true;
+    {        
+        if (string.IsNullOrEmpty(Destination))
+        {
+            ToastService.ShowInfo("Trip has not reached discharge destionation");
+            CloseCheckpointModal();
+            return;
+        }
+        IsLoading = true;        
         await Task.Delay(500);
-        Stations = await StationService.GetAsync(StationType.DischargeStation.ToString(), Destination!, AppState.GetCancellationToken());
-        
-        AppState.IsBusy = false;
+        @* Stations = await StationService.GetAsync(StationType.DischargeStation.ToString(), Destination!, AppState.GetCancellationToken());         *@
+        IsLoading = false;
     }
 
     private string GetInputClass(string fieldName)
@@ -158,16 +183,21 @@
 
     void OnValueChanged()
     {
-        Data.Station = Stations.FirstOrDefault(x => x.Id == Data.StationId);
+        Data.Station = Stations!.FirstOrDefault(x => x.Id == Data.StationId);
         StateHasChanged();
     }
 
     private async Task SaveCheckpoint()
     {        
         errors.Clear();
-        if (Data.StationId.Equals(Guid.Empty))
+
+        if (SelectedStation is null)
         {
             errors[nameof(Data.StationId)] = "Station is required.";
+        }
+        else
+        {
+            Data.StationId = SelectedStation.Id;
         }
         if (Data.QuantityDischarged <= 0)
         {

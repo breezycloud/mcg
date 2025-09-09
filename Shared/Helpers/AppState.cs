@@ -23,6 +23,27 @@ public class AppState
         };
     }
 
+    public event EventHandler? FilterChanged;
+
+    private bool _filterChanged = false;
+    public bool HasChanged
+    {
+        get => _filterChanged;
+        set
+        {
+            if (_filterChanged != value)
+            {
+                _filterChanged = value;
+                FilterChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+    }
+
+    public void OnFilterChanged()
+    {
+        HasChanged = true; // triggers the setter
+    }
+
     public event EventHandler? RefuelProcessed;
 
     private bool _hasProcessed = false;

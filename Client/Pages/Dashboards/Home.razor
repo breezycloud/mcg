@@ -1,12 +1,12 @@
 ﻿@page "/dashboard"
 @using Client.Pages.Products
-
+@inject AppHubService HubService
 @inject IDashboardService DashboardService
 @inject NavigationManager NavigationManager
 @implements IAsyncDisposable
 @attribute [Authorize]
 
-<div class="p-1 sm:p-1 space-y-6 bg-gray-50 dark:bg-gray-900">
+<div class="p-3 sm:p-3 space-y-6 bg-gray-50 dark:bg-gray-900">
     <!-- Header with SignalR status -->
     <div class="flex justify-between items-center mb-6">
         <div>
@@ -25,7 +25,7 @@
         </div>
     </div>
     <!-- Dashboard content -->
-    <DashboardMetrics StartDate="@filterStartDate" EndDate="@filterEndDate" Product="@selectedProduct" />
+    <DashboardMetrics  StartDate="@filterStartDate" EndDate="@filterEndDate" Product="@selectedProduct" />
 
     <!-- Charts & Recent Trips -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -38,7 +38,7 @@
     </div>
 
     <!-- Product Shipments Table -->
-    <ProductShipments StartDate="@filterStartDate" EndDate="@filterEndDate" Product="@selectedProduct" />
+    <ProductShipments StartDate="@filterStartDate" EndDate="@filterEndDate" Product="@selectedProduct" />        
 </div>
 
 @code {
@@ -50,16 +50,13 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await InitializeSignalR();
+        @* await HubService.StartConnectionAsync(); *@
     }
 
     private void HandleProductChanged(ProductFilter product)
     {
-        // Handle product selection change
-        // This could involve filtering data or updating the UI
         selectedProduct = product;
-        Console.WriteLine($"Selected Product: {product}");
-        StateHasChanged();
+        AppState.OnFilterChanged();
     }
 
     private async Task InitializeSignalR()
@@ -86,9 +83,10 @@
 
     private void HandleTimeFilterChange((DateOnly Start, DateOnly End) dates)
     {
+        AppState.IsBusy = true;
         filterStartDate = dates.Start;
         filterEndDate = dates.End;
-        StateHasChanged();
+        AppState.OnFilterChanged();
     }
 
     public async ValueTask DisposeAsync()

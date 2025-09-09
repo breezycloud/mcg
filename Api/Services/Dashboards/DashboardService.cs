@@ -419,12 +419,11 @@ public class DashboardService : IDashboardService
 
     private decimal CalculateAverageTripDuration(List<Trip> trips)
     {
-        // var durations = trips
-        //     .Where(t => t.date)
-        //     .Select(t => t.TripDurationDays!.Value);
+        var durations = trips
+            .Where(x => x.CloseInfo.ReturnDateTime.HasValue)
+            .Select(t => t.CalculateTripDuration(t.Date, DateOnly.FromDateTime(t.CloseInfo.ReturnDateTime!.Value)));
 
-        // return durations.Any() ? (decimal)durations.Average() : 0;
-        return 0m;
+        return durations.Any() ? (decimal)durations.Average() : 0;
     }
 
     private decimal CalculateTrend(decimal current, decimal previous)

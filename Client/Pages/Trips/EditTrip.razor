@@ -10,7 +10,7 @@
 @using Client.Pages.RefuelInfos
 @using Shared.Models.Incidents
 
-<div class="max-w-4xl mx-auto px-2 lg:px-2">
+<div class="max-w-4xl bg-gray-50 mx-auto px-2 lg:px-2">
     @if (AppState.IsBusy)
     {
         <Loader/>
@@ -33,7 +33,35 @@
 
         <!-- Main Card -->
         <div class="bg-white shadow rounded-lg divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
-            <!-- Basic Info Section -->
+            <div class="p-5 bg-gray-100 border border-gray-400 rounded-lg">
+                @* <h3 class="text-2xl font-extrabold text-gray-900 dark:text-white border-b-2 border-gray-200 dark:border-gray-900 pb-3">Trip Details</h3> *@
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="flex flex-col">
+                        <span class="font-semibold text-gray-600 dark:text-gray-300 text-sm uppercase tracking-wide">Dispatch</span>
+                        <span class="text-gray-900 dark:text-gray-100 font-medium">@Trip?.DispatchId</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="font-semibold text-gray-600 dark:text-gray-300 text-sm uppercase tracking-wide">Waybill</span>
+                        <span class="text-gray-900 dark:text-gray-100 font-medium">@Trip?.LoadingInfo?.WaybillNo</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="font-semibold text-gray-600 dark:text-gray-300 text-sm uppercase tracking-wide">Date</span>
+                        <span class="text-gray-900 dark:text-gray-100 font-medium">@Trip?.Date.ToString("dd MMM yyyy")</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="font-semibold text-gray-600 dark:text-gray-300 text-sm uppercase tracking-wide">Driver</span>
+                        <span class="text-gray-900 dark:text-gray-100 font-medium">@Trip?.Driver?.ToString()</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="font-semibold text-gray-600 dark:text-gray-300 text-sm uppercase tracking-wide">Truck</span>
+                        <span class="text-gray-900 dark:text-gray-100 font-medium">@Trip?.Truck?.LicensePlate</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="font-semibold text-gray-600 dark:text-gray-300 text-sm uppercase tracking-wide">Product</span>
+                        <span class="text-gray-900 dark:text-gray-100 font-medium">@Trip?.Truck?.Product</span>
+                    </div>                    
+                </div>                
+            </div>
             <div class="space-y-4 p-6">
                 <!-- Tabs -->
                 <div class="border-b border-gray-200 dark:border-gray-700">

@@ -39,8 +39,7 @@ builder.Services.AddCors(options =>
 builder.Services.AddControllers(options =>
 {
     options.ModelBinderProviders.Insert(0, new MultiDateFormatBinderProvider());
-})
-                .AddNewtonsoftJson(x => x.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore);
+}).AddNewtonsoftJson(x => x.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore);
 builder.Services.AddRazorPages();
 
 string? ConnectionString = string.Empty;

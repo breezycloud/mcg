@@ -1,6 +1,6 @@
 {
-  "name": "Client",
-  "short_name": "Client",
+  "name": "MCC-MIS",
+  "short_name": "MCC-MIS",
   "id": "./",
   "start_url": "./",
   "display": "standalone",

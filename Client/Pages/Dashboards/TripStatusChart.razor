@@ -1,26 +1,32 @@
-@* @using ChartJs.Blazor
-@using ChartJs.Blazor.Charts
-@using ChartJs.Blazor.Common
-@using ChartJs.Blazor.Common.Enums
-@using ChartJs.Blazor.PieChart *@
 @using ApexCharts
 @inject IDashboardService DashboardService
+@implements IDisposable
 
-<div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-    <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Trip Monthly Distribution</h3>
-    <ApexChart @ref="chart" TItem="TripMonthlySummaryDto" 
-               Options="@options"
-               Height="350">
+@if (IsLoading)
+{
+    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow">
+        <div class="skeleton w-48 h-6 mb-4 rounded"></div>
+        <div class="skeleton w-full h-64 rounded"></div>
+    </div>
+}
+else
+{
+    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+        <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Trip Monthly Distribution</h3>
+        <ApexChart @ref="chart" TItem="TripMonthlySummaryDto" 
+                Options="@options"
+                Height="350">
 
-        <ApexPointSeries TItem="TripMonthlySummaryDto"
-                 Items="Data"
-                 SeriesType="SeriesType.Bar"
-                 Name="Monthly Trips"
-                 XValue="@(e => e.Format)"
-                 YValue="@(e => e.TotalTrips)"
-                 ShowDataLabels="true" />
-    </ApexChart>
-</div>
+            <ApexPointSeries TItem="TripMonthlySummaryDto"
+                    Items="Data"
+                    SeriesType="SeriesType.Bar"
+                    Name="Monthly Trips"
+                    XValue="@(e => e.Format)"
+                    YValue="@(e => e.TotalTrips)"
+                    ShowDataLabels="true" />
+        </ApexChart>
+    </div>
+}
 
 @code {
     private List<TripMonthlySummaryDto> Data { get; set; } = new();
@@ -29,10 +35,17 @@
     private ApexChartOptions<TripMonthlySummaryDto> options { get; set; } = new();
     [Parameter]
     public ProductFilter Product { get; set; } = ProductFilter.All;    
+    private bool IsLoading = false;
 
     protected override async Task OnParametersSetAsync()
     {
-        
+        AppState.FilterChanged += OnFilterChanged!;
+        await LoadData();    
+    }
+
+    private async Task LoadData()
+    {
+        IsLoading = true;
         var statusData = await DashboardService.GetTripMonthlySummaries(Product.ToString());
         if (statusData == null)
         {
@@ -48,8 +61,13 @@
        {
             Console.WriteLine("{0} {1}", "My Chart", chart);
             await chart.UpdateSeriesAsync(true);
-       }       
-       
+       }
+       IsLoading = false;
+    }
+
+    private async void OnFilterChanged(object sender, EventArgs args)
+    {
+        await LoadData();
     }
 
     private string GetPointColor(TripStatus status)
@@ -65,5 +83,10 @@
             default:
                 return "#6c757d"; // Gray
         }
-    }        
+    }   
+
+    public void Dispose()
+    {
+        AppState.FilterChanged -= OnFilterChanged!;
+    }     
 }

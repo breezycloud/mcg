@@ -29,7 +29,17 @@ public class IncidentsController : ControllerBase
         GridDataResponse<Incident> response = new();
         try
         {
-            var query = _context.Incidents.Include(x => x.Truck).Include(x => x.Driver).Include(x => x.Trip).AsNoTracking().AsSplitQuery().AsQueryable();
+            var query = _context.Incidents.Include(x => x.Truck)
+                                          .Include(x => x.Driver)
+                                          .Include(x => x.Trip)
+                                          .Include(x => x.IncidentType)
+                                          .Include(x => x.History)
+                                          .Include(x => x.CreatedBy)
+                                          .Include(x => x.TreatedBy)
+                                          .Include(x => x.ClosedBy)
+                                          .AsNoTracking()
+                                          .AsSplitQuery()
+                                          .AsQueryable();
 
             if (request.Id.HasValue)
             {
