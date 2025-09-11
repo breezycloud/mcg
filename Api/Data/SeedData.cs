@@ -24,6 +24,8 @@ public class SeedData
         using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         //db.Database.EnsureDeleted();
        
+
+       
         // if (db.Database.EnsureCreated())
         // {
         //     stopWatch = new();
