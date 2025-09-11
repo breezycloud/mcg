@@ -201,7 +201,7 @@
 
                     formData.Add(fileContent, "file", uploadedFile.BrowserFile.Name);
 
-                    var response = await Http.PostAsync("uploads/upload", formData);
+                    var response = await Http.PostAsync("filesave/upload", formData);
 
                     if (response.IsSuccessStatusCode)
                     {

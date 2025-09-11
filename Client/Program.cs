@@ -58,6 +58,7 @@ string uri = string.Empty;
 #else
     uri = Constants.ProdBaseAddress;
 #endif
+
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(uri) });
 builder.Services.AddHttpClient(Constants.Url, http =>
 {
