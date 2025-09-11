@@ -56,7 +56,7 @@ jobs:
                 sudo chmod 755 /var/www/uploads
                 ls -ld /var/www/uploads  # Verify
                 echo "✅ Created and configured /var/www/uploads"
-
+          
           - name: Restart Service on VPS
             uses: appleboy/ssh-action@v0.1.10
             with:
