@@ -604,7 +604,11 @@
         if (files.Any())
         {
             CurrentTruck.Files.AddRange(files);
-            ToastService.ShowSuccess("File(s) uploaded successfully");
+            var result = await TruckService.UpdateAsync(CurrentTruck, AppState.GetCancellationToken());
+            if (result)
+                ToastService.ShowSuccess("File(s) uploaded and record saved successfully");            
+            else
+                ToastService.ShowError("Failed to driver");            
         }
         else
         {

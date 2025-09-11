@@ -227,7 +227,8 @@
     {                
         if (files.Any())
         {
-            Data.Files.AddRange(files);            
+            Data.Files.AddRange(files);
+            await OnSave.InvokeAsync(Data);
         }
         StateHasChanged();        
     }

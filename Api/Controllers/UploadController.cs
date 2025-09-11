@@ -31,7 +31,7 @@ public class UploadsController : ControllerBase
         _maxFileSize = config.GetValue<long>("MaxFileSizeBytes");
 
         // Ensure upload directory exists
-        Directory.CreateDirectory(_uploadPath);
+        // Directory.CreateDirectory(_uploadPath);
     }
 
     [HttpGet]
