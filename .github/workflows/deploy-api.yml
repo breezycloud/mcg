@@ -14,44 +14,59 @@ jobs:
         timeout-minutes: 20
 
         steps:
-            - name: Checkout Repository
-              uses: actions/checkout@v4
+          - name: Checkout Repository
+            uses: actions/checkout@v4
 
-            - name: Setup .NET
-              uses: actions/setup-dotnet@v3
-              with:
-                dotnet-version: '9.0.x'
-                        
-            - name: Restore Api Dependencies
-              run: dotnet restore Api
+          - name: Setup .NET
+            uses: actions/setup-dotnet@v3
+            with:
+              dotnet-version: '9.0.x'
+                      
+          - name: Restore Api Dependencies
+            run: dotnet restore Api
 
-            - name: Build and Publish Api
-              run: |
-                dotnet publish Api \
-                    -c Release \
-                    -o ./publish \
-                    /p:EnvironmentName=Production
+          - name: Build and Publish Api
+            run: |
+              dotnet publish Api \
+                  -c Release \
+                  -o ./publish \
+                  /p:EnvironmentName=Production
 
-            - name: Upload Api via SSH
-              uses: appleboy/scp-action@v0.1.7
-              with:
-                host: ${{ secrets.VPS_HOST }}
-                username: ${{ secrets.VPS_USERNAME }}
-                password: ${{ secrets.VPS_PASSWORD }}
-                source: "./publish/*"
-                target: ${{ secrets.API_TARGET }}
-                rm: true  # Remove old files before copy
+          - name: Upload Api via SSH
+            uses: appleboy/scp-action@v0.1.7
+            with:
+              host: ${{ secrets.VPS_HOST }}
+              username: ${{ secrets.VPS_USERNAME }}
+              password: ${{ secrets.VPS_PASSWORD }}
+              source: "./publish/*"
+              target: ${{ secrets.API_TARGET }}
+              rm: true  # Remove old files before copy
 
-            - name: Restart Service on VPS
-              uses: appleboy/ssh-action@v0.1.10
-              with:
-                host: ${{ secrets.VPS_HOST }}
-                username: ${{ secrets.VPS_USERNAME }}
-                password: ${{ secrets.VPS_PASSWORD }}
-                script: |
-                    echo "✅ Deployed files to VPS"
-                    echo "🔄 Restarting mcc-api.service..."
-                    sudo systemctl stop mcc-api.service            
-                    sudo systemctl start mcc-api.service
-                    sudo systemctl status mcc-api.service --no-pager -l --lines=10
-                    echo "✅ Deployment complete!"
+           # 👇 NEW STEP: Create uploads directory on VPS with proper permissions
+          - name: Create Uploads Directory on VPS
+            uses: appleboy/ssh-action@v0.1.10
+            with:
+              host: ${{ secrets.VPS_HOST }}
+              username: ${{ secrets.VPS_USERNAME }}
+              password: ${{ secrets.VPS_PASSWORD }}
+              script: |
+                echo "✅ Creating /var/www/uploads directory..."
+                sudo mkdir -p /var/www/uploads
+                sudo chown www-data:www-data /var/www/uploads  # 👈 Change to your service user!
+                sudo chmod 755 /var/www/uploads
+                ls -ld /var/www/uploads  # Verify
+                echo "✅ Created and configured /var/www/uploads"
+
+          - name: Restart Service on VPS
+            uses: appleboy/ssh-action@v0.1.10
+            with:
+              host: ${{ secrets.VPS_HOST }}
+              username: ${{ secrets.VPS_USERNAME }}
+              password: ${{ secrets.VPS_PASSWORD }}
+              script: |
+                  echo "✅ Deployed files to VPS"
+                  echo "🔄 Restarting mcc-api.service..."
+                  sudo systemctl stop mcc-api.service            
+                  sudo systemctl start mcc-api.service
+                  sudo systemctl status mcc-api.service --no-pager -l --lines=10
+                  echo "✅ Deployment complete!"
