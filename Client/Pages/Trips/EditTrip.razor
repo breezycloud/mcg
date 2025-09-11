@@ -988,9 +988,14 @@
     }
     
 
-    private void OnUploadCompleted(List<UploadResult> files)
+    private async Task OnUploadCompleted(List<UploadResult> files)
     {
-        Trip.LoadingInfo.Files = files;
+        Trip!.LoadingInfo.Files.AddRange(files);
+        var response = await TripService.UpdateAsync(Trip, AppState.GetCancellationToken());
+        if (response)
+            ToastService.ShowSuccess("File(s) uploaded successfully");
+        else
+            ToastService.ShowSuccess("failed to upload file");
         StateHasChanged();
     }
 
