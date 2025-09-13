@@ -198,9 +198,12 @@
                                 <FileUploadView OnFilesUploaded="OnUploadCompleted"/>
                             </div>                            
                         </div>
-                        <div>
-                            <FileListView Files="@Trip.LoadingInfo.Files"/>
-                        </div>
+                        @if (Trip.LoadingInfo.Files.Any())
+                        {
+                            <div>
+                                <FileListView Files="Trip.LoadingInfo.Files" ShowDelete="@(Trip.LoadingInfo.Files.Any())" OnDelete="@OnDelete" />
+                            </div>
+                        }
                         @if (Trip.Truck?.Product != Product.CNG || Trip.LoadingInfo.Metrics.Count != 3)
                         {                    
                             <MetricsEditor
@@ -997,6 +1000,19 @@
         else
             ToastService.ShowSuccess("failed to upload file");
         StateHasChanged();
+    }
+
+    private async Task OnDelete(UploadResult file)
+    {
+        if (string.IsNullOrWhiteSpace(file.FileName))        
+            return;
+
+        Trip!.LoadingInfo.Files.Remove(file);
+        var response = await TripService.UpdateAsync(Trip, AppState.GetCancellationToken());
+        if (response)
+            ToastService.ShowSuccess("File(s) uploaded successfully");
+        else
+            ToastService.ShowSuccess("failed to upload file");
     }
 
     

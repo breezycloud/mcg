@@ -218,7 +218,7 @@
                         <FileUploadView OnFilesUploaded="@OnUploadComplete"/>
                     </div>
                     <div>
-                        <FileListView Files="CurrentTruck.Files"/>
+                        <FileListView Files="CurrentTruck.Files" ShowDelete="@(CurrentTruck.Files.Any())" OnDelete="@OnDelete" />
                     </div>
                 }                
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -604,17 +604,27 @@
         if (files.Any())
         {
             CurrentTruck.Files.AddRange(files);
-            var result = await TruckService.UpdateAsync(CurrentTruck, AppState.GetCancellationToken());
-            if (result)
-                ToastService.ShowSuccess("File(s) uploaded and record saved successfully");            
-            else
-                ToastService.ShowError("Failed to driver");            
+            if (EditMode)
+            {
+                await HandleSubmit();
+            }
         }
         else
         {
             ToastService.ShowError("Failed to upload files");
         }
         StateHasChanged();
+    }
+    private async Task OnDelete(UploadResult file)
+    {
+        if (string.IsNullOrWhiteSpace(file.FileName))        
+            return;
+
+        CurrentTruck.Files.Remove(file);
+        if (EditMode)
+        {
+            await HandleSubmit();
+        }
     }
 
     void CalibrationParamChanged(List<CalibrationParam> calibrationParams)

@@ -86,6 +86,7 @@ public class FilesaveController : ControllerBase
                 Success = true,
                 FileName = file.FileName,
                 PreviewUrl = url,
+                ContentType = file.ContentType,
                 Size = file.Length,
                 ServerFileName = fileName   
             };
