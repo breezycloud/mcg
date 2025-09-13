@@ -37,8 +37,7 @@ else
                                 <!-- View/Download Button -->
                                 @if (CanPreview(file))
                                 {
-                                    <button @onclick="() => ViewFile(file)" type="button"
-                                            class="text-xs px-3 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800">
+                                    <button @onclick="() => ViewFile(file)" type="button" class="text-xs px-3 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800">
                                         View
                                     </button>
                                 }
@@ -51,13 +50,12 @@ else
                                 }
 
                                 <!-- Delete Button -->
-                                @if (ShowDelete)
+                                <button @onclick="() => DeleteFile(file)" type="button" class="text-xs px-3 py-1 bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800">
+                                    Delete
+                                </button>
+                                @* @if (ShowDelete)
                                 {
-                                    <button @onclick="() => DeleteFile(file)" type="button"
-                                            class="text-xs px-3 py-1 bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800">
-                                        Delete
-                                    </button>
-                                }
+                                } *@
                             </div>
                         </div>
                     </div>
@@ -80,7 +78,7 @@ else
 {
     <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80" @onclick="CloseView" aria-modal="true" role="dialog" aria-labelledby="modal-title">
         <!-- Prevent closing when clicking inside content -->
-        <div class="relative max-w-4xl max-h-full pointer-events-auto" @onclick:stopPropagation>
+        <div class="relative max-w-4xl max-h-full pointer-events-auto">
             <!-- Close Button -->
             <button type="button"
                     @onclick="CloseView"
@@ -95,7 +93,7 @@ else
             <h2 id="modal-title" class="sr-only">@currentViewFile.FileName</h2>
 
             <!-- File Preview Content -->
-            <div class="bg-white rounded-lg shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+            <div class="bg-white rounded-lg shadow-2xl overflow-hidden flex flex-col">
                 @if (IsImage(currentViewFile.ContentType))
                 {
                     <img src="@currentViewFile.PreviewUrl"

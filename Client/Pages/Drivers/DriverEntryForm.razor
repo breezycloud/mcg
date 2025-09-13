@@ -281,11 +281,14 @@
         if (files.Any())
         {
             CurrentDriver.Files.AddRange(files);
-            var result = await DriverService.UpdateAsync(CurrentDriver, AppState.GetCancellationToken());
-            if (result)
-                ToastService.ShowSuccess("File(s) uploaded and record saved successfully");            
-            else
-                ToastService.ShowError("Failed to driver");
+            if (EditMode)
+            {
+                var result = await DriverService.UpdateAsync(CurrentDriver, AppState.GetCancellationToken());
+                if (result)
+                    ToastService.ShowSuccess("File(s) uploaded and record saved successfully");
+                else
+                    ToastService.ShowError("Failed to driver");
+            }            
         }
         else
         {
