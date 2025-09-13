@@ -15,11 +15,8 @@ public class AppState
         return ProductFilter switch
         {
             "CNG" => "SCM",
-            "PMS" => "LTR",
-            "ATK" => "MT",
             "LPG" => "KG",
-            "AGO" => "LTR",
-            _ => ""
+            _ => "LTR"
         };
     }
 
