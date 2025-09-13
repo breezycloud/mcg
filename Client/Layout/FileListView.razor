@@ -78,26 +78,54 @@ else
 <!-- Fullscreen Modal for Viewing Files -->
 @if (currentViewFile != null)
 {
-    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80" @onclick="CloseView">
-        <div class="relative max-w-4xl max-h-full">
-            <button type="button" @onclick="CloseView" class="absolute top-2 right-2 z-10 text-white hover:text-gray-200 bg-black/50 rounded-full p-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80" @onclick="CloseView" aria-modal="true" role="dialog" aria-labelledby="modal-title">
+        <!-- Prevent closing when clicking inside content -->
+        <div class="relative max-w-4xl max-h-full pointer-events-auto" @onclick:stopPropagation>
+            <!-- Close Button -->
+            <button type="button"
+                    @onclick="CloseView"
+                    class="absolute top-2 right-2 z-10 text-white hover:text-gray-200 bg-black/50 rounded-full p-2 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-black"
+                    aria-label="Close modal">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
             </button>
 
-            @if (IsImage(currentViewFile.ContentType))
-            {
-                <img src="@currentViewFile.PreviewUrl" alt="@currentViewFile.FileName" class="max-w-full h-auto  object-cover" />
-            }
-            else if (IsPdf(currentViewFile.ContentType))
-            {
-                <embed src="@currentViewFile.PreviewUrl" type="application/pdf" class="w-full h-auto sm:h-screen" />
-            }
-            else
-            {
-                <iframe src="@currentViewFile.PreviewUrl" class="w-full h-auto sm:h-screen bg-white"></iframe>
-            }
+            <!-- Modal Title (for accessibility) -->
+            <h2 id="modal-title" class="sr-only">@currentViewFile.FileName</h2>
+
+            <!-- File Preview Content -->
+            <div class="bg-white rounded-lg shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+                @if (IsImage(currentViewFile.ContentType))
+                {
+                    <img src="@currentViewFile.PreviewUrl"
+                         alt="@currentViewFile.FileName"
+                         class="max-w-full h-auto object-contain p-4"
+                         loading="lazy"
+                         onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnQiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMTIgMTZjMi4yMDkgMCA0LTEuNzkxIDQtNHYtNGgtNGE0IDQgMCAwIDEgNCA0em0wLTloLTJ2MmgydjFIMTJ2MWgtMnYyaC0ydjFIMTJ2MWgtMnYyaC0ydjFIMTJ2MWgtMnYyaC0ydjFIMTJ2MWgtMnYyaC0ydjFIMTJ2MWgtMnYyaC0ydjFIMTJ2MWgtMnYyaC0ydjFIMTJ2MWgtMnYyaC0ydjFIMTJ2MWgtMnYyaC0ydjFIMTJ2MWgtMnYyaC0ydjFIMTJ2MWgtMnYyaC0ydjFIMTJ2MWgtMnYyaC0ydjFIMTJ2MWgtMnYyaC0ydjFIMTJ2MWgtMnYyaC0ydjFIMTJ2MWgtMnYyaC0ydjFIMTJ2MWgtMnYyaC0ydjFIMTJ2MWgtMnYyaC0ydjFIMTJ2MWgtMnYyaC0ydjFIMTJ2MWgtMnYyaC0ydjFIMTJ2MWgtMnYyaC0ydjFIMTJ2MWgtMnYyaC0ydjFIMTJ2MWgtMnYyaC0ydjFIMTJ2MWgtMnYyaC0ydjFIMTJ2MWgtMnYyaC0ydjFIMTJ2MWgtMnYyaC0ydjFIMTJ2MWgtMnYyaC0ydjFIMTJ2MWgtMnYyaC0ydjFIMTJ2MWgtMnYyaC0ydjFIMTJ2MWgtMnYyaC0ydjFIMTJ2MWgtMnYyaC0ydjFIMTJ2MWgtMnYyaC0ydjFIMTJ2MWgtMnYyaC0ydjFIMTJ2MWgtMnYyaC0ydjFIMTJ2MWgtMnYyaC0ydjFIMTJ2MWgtMnYyaC0ydjFIMTJ2MWgtMnYya......' alt='Preview not available'" />
+                }
+                else if (IsPdf(currentViewFile.ContentType))
+                {
+                    <embed src="@currentViewFile.PreviewUrl"
+                           type="application/pdf"
+                           class="w-full h-full flex-1"
+                           aria-label="PDF preview" />
+                }
+                else
+                {
+                    <iframe src="@currentViewFile.PreviewUrl"
+                            class="w-full h-full flex-1 bg-white border-0"
+                            title="@currentViewFile.FileName"
+                            sandbox="allow-scripts allow-same-origin"
+                            loading="lazy"></iframe>
+                }
+
+                <!-- File Info Bar -->
+                <div class="px-4 py-2 bg-gray-50 border-t border-gray-200 text-sm text-gray-700 flex justify-between items-center">
+                    <span>@currentViewFile.FileName</span>
+                    <span class="text-xs text-gray-500">@FormatFileSize(currentViewFile.Size)</span>
+                </div>
+            </div>
         </div>
     </div>
 }
@@ -111,9 +139,6 @@ else
     // State
     private UploadResult? currentViewFile;
 
-    // Inject services
-    [Inject] private IJSRuntime JS { get; set; } = default!;
-
     // Check if file can be previewed in modal
     private bool CanPreview(UploadResult file) => IsImage(file.ContentType) || IsPdf(file.ContentType);
 
@@ -124,6 +149,8 @@ else
     private void ViewFile(UploadResult file)
     {
         currentViewFile = file;
+        // Optional: Scroll to top on open
+        _js.InvokeVoidAsync("scrollToTop");
     }
 
     private void CloseView()
@@ -134,24 +161,50 @@ else
     // Download file (force download)
     private async Task DownloadFile(UploadResult file)
     {
-        @* await JS.InvokeVoidAsync("downloadFile", file.PreviewUrl, file.FileName); *@
+        try
+        {
+            await _js.InvokeVoidAsync("downloadFile", file.PreviewUrl, file.FileName);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Download failed: {ex.Message}");
+            // Optionally show toast or alert
+        }
     }
 
     // Delete file
     private async Task DeleteFile(UploadResult file)
     {
-        @* if (await DialogService.ShowConfirm("Delete File", $"Are you sure you want to delete '{file.FileName}'?"))
+        try
         {
-            await OnDelete.InvokeAsync(file);
-        } *@
+            var confirmed = await _js.InvokeAsync<bool>("confirm", $"Are you sure you want to delete '{file.FileName}'?");
+            if (confirmed)
+            {
+                await OnDelete.InvokeAsync(file);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Delete confirmation failed: {ex.Message}");
+        }
     }
 
-    // Optional: Add this JSInterop helper
+    // Format file size (e.g., 2.3 MB)
+    private string FormatFileSize(long fileSize)
+    {
+        if (fileSize < 1024) return $"{fileSize} B";
+        if (fileSize < 1024 * 1024) return $"{Math.Round(fileSize / 1024.0, 1)} KB";
+        if (fileSize < 1024 * 1024 * 1024) return $"{Math.Round(fileSize / (1024.0 * 1024), 1)} MB";
+        return $"{Math.Round(fileSize / (1024.0 * 1024 * 1024), 1)} GB";
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            @* await JS.InvokeVoidAsync("createDownloadHelper"); *@
+            @* await _js.InvokeVoidAsync("createDownloadHelper");
+            // Prevent body scrolling when modal is open
+            await _js.InvokeVoidAsync("disableBodyScroll"); *@
         }
     }
 }

@@ -14,14 +14,14 @@ public class AppVersionController : ControllerBase
         #if DEBUG
             AppVersion = 1.1;
         #else
-            AppVersion = 1.6;
+            AppVersion = 1.7;
         #endif
         return Ok(new VersionManifest
         {
             AppVersion = AppVersion, // Update this with each release
             ForceUpdate = true,    // Set to true when critical updates are available
             ReleaseDate = DateTime.Now,
-            ReleaseNotes = "changed ATK product unit in dashboard"
+            ReleaseNotes = "bug fixes"
         });
     }
 }
