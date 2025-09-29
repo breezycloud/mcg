@@ -78,7 +78,7 @@
                             <th scope="col" class="px-6 py-3">Engine No</th>
                             <th scope="col" class="px-6 py-3">Product</th>
                             <th scope="col" class="px-6 py-3">Created</th>
-                            <th scope="col" class="px-6 py-3">Updated</th>
+                            @* <th scope="col" class="px-6 py-3">Updated</th> *@
                             <th scope="col" class="px-6 py-3 text-right">Actions</th>
                         </tr>
                     </thead>
@@ -99,9 +99,9 @@
                                     @* <td class="px-6 py-4">@(truck.UpdatedAt?.ToString("MMM dd, yyyy") ?? "Never")</td> *@
                                     <td class="px-6 py-4 text-right">
                                         <div class="flex justify-end space-x-3">
-                                            <button @onclick="() => ViewTruck(truck.Id)" class="font-medium text-green-600 dark:text-green-500 hover:underline">
+                                            @* <button @onclick="() => ViewTruck(truck.Id)" class="font-medium text-green-600 dark:text-green-500 hover:underline">
                                                 View
-                                            </button>
+                                            </button> *@
                                             <button 
                                                 @onclick="() => EditTruck(truck.Id)" 
                                                 class="font-medium text-blue-600 dark:text-blue-400 hover:underline">
