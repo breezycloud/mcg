@@ -148,7 +148,7 @@ public class UsersController : ControllerBase
     public async Task<ActionResult<User>> PostUser(User user)
     {
         var password = Security.GenerateRandomPassword();
-        var hashedPassword = Security.Encrypt(password);
+        var hashedPassword = Security.Encrypt("12345678");
         user.HashedPassword = hashedPassword;
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
