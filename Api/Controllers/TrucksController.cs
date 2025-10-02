@@ -133,14 +133,18 @@ public class TrucksController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Truck>>> GetTrucks()
     {
-        return await _context.Trucks.OrderBy(x => x.LicensePlate).ToListAsync();
+        return await _context.Trucks.Include(x => x.Trips).OrderBy(x => x.LicensePlate).ToListAsync();
     }
 
     // GET: api/Trucks/5
     [HttpGet("{id}")]
     public async Task<ActionResult<Truck>> GetTruck(Guid id)
     {
-        var truck = await _context.Trucks.FindAsync(id);
+        var truck = await _context.Trucks.AsNoTracking()
+                                         .Include(x => x.Driver)
+                                         .Include(x => x.Trips)
+                                         .AsSplitQuery()
+                                         .FirstOrDefaultAsync(x => x.Id == id);
 
         if (truck == null)
         {

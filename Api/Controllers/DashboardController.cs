@@ -105,6 +105,23 @@ public class DashboardController : ControllerBase
         }
     }
 
+    [HttpGet("monthly-product-distribution")]
+    [ProducesResponseType(typeof(List<TripMonthlyProductSummary>), 200)]
+    public async Task<IActionResult> GetTripMonthlyProductSummary(
+         [FromQuery] string? product)
+    {
+        try
+        {
+            var distribution = await _dashboardService.GetTripMonthlyProductSummaries(product);
+            return Ok(distribution);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching trip monthly product distribution");
+            return StatusCode(500, "Error retrieving status data");
+        }
+    }
+
     [HttpGet("product-shipments")]
     [ProducesResponseType(typeof(List<ProductShipmentDto>), 200)]
     public async Task<IActionResult> GetProductShipments(

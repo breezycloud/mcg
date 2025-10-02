@@ -122,4 +122,14 @@ public class TruckService(IHttpClientFactory _httpClient) : ITruckService
             throw;
         }
     }
+
+    public Task ExportToExcel<T>(List<T> data, string fileName)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task ExportToPdf<T>(List<T> data, string fileName)
+    {
+        throw new NotImplementedException();
+    }
 }

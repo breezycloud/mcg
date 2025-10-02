@@ -11,7 +11,7 @@ namespace Shared.Helpers
     {
         public Guid? Id { get; set; }
         public string? SearchTerm { get; set; }
-        public DateOnly Date { get; set; }
+        public DateOnly? Date { get; set; }
         public string? Status { get; set; }
         public int Paging => Page * PageSize;
         public int Page { get; set; }

@@ -96,4 +96,19 @@ public class DashboardService(IHttpClientFactory _httpClient) : IDashboardServic
             throw;
         }
     }
+
+    public async Task<List<TripMonthlyProductSummary>> GetTripMonthlyProductSummaries(string? product = "All")
+    {
+        try
+        {
+            using var response = await _httpClient.CreateClient("AppUrl").GetAsync($"dashboard/monthly-product-distribution?product={product}");
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<List<TripMonthlyProductSummary>>() ?? new();
+        }
+        catch (System.Exception)
+        {
+
+            throw;
+        }
+    }
 }

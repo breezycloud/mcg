@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Api.Context;
 using Shared.Models.Drivers;
 using Shared.Helpers;
+using Shared.Models.Trips;
 
 namespace Api.Controllers;
 
@@ -67,14 +68,14 @@ public class DriversController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Driver>>> GetDrivers()
     {
-        return await _context.Drivers.ToListAsync();
+        return await _context.Drivers.AsNoTracking().Include(x => x.Trips).ToListAsync();
     }
 
     // GET: api/Drivers/5
     [HttpGet("{id}")]
     public async Task<ActionResult<Driver>> GetDriver(Guid id)
     {
-        var driver = await _context.Drivers.FindAsync(id);
+        var driver = await _context.Drivers.Include(x => x.Trips).FirstOrDefaultAsync(x => x.Id == id);
 
         if (driver == null)
         {
@@ -125,7 +126,7 @@ public class DriversController : ControllerBase
 
         return CreatedAtAction("GetDriver", new { id = driver.Id }, driver);
     }
-
+    
     // DELETE: api/Drivers/5
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteDriver(Guid id)

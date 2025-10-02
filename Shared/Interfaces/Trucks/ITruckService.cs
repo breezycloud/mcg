@@ -13,6 +13,8 @@ public interface ITruckService
     Task<Truck[]?> GetAsync(CancellationToken cancellationToken);
     Task<Truck[]?> GetAsync(string status, CancellationToken cancellationToken);
     Task<GridDataResponse<Truck>?> GetPagedAsync(GridDataRequest request, CancellationToken cancellationToken);
-
     ValueTask<bool> ValidateEntry(string type, string value, CancellationToken cancellationToken);
+
+    Task ExportToExcel<T>(List<T> data, string fileName);
+    Task ExportToPdf<T>(List<T> data, string fileName);
 }

@@ -277,7 +277,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        request = new GridDataRequest { Page = 0, PageSize = 10, Date = reportFilter.StartDate};
+        request = new GridDataRequest { Page = 0, PageSize = 10};
         await LoadTrips();
     }
 

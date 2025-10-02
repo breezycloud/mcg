@@ -1,0 +1,530 @@
+@* DriverReport.razor *@
+@page "/drivers/report"
+@using System.Text
+@inject IDriverService DriverService
+@inject ITripService TripService
+@inject IExportService ExportService
+@attribute [Authorize(Roles = "Supervisor, Admin, Master")]
+
+<div class="p-6">
+    <!-- Header -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Driver Performance Report</h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Comprehensive overview of driver activities and performance metrics</p>
+    </div>
+
+    @if (AppState.IsBusy)
+    {
+        <Loader />
+    }
+    else
+    {
+        <!-- Filters Card -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 mb-6">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Report Filters</h3>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                    <!-- Status Filter -->
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">License Status</label>
+                        <select @bind="Filters.LicenseStatus" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                            <option value="">All Status</option>
+                            <option value="Valid">Valid</option>
+                            <option value="Expired">Expired</option>
+                            <option value="Expiring Soon">Expiring Soon</option>
+                        </select>
+                    </div>
+
+                    <!-- Date Range -->
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Start Date</label>
+                        <input type="date" @bind="Filters.StartDate" 
+                               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" />
+                    </div>
+
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">End Date</label>
+                        <input type="date" @bind="Filters.EndDate" 
+                               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" />
+                    </div>
+
+                    <!-- Trip Status Filter -->
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Activity Status</label>
+                        <select @bind="Filters.ActivityStatus" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                            <option value="">All Drivers</option>
+                            <option value="Active">On Trip</option>
+                            <option value="Available">Available</option>
+                            <option value="Inactive">No Recent Trips</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex flex-wrap gap-3 pt-4 border-t border-gray-200 dark:border-gray-600">
+                    <button @onclick="ApplyFilters" 
+                            class="px-5 py-2.5 text-sm font-medium text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800 flex items-center">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z"></path>
+                        </svg>
+                        Generate Report
+                    </button>
+
+                    <button @onclick="ClearFilters" 
+                            class="px-5 py-2.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-700 dark:focus:ring-gray-700 flex items-center">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                        Clear Filters
+                    </button>
+
+                    <button @onclick="ExportToCsv" 
+                            class="px-5 py-2.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 focus:ring-4 focus:outline-none focus:ring-green-300 dark:bg-green-500 dark:hover:bg-green-600 dark:focus:ring-green-800 flex items-center">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        Export to CSV
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-lg bg-blue-100 dark:bg-blue-900/20 mr-4">
+                        <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Drivers</p>
+                        <p class="text-2xl font-bold text-gray-900 dark:text-white">@FilteredDriverReports.Count</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-lg bg-green-100 dark:bg-green-900/20 mr-4">
+                        <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Active on Trip</p>
+                        <p class="text-2xl font-bold text-gray-900 dark:text-white">@FilteredDriverReports.Count(d => d.CurrentStatus == "On Trip")</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-lg bg-yellow-100 dark:bg-yellow-900/20 mr-4">
+                        <svg class="w-6 h-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Licenses Expiring</p>
+                        <p class="text-2xl font-bold text-gray-900 dark:text-white">@FilteredDriverReports.Count(d => d.LicenseStatus == "Expiring Soon")</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-lg bg-red-100 dark:bg-red-900/20 mr-4">
+                        <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Expired Licenses</p>
+                        <p class="text-2xl font-bold text-gray-900 dark:text-white">@FilteredDriverReports.Count(d => d.LicenseStatus == "Expired")</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Report Table -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    Driver Performance Report
+                </h3>
+                <span class="text-sm text-gray-500 dark:text-gray-400">
+                    @FilteredDriverReports.Count drivers
+                </span>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400 sticky top-0">
+                        <tr>
+                            <th scope="col" class="px-4 py-3 font-semibold">Driver</th>
+                            <th scope="col" class="px-4 py-3 font-semibold">Contact</th>
+                            <th scope="col" class="px-4 py-3 font-semibold">License Info</th>
+                            <th scope="col" class="px-4 py-3 font-semibold text-center">Current Status</th>
+                            <th scope="col" class="px-4 py-3 font-semibold text-center">Total Trips</th>
+                            <th scope="col" class="px-4 py-3 font-semibold text-center">This Month</th>
+                            <th scope="col" class="px-4 py-3 font-semibold text-center">Avg. Rating</th>
+                            <th scope="col" class="px-4 py-3 font-semibold text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var report in FilteredDriverReports)
+                        {
+                            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                                <!-- Driver Info -->
+                                <td class="px-4 py-3">
+                                    <div class="flex items-center">
+                                        <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3 dark:bg-blue-900/20">
+                                            <span class="text-sm font-medium text-blue-600 dark:text-blue-400">
+                                                @report.DriverInitials
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <div class="font-medium text-gray-900 dark:text-white">@report.FullName</div>
+                                            <div class="text-xs text-gray-500 dark:text-gray-400">ID: @report.DriverId.ToString().Substring(0, 8)</div>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <!-- Contact -->
+                                <td class="px-4 py-3">
+                                    <div class="text-gray-900 dark:text-white">@report.PhoneNumber</div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">Joined: @report.JoinDate</div>
+                                </td>
+
+                                <!-- License Info -->
+                                <td class="px-4 py-3">
+                                    <div class="mb-1">
+                                        <span class="text-xs font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
+                                            @report.LicenseNumber
+                                        </span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <span class="px-2 py-1 text-xs font-medium rounded-full @GetLicenseStatusBadgeClass(report.LicenseStatus)">
+                                            @report.LicenseStatus
+                                        </span>
+                                        <span class="ml-2 text-xs text-gray-500 dark:text-gray-400">
+                                            @report.LicenseExpiry
+                                        </span>
+                                    </div>
+                                </td>
+
+                                <!-- Current Status -->
+                                <td class="px-4 py-3 text-center">
+                                    <span class="px-2 py-1 text-xs font-medium rounded-full @GetActivityStatusBadgeClass(report.CurrentStatus)">
+                                        @report.CurrentStatus
+                                    </span>
+                                    @if (report.CurrentTrip != null)
+                                    {
+                                        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                            @report.CurrentTrip
+                                        </div>
+                                    }
+                                </td>
+
+                                <!-- Total Trips -->
+                                <td class="px-4 py-3 text-center">
+                                    <span class="font-semibold text-gray-900 dark:text-white">@report.TotalTrips</span>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                                        @report.CompletedTrips completed
+                                    </div>
+                                </td>
+
+                                <!-- This Month -->
+                                <td class="px-4 py-3 text-center">
+                                    <span class="font-semibold @(report.ThisMonthTrips > 0 ? "text-green-600 dark:text-green-400" : "text-gray-500")">
+                                        @report.ThisMonthTrips
+                                    </span>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                                        trips
+                                    </div>
+                                </td>
+
+                                <!-- Average Rating -->
+                                <td class="px-4 py-3 text-center">
+                                    @if (report.AverageRating > 0)
+                                    {
+                                        <div class="flex items-center justify-center">
+                                            <div class="flex">
+                                                @for (int i = 1; i <= 5; i++)
+                                                {
+                                                    <svg class="w-3 h-3 @(i <= report.AverageRating ? "text-yellow-400" : "text-gray-300 dark:text-gray-600")" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                                    </svg>
+                                                }
+                                            </div>
+                                            <span class="ml-1 text-xs text-gray-500 dark:text-gray-400">
+                                                (@report.AverageRating.ToString("0.0"))
+                                            </span>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-xs text-gray-400">No ratings</span>
+                                    }
+                                </td>
+
+                                <!-- Actions -->
+                                <td class="px-4 py-3">
+                                    <div class="flex space-x-2">
+                                        <button @onclick="() => ViewDriver(report.DriverId)" 
+                                                class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                                                title="View Details">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                            </svg>
+                                        </button>
+                                        <button @onclick="() => ViewTrips(report.DriverId)" 
+                                                class="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
+                                                title="View Trips">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Empty State -->
+            @if (!FilteredDriverReports.Any())
+            {
+                <div class="text-center py-12">
+                    <svg class="w-12 h-12 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                    </svg>
+                    <h3 class="mt-4 text-lg font-medium text-gray-900 dark:text-white">No drivers found</h3>
+                    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                        @(AllDriverReports.Any() ? "Try adjusting your filters" : "No drivers have been added yet")
+                    </p>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@if (IsExporting)
+{
+    <div class="fixed inset-0 bg-gray bg-opacity-50 flex justify-center items-center z-50">
+        <div class="bg-white dark:bg-gray-800 p-6 rounded shadow-md w-96">
+            <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">Exporting...</h2>
+            <div class="w-full bg-gray-200 rounded-full h-4 mb-4 dark:bg-gray-700">
+                <div class="bg-green-500 h-4 rounded-full transition-all duration-300" style="width:@Progress%"></div>
+            </div>
+            <p class="text-sm text-gray-600 dark:text-gray-300">Please wait while we generate the report...</p>
+        </div>
+    </div>
+}
+
+@code {
+    private List<DriverReportDto> AllDriverReports { get; set; } = new();
+    private List<DriverReportDto> FilteredDriverReports { get; set; } = new();
+    private DriverReportFilters Filters { get; set; } = new();
+
+    private bool IsExporting { get; set; } = false;
+    private int Progress { get; set; } = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        AppState.IsBusy = true;
+        await LoadReportData();
+        AppState.IsBusy = false;
+    }
+
+    private async Task LoadReportData()
+    {
+        var drivers = await DriverService.GetAsync(AppState.GetCancellationToken());
+        var reportData = new List<DriverReportDto>();
+        
+        foreach (var driver in drivers)
+        {
+            var driverReport = await GenerateDriverReport(driver);
+            reportData.Add(driverReport);
+        }
+
+        AllDriverReports = reportData;
+        FilteredDriverReports = reportData;
+    }
+
+    private async Task<DriverReportDto> GenerateDriverReport(Driver driver)
+    {
+        // Get driver's trips
+        var trips = driver.Trips?.ToList() ?? new List<Trip>();
+        var currentMonth = DateTime.Now.Month;
+        var currentYear = DateTime.Now.Year;
+
+        var completedTrips = trips.Where(t => t.Status == TripStatus.Completed).ToList();
+        var currentTrip = trips.FirstOrDefault(t => t.Status == TripStatus.Active);
+        
+        var averageRating = completedTrips.Any() ? 
+            completedTrips.Average(t => t.CloseInfo?.Rating ?? 0) : 0;
+
+        return new DriverReportDto
+        {
+            DriverId = driver.Id,
+            FullName = $"{driver.FirstName} {driver.LastName}",
+            DriverInitials = $"{driver.FirstName?[0]}{driver.LastName?[0]}",
+            PhoneNumber = driver.PhoneNo ?? "N/A",
+            LicenseNumber = driver.LicenseNo ?? "N/A",
+            LicenseExpiry = driver.ExpiryDate?.ToString("yyyy-MM-dd") ?? "N/A",
+            LicenseStatus = GetLicenseStatus(driver.ExpiryDate),
+            JoinDate = driver.CreatedAt.ToString("MMM yyyy"),
+            TotalTrips = trips.Count,
+            CompletedTrips = completedTrips.Count,
+            ThisMonthTrips = trips.Count(t => 
+                t.Date.Month == currentMonth && t.Date.Year == currentYear),
+            AverageRating = averageRating,
+            CurrentStatus = GetCurrentStatus(currentTrip),
+            CurrentTrip = currentTrip?.DispatchId
+        };
+    }
+
+    private string GetLicenseStatus(DateOnly? expiryDate)
+    {
+        if (!expiryDate.HasValue) return "Not Set";
+        
+        var daysUntilExpiry = (expiryDate.Value.ToDateTime(TimeOnly.MinValue) - DateTime.Today).Days;
+        
+        if (daysUntilExpiry < 0) return "Expired";
+        if (daysUntilExpiry <= 30) return "Expiring Soon";
+        return "Valid";
+    }
+
+    private string GetCurrentStatus(Trip? currentTrip)
+    {
+        if (currentTrip != null)
+        {
+            return "On Trip";
+        }
+        return "Available";
+    }
+
+    private void ApplyFilters()
+    {
+        FilteredDriverReports = AllDriverReports.Where(report =>
+            (string.IsNullOrEmpty(Filters.LicenseStatus) || report.LicenseStatus == Filters.LicenseStatus) &&
+            (string.IsNullOrEmpty(Filters.ActivityStatus) || report.CurrentStatus.Contains(Filters.ActivityStatus))
+        ).ToList();
+    }
+
+    private void ClearFilters()
+    {
+        Filters = new DriverReportFilters();
+        FilteredDriverReports = AllDriverReports;
+    }
+
+    private async Task ExportToCsv()
+    {
+        IsExporting = true;
+        Progress = 5;
+        StateHasChanged();
+        try
+        {
+            int count = FilteredDriverReports.Count;
+            if (count <= 0)
+            {
+                ToastService.ShowWarning("No data to export");
+                return;
+            }
+
+
+            AppState.IsProcessing = true;
+            Progress = 25;
+            StateHasChanged();
+
+
+            
+            List<DriverCsvExportDto> csvData = [];
+            for (int i=0; i < FilteredDriverReports.Count; i++)
+            {
+                var row = new DriverCsvExportDto
+                {
+                    FullName = FilteredDriverReports[i].FullName,
+                    PhoneNumber = FilteredDriverReports[i].PhoneNumber,
+                    LicenseNumber = FilteredDriverReports[i].LicenseNumber,
+                    LicenseExpiry = FilteredDriverReports[i].LicenseExpiry,
+                    LicenseStatus = FilteredDriverReports[i].LicenseStatus,
+                    CurrentStatus = FilteredDriverReports[i].CurrentStatus,
+                    TotalTrips = FilteredDriverReports[i].TotalTrips,
+                    CompletedTrips = FilteredDriverReports[i].CompletedTrips,
+                    ThisMonthTrips = FilteredDriverReports[i].ThisMonthTrips,
+                    AverageRating = FilteredDriverReports[i].AverageRating.ToString("0.0"),
+                    CurrentTrip = FilteredDriverReports[i].CurrentTrip ?? "N/A",
+                    JoinDate = FilteredDriverReports[i].JoinDate
+                };
+
+                csvData.Add(row);
+
+                Progress = 25 + (int)(((i + 1) / (double)count) * 70);
+                StateHasChanged();
+                await Task.Delay(10); // Simulate delay (optional)
+            }
+            
+
+            @* var bytes = Encoding.UTF8.GetBytes(csvData.ToString()); *@
+            var fileName = $"Drivers_{DateTime.Now:yyyyMMdd_HHmmss}.csv";            
+            
+            await ExportService.ExportToCsv(csvData, fileName);
+            ToastService.ShowSuccess("Driver report exported to CSV successfully");
+
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError("Failed to export report: " + ex.Message);
+        }
+        finally
+        {
+            AppState.IsProcessing = false;
+            Progress = 100;
+            await Task.Delay(500); // Let progress bar fill
+            IsExporting = false;
+            StateHasChanged();
+        }
+    }
+
+
+
+    private void ViewDriver(Guid driverId)
+    {
+        nav.NavigateTo($"/driver/{driverId}");
+    }
+
+    private void ViewTrips(Guid driverId)
+    {
+        nav.NavigateTo($"/trips?driverId={driverId}");
+    }
+
+    private string GetLicenseStatusBadgeClass(string status)
+    {
+        return status switch
+        {
+            "Valid" => "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
+            "Expiring Soon" => "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
+            "Expired" => "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
+            _ => "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
+        };
+    }
+
+    private string GetActivityStatusBadgeClass(string status)
+    {
+        return status switch
+        {
+            "On Trip" => "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
+            "Awaiting Loading" => "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
+            "Available" => "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
+            _ => "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
+        };
+    }
+}
