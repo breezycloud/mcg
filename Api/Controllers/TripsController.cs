@@ -62,9 +62,21 @@ public class TripsController : ControllerBase
         return new FileStreamResult(stream, "text/csv")
         {
             FileDownloadName = $"Loading from {request.StartDate:MMMM-yyyy} {(request.EndDate.HasValue ? $"to {request.EndDate:MMMM-yyyy}" : "")}.csv"
-        };
+        };        
+    }
 
-        
+    [HttpPost("trips-byrange")]
+    public async Task<ActionResult<IEnumerable<Trip>>> TripsByRange(ReportFilter filter, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await _context.Trips.Include(x => x.Discharges).Include(x => x.Truck).Where(x => x.Truck.Product != Shared.Enums.Product.CNG && x.Date >= filter.StartDate && x.Date <= filter.EndDate.Value).ToArrayAsync(cancellationToken);
+        }
+        catch (System.Exception)
+        {
+            
+            throw;
+        }
     }
 
     private string EscapeCsv(string? value)
@@ -89,25 +101,28 @@ public class TripsController : ControllerBase
                                       .Include(x => x.Discharges)
                                       .ThenInclude(x => x.Station)
                                       .Include(x => x.ClosedBy)
-                                      .Include(x => x.CompletedBy)
-                                      .Where(x => x.Date.Month == request.Date.Month && x.Date.Year == request.Date.Year)
+                                      .Include(x => x.CompletedBy)                                                                            
                                       .AsSplitQuery()
                                       .AsQueryable();
-            
-            if (!string.IsNullOrEmpty(request.SearchTerm))
+            if (request.Date is not null)
             {
-                string pattern = $"%{request.SearchTerm}%";
-                query = query.Include(x => x.Truck)
-                            .Include(x => x.Driver)
-                            .AsSplitQuery()
-                            .Where(x => EF.Functions.ILike(x.LoadingInfo.WaybillNo!, pattern)
-                            || EF.Functions.ILike(x.LoadingDepot.Name, pattern)
-                            || EF.Functions.ILike(x.LoadingInfo.Destination, pattern)
-                            || EF.Functions.ILike(x.Truck.LicensePlate, pattern)
-                            || EF.Functions.ILike(x.Truck.TruckNo, pattern)
-                            || EF.Functions.ILike(x.Driver.LastName, pattern)
-                            || EF.Functions.ILike(x.Driver.FirstName, pattern));
+                query = query.Where(x => x.Date.Month == request.Date.Value.Month && x.Date.Year == request.Date.Value.Year);
             }
+
+            if (!string.IsNullOrEmpty(request.SearchTerm))
+                {
+                    string pattern = $"%{request.SearchTerm}%";
+                    query = query.Include(x => x.Truck)
+                                .Include(x => x.Driver)
+                                .AsSplitQuery()
+                                .Where(x => EF.Functions.ILike(x.LoadingInfo.WaybillNo!, pattern)
+                                || EF.Functions.ILike(x.LoadingDepot.Name, pattern)
+                                || EF.Functions.ILike(x.LoadingInfo.Destination, pattern)
+                                || EF.Functions.ILike(x.Truck.LicensePlate, pattern)
+                                || EF.Functions.ILike(x.Truck.TruckNo, pattern)
+                                || EF.Functions.ILike(x.Driver.LastName, pattern)
+                                || EF.Functions.ILike(x.Driver.FirstName, pattern));
+                }
 
             if (!string.IsNullOrEmpty(request.Status))
             {
@@ -117,12 +132,16 @@ public class TripsController : ControllerBase
 
             response.Total = await query.CountAsync();
             response.Data = [];
-            var pagedQuery = query.OrderByDescending(x => x.DispatchId).Skip(request.Paging).Take(request.PageSize).AsAsyncEnumerable();
+            response.Data = await query.OrderByDescending(x => x.Date)
+                                  .ThenByDescending(x => x.LoadingInfo.LoadingDate)
+                                  .Skip(request.Paging)
+                                  .Take(request.PageSize)
+                                  .ToListAsync();
 
-            await foreach (var item in pagedQuery)
-            {
-                response.Data.Add(item);
-            }
+            // await foreach (var item in pagedQuery)
+            // {
+            //     response.Data.Add(item);
+            // }
 
 
             return response;
@@ -179,6 +198,16 @@ public class TripsController : ControllerBase
             return NotFound();
         }
         return trip;
+    }
+
+    [HttpGet("truck-trips/{id}")]
+    public async Task<ActionResult<List<Trip>>> GetActiveTrip(Guid id, int year, CancellationToken cancellationToken = default)
+    {
+        var trips = await _context.Trips.Where(x => x.TruckId == id && x.Date.Year == year)
+                                       .OrderByDescending(x => x.Date)
+                                       .ToListAsync(cancellationToken);
+
+        return trips;
     }
 
     // PUT: api/Trips/5

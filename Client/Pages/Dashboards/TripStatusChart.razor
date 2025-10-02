@@ -1,4 +1,5 @@
 @using ApexCharts
+@using System.Threading.Tasks
 @inject IDashboardService DashboardService
 @implements IDisposable
 
@@ -12,64 +13,169 @@
 else
 {
     <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-        <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Trip Monthly Distribution</h3>
-        <ApexChart @ref="chart" TItem="TripMonthlySummaryDto" 
-                Options="@options"
+        @* <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Trip Monthly Distribution</h3> *@
+        <ApexChart 
+                @ref="chart" 
+                TItem="DistributionData" 
+                Options="@chartOptions"            
                 Height="350">
 
-            <ApexPointSeries TItem="TripMonthlySummaryDto"
+
+             @foreach (var item in Series)
+            {
+                <ApexPointSeries
+                    TItem="DistributionData"
+                    Items="item.Data"
+                    Name="@item.Label"
+                    SeriesType="SeriesType.Bar"
+                    XValue="e => e.Key"
+                    YValue="e => e.Value"
+                    ShowDataLabels="true" />
+            }
+            @* <ApexPointSeries TItem="TripMonthlyProductSummary"
                     Items="Data"
                     SeriesType="SeriesType.Bar"
                     Name="Monthly Trips"
-                    XValue="@(e => e.Format)"
+                    XValue="@(e => e.Product)"
                     YValue="@(e => e.TotalTrips)"
-                    ShowDataLabels="true" />
+                    ShowDataLabels="true" /> *@
         </ApexChart>
     </div>
 }
 
 @code {
-    private List<TripMonthlySummaryDto> Data { get; set; } = new();
-    private TripMonthlySummaryDto StatusData { get; set; } = new();
-    private ApexChart<TripMonthlySummaryDto>? chart = new();
-    private ApexChartOptions<TripMonthlySummaryDto> options { get; set; } = new();
-    [Parameter]
-    public ProductFilter Product { get; set; } = ProductFilter.All;    
+    private ApexChart<DistributionData>? chart;
+    private ApexChartOptions<DistributionData> chartOptions = new();
     private bool IsLoading = false;
+
+    private List<TripMonthlyProductSummary> Data = new();
+    private ProductMonthlyTripDistribution[] Series = [];
+
+    [Parameter]
+    public ProductFilter Product { get; set; } = ProductFilter.All;
+
+    protected override async Task OnInitializedAsync()
+    {
+        AppState.FilterChanged += OnFilterChanged!;    
+        await InitializeChartOptions();
+        await LoadData();        
+    }
 
     protected override async Task OnParametersSetAsync()
     {
-        AppState.FilterChanged += OnFilterChanged!;
-        await LoadData();    
+        if (HasParameterChanged())
+        {
+            await LoadData();
+            await UpdateChart();
+        }
+    }
+
+    private bool HasParameterChanged()
+    {
+        return true; // For simplicity, always reload when parameters change
     }
 
     private async Task LoadData()
     {
         IsLoading = true;
-        var statusData = await DashboardService.GetTripMonthlySummaries(Product.ToString());
-        if (statusData == null)
-        {
-            StatusData = new();
-        }
-        else
-        {
-            Data = statusData;
-        }
-       options.DataLabels = new DataLabels { DropShadow = new DropShadow { Enabled = false } };
-       StateHasChanged();
-       if (chart is not null)
-       {
-            Console.WriteLine("{0} {1}", "My Chart", chart);
-            await chart.UpdateSeriesAsync(true);
-       }
-       IsLoading = false;
+        var result = await DashboardService.GetTripMonthlyProductSummaries(Product.ToString());
+        Data = result ?? new();
+        IsLoading = false;
     }
 
-    private async void OnFilterChanged(object sender, EventArgs args)
+    private async Task InitializeChartOptions()
+    {
+        chartOptions = new ApexChartOptions<DistributionData>
+        {            
+            Chart = new Chart
+            {
+                Type = ChartType.Bar,
+                Stacked = true,
+                Animations = new Animations { Enabled = true,  Easing = Easing.Easeout}
+            },
+            Theme = new Theme { Palette = PaletteType.Palette5},
+            Title = new Title
+            {
+                Text = "Product Monthly Trip Distribution",
+                Align = Align.Center
+            },
+            PlotOptions = new PlotOptions
+            {
+                Bar = new PlotOptionsBar
+                {
+                    Horizontal = false,
+                    ColumnWidth = "55%",
+                    BorderRadius = 10
+                }
+            },
+            Fill = new Fill { Opacity = 1 },
+            Xaxis = new XAxis
+            {
+                Categories = new List<string>() // Filled dynamically below
+            },
+            Legend = new Legend
+            {
+                Position = LegendPosition.Top,
+                HorizontalAlign = Align.Center
+            }
+        };
+
+        chart = new();
+        chart.Options = chartOptions;
+
+    }
+
+    private async Task UpdateChart()
+    {
+        if (Data.Count == 0)
+        {
+            Series = [];
+            return;
+        }
+
+        // Get unique months (format)
+        var months = Data.Select(d => d.Format)
+                         .Distinct()
+                         .OrderByDescending(x => x) // For chronological display if needed
+                         .ToList();
+
+        // Get unique products
+        var products = Data.Select(d => d.Product)
+                           .Distinct()
+                           .OrderBy(x => x)
+                           .ToList();        
+
+        // Group data by product
+        Series = products.Select(product => new ProductMonthlyTripDistribution
+        {
+            Label = product,
+            Data = months.Select(month => new DistributionData
+            {
+                Key = month,
+                Value = Data.FirstOrDefault(d => d.Product == product && d.Format == month)?.TotalTrips ?? 0
+            }).ToArray()
+        }).ToArray();
+
+        // Set x-axis categories
+        chartOptions.Xaxis.Categories = months;
+        @* chart.Series = Series *@
+
+        // Update chart
+        if (chart is not null)
+        {
+            await chart.UpdateOptionsAsync(true, true, true);
+            await chart.UpdateSeriesAsync(true);
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void OnFilterChanged(object? sender, EventArgs e)
     {
         await LoadData();
+        await UpdateChart();
     }
-
+    
     private string GetPointColor(TripStatus status)
     {   
         switch (status)

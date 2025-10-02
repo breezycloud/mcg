@@ -71,8 +71,36 @@ public class DashboardService : IDashboardService
                 t.Status == TripStatus.Active)
             //&& t.ExpectedCompletionDate < DateTime.Now
         };
-    }
+    }    
+    public async Task<List<TripMonthlyProductSummary>> GetTripMonthlyProductSummaries(string? product = "All")
+    {
+        var now = DateTime.UtcNow;
+        var startMonth = new DateOnly(now.Year, now.Month, 1).AddMonths(-4); // 5 months including current
+        var endMonth = new DateOnly(now.Year, now.Month, DateTime.DaysInMonth(now.Year, now.Month));
 
+        var trips = await GetFilteredTripsAsync(startMonth, endMonth, product);
+
+        var summaries = trips
+            .GroupBy(t => new { t.Date.Year, t.Date.Month, t.Truck?.Product })
+            .OrderByDescending(g => new DateTime(g.Key.Year, g.Key.Month, 1))
+            .Select(g => new TripMonthlyProductSummary
+            {
+                Year = g.Key.Year,
+                Month = g.Key.Month,
+                Product = g.Key.Product.ToString(),
+                TotalTrips = g.Count(),
+                TotalQuantity = g.Sum(t => t.LoadingInfo!.Quantity ?? 0),
+                AvgDurationDays = g.Any(t => t.CloseInfo.ReturnDateTime.HasValue)
+                ? (decimal)g
+                .Where(t => t.CloseInfo.ReturnDateTime.HasValue)
+                .Average(t => (t.CloseInfo.ReturnDateTime!.Value - t.Date.ToDateTime(TimeOnly.MinValue)).TotalDays)
+                : 0
+            })
+            .OrderBy(x => x.Year).ThenBy(x => x.Month)
+            .ToList();
+
+        return summaries;
+    }
     public async Task<List<TripMonthlySummaryDto>> GetTripMonthlySummaries(string? product = "All")
     {
         var now = DateTime.UtcNow;
@@ -87,11 +115,11 @@ public class DashboardService : IDashboardService
             .Take(5)
             .Select(g => new TripMonthlySummaryDto
             {
-            Year = g.Key.Year,
-            Month = g.Key.Month,
-            TotalTrips = g.Count(),
-            TotalQuantity = g.Sum(t => t.LoadingInfo!.Quantity ?? 0),
-            AvgDurationDays = g.Any(t => t.CloseInfo.ReturnDateTime.HasValue)
+                Year = g.Key.Year,
+                Month = g.Key.Month,
+                TotalTrips = g.Count(),
+                TotalQuantity = g.Sum(t => t.LoadingInfo!.Quantity ?? 0),
+                AvgDurationDays = g.Any(t => t.CloseInfo.ReturnDateTime.HasValue)
                 ? (decimal)g
                 .Where(t => t.CloseInfo.ReturnDateTime.HasValue)
                 .Average(t => (t.CloseInfo.ReturnDateTime!.Value - t.Date.ToDateTime(TimeOnly.MinValue)).TotalDays)

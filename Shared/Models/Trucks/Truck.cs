@@ -57,3 +57,39 @@ public class Truck
     [NotMapped]
     public string? OriginalEngineNo => EngineNo;
 }
+
+public class TruckReportFilters
+{
+    public string ProductType { get; set; } = "";
+    public string TruckStatus { get; set; } = "";
+    public string ReportMonth { get; set; } = "";
+    public string ReportYear { get; set; } = "";
+}
+
+public class TruckReportDto
+{
+    public Guid TruckId { get; set; }
+    public string TruckNumber { get; set; } = string.Empty;
+    public string Product { get; set; } = string.Empty;
+    public string TruckStatus { get; set; } = string.Empty;
+    public int TotalLoading { get; set; }
+    public Dictionary<string, int> MonthlyLoading { get; set; } = new();
+}
+
+public class TruckCsvExportDto
+{
+    [Display(Name = "Truck Number")]
+    public string TruckNumber { get; set; } = string.Empty;
+
+    [Display(Name = "Product")]
+    public string Product { get; set; } = string.Empty;
+
+    [Display(Name = "Truck Status")]
+    public string TruckStatus { get; set; } = string.Empty;
+
+    [Display(Name = "Total Loading")]
+    public int TotalLoading { get; set; }
+
+    [Display(Name = "Monthly Data")]
+    public Dictionary<string, int> MonthlyData { get; set; } = new();
+}

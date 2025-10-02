@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using Shared.Enums;
 using Shared.Models.Trips;
@@ -42,6 +43,31 @@ public class TripMonthlySummaryDto
     // Average trip duration in days    
     public string? Format => $"{System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(Month)}-{Year}";  // Format as YYYY-MonthName
 }
+
+public class TripMonthlyProductSummary
+{
+    public int Month { get; set; }  // Month number (1-12)
+    public int Year { get; set; }   // Year
+    public string? Product { get; set; }
+    public int TotalTrips { get; set; }  // Total trips in this month
+    public decimal TotalQuantity { get; set; }  // Total quantity shipped in this month
+    public decimal AvgDurationDays { get; set; }  // Average trip duration in days
+    // Average trip duration in days    
+    public string? Format => $"{System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(Month)}-{Year}";  // Format as YYYY-MonthName
+}
+
+public class ProductMonthlyTripDistribution
+{
+    public string? Label { get; set; }
+    public DistributionData[]? Data { get; set; }
+}
+
+public class DistributionData
+{
+    public string? Key { get; set; }
+    public int Value { get; set; }
+}
+
 
 public class ProductShipmentDto
 {
@@ -142,3 +168,52 @@ public record GeoJsonFeature(
     [property: JsonPropertyName("geometry")] GeoJsonGeometry? Geometry = null,
     [property: JsonPropertyName("properties")] Dictionary<string, object>? Properties = null);
 
+
+public class ShortageAnalysis
+{
+    public Guid TripId { get; set; }
+    public string TruckNumber { get; set; } = string.Empty;
+    public string Product { get; set; } = string.Empty;
+    public decimal LoadingQuantity { get; set; }
+    public decimal DischargedQuantity { get; set; }
+    public decimal ShortageAmount { get; set; }
+    public decimal VariancePercentage { get; set; }
+    public DateOnly TripDate { get; set; }
+}
+
+public class ProductShortageData
+{
+    public string Product { get; set; } = string.Empty;
+    public double TotalShortage { get; set; }
+    public double AverageShortage { get; set; }
+}
+
+public class ShortageExportDto
+{
+    [Display(Name = "Trip ID")]
+    public string TripId { get; set; } = string.Empty;
+
+    [Display(Name = "Truck Number")]
+    public string TruckNumber { get; set; } = string.Empty;
+
+    [Display(Name = "Product")]
+    public string Product { get; set; } = string.Empty;
+
+    [Display(Name = "Loading Quantity")]
+    public decimal LoadingQuantity { get; set; }
+
+    [Display(Name = "Discharged Quantity")]
+    public decimal DischargedQuantity { get; set; }
+
+    [Display(Name = "Shortage Amount")]
+    public decimal ShortageAmount { get; set; }
+
+    [Display(Name = "Variance Percentage")]
+    public decimal VariancePercentage { get; set; }
+
+    [Display(Name = "Status")]
+    public string Status { get; set; } = string.Empty;
+
+    [Display(Name = "Trip Date")]
+    public string TripDate { get; set; } = string.Empty;
+}

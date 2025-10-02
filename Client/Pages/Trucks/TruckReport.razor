@@ -1,0 +1,604 @@
+@* TruckReport.razor *@
+@page "/trucks/report"
+@using System.Text
+@inject ITruckService TruckService
+@inject ITripService TripService
+@inject IExportService ExportService
+<div class="p-6">
+    <!-- Header -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Truck Loading Report</h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Monthly loading overview and truck status tracking</p>
+    </div>
+
+    @if (AppState.IsBusy)
+    {
+        <Loader />
+    }
+    else
+    {
+        <!-- Filters Card -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 mb-6">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Report Filters</h3>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                    <!-- Product Type Filter -->
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Product Type</label>
+                        <select @bind="Filters.ProductType" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                            <option value="">All Products</option>
+                            @foreach (var product in Enum.GetValues<Product>())
+                            {
+                                <option value="@product">@StringConverter.ToDescription(product)</option>
+                            }
+                        </select>
+                    </div>
+
+                    <!-- Truck Status Filter -->
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Truck Status</label>
+                        <select @bind="Filters.TruckStatus" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                            <option value="">All Status</option>
+                            <option value="Awaiting loading">Awaiting loading</option>
+                            <option value="Delivery Trip">Delivery Trip</option>
+                            <option value="TOOS">TOOS</option>
+                            <option value="Under Maintenance">Under Maintenance</option>
+                            <option value="Available">Available</option>
+                        </select>
+                    </div>
+
+                    <!-- Month Filter -->
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Report Period</label>
+                        <select @bind="Filters.ReportMonth" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                            <option value="">All Months</option>
+                            @foreach (var month in GetMonthOptions())
+                            {
+                                <option value="@month.Value">@month.Text</option>
+                            }
+                        </select>
+                    </div>
+
+                    <!-- Year Filter -->
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Year</label>
+                        <select @bind="Filters.ReportYear" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                            <option value="">All Years</option>
+                            @foreach (var year in GetYearOptions())
+                            {
+                                <option value="@year">@year</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex flex-wrap gap-3 pt-4 border-t border-gray-200 dark:border-gray-600">
+                    <button @onclick="ApplyFilters" 
+                            class="px-5 py-2.5 text-sm font-medium text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800 flex items-center">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z"></path>
+                        </svg>
+                        Generate Report
+                    </button>
+
+                    <button @onclick="ClearFilters" 
+                            class="px-5 py-2.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-700 dark:focus:ring-gray-700 flex items-center">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                        Clear Filters
+                    </button>
+
+                    <button @onclick="ExportToCsv" 
+                            class="px-5 py-2.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 focus:ring-4 focus:outline-none focus:ring-green-300 dark:bg-green-500 dark:hover:bg-green-600 dark:focus:ring-green-800 flex items-center">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        Export to CSV
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-lg bg-blue-100 dark:bg-blue-900/20 mr-4">
+                        <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Trucks</p>
+                        <p class="text-2xl font-bold text-gray-900 dark:text-white">@FilteredTruckReports.Count</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-lg bg-green-100 dark:bg-green-900/20 mr-4">
+                        <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Awaiting Loading</p>
+                        <p class="text-2xl font-bold text-gray-900 dark:text-white">@FilteredTruckReports.Count(t => t.TruckStatus == "Awaiting loading")</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-lg bg-yellow-100 dark:bg-yellow-900/20 mr-4">
+                        <svg class="w-6 h-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">In Delivery</p>
+                        <p class="text-2xl font-bold text-gray-900 dark:text-white">@FilteredTruckReports.Count(t => t.TruckStatus == "Delivery Trip")</p>
+                    </div>
+                </div>
+            </div>
+
+            @* <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-lg bg-red-100 dark:bg-red-900/20 mr-4">
+                        <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">TOOS</p>
+                        <p class="text-2xl font-bold text-gray-900 dark:text-white">@FilteredTruckReports.Count(t => t.TruckStatus == "TOOS")</p>
+                    </div>
+                </div>
+            </div> *@
+        </div>
+
+        <!-- Report Table -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    Monthly Loading Report - @GetReportPeriod()
+                </h3>
+                <span class="text-sm text-gray-500 dark:text-gray-400">
+                    @FilteredTruckReports.Count trucks
+                </span>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400 sticky top-0">
+                        <tr>
+                            <th scope="col" class="px-4 py-3 font-semibold">Truck Number</th>
+                            <th scope="col" class="px-4 py-3 font-semibold">Product</th>
+                            <th scope="col" class="px-4 py-3 font-semibold">Truck Status</th>
+                            <th scope="col" class="px-4 py-3 font-semibold text-center">Total Loading</th>
+                            @foreach (var month in DisplayMonths)
+                            {
+                                <th scope="col" class="px-3 py-3 font-semibold text-center">@month</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var report in FilteredTruckReports)
+                        {
+                            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                                <!-- Truck Number -->
+                                <td class="px-4 py-3 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                                    <div class="flex items-center">
+                                        @report.TruckNumber
+                                        @if (report.TruckStatus == "TOOS")
+                                        {
+                                            <span class="ml-2 px-1.5 py-0.5 text-xs bg-red-100 text-red-800 rounded-full dark:bg-red-900 dark:text-red-300">
+                                                TOOS
+                                            </span>
+                                        }
+                                    </div>
+                                </td>
+
+                                <!-- Product -->
+                                <td class="px-4 py-3">
+                                    <span class="px-2 py-1 text-xs font-medium rounded-full 
+                                        @GetProductBadgeClass(report.Product)">
+                                        @report.Product
+                                    </span>
+                                </td>
+
+                                <!-- Truck Status -->
+                                <td class="px-4 py-3">
+                                    <span class="px-2 py-1 text-xs font-medium rounded-full 
+                                        @GetStatusBadgeClass(report.TruckStatus)">
+                                        @report.TruckStatus
+                                    </span>
+                                </td>
+
+                                <!-- Total Loading -->
+                                <td class="px-4 py-3 text-center font-semibold 
+                                    @(report.TotalLoading > 0 ? "text-green-600 dark:text-green-400" : "text-gray-500")">
+                                    @report.TotalLoading
+                                </td>
+
+                                <!-- Monthly Loading Data -->
+                                @foreach (var month in DisplayMonths)
+                                {
+                                    var monthlyCount = report.MonthlyLoading.ContainsKey(month) ? report.MonthlyLoading[month] : 0;
+                                    <td class="px-3 py-3 text-center 
+                                        @(monthlyCount > 0 ? "text-blue-600 font-medium dark:text-blue-400" : "text-gray-500")">
+                                        @monthlyCount
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+
+                    <!-- Footer with totals -->
+                    @if (FilteredTruckReports.Any())
+                    {
+                        <tfoot class="bg-gray-50 dark:bg-gray-700 border-t-2 border-gray-200 dark:border-gray-600">
+                            <tr>
+                                <td colspan="3" class="px-4 py-3 font-semibold text-gray-900 dark:text-white text-right">
+                                    Monthly Totals:
+                                </td>
+                                <td class="px-4 py-3 text-center font-bold text-gray-900 dark:text-white">
+                                    @FilteredTruckReports.Sum(t => t.TotalLoading)
+                                </td>
+                                @foreach (var month in DisplayMonths)
+                                {
+                                    var monthTotal = FilteredTruckReports.Sum(t => 
+                                        t.MonthlyLoading.ContainsKey(month) ? t.MonthlyLoading[month] : 0);
+                                    <td class="px-3 py-3 text-center font-bold 
+                                        @(monthTotal > 0 ? "text-blue-700 dark:text-blue-300" : "text-gray-700 dark:text-gray-300")">
+                                        @monthTotal
+                                    </td>
+                                }
+                            </tr>
+                        </tfoot>
+                    }
+                </table>
+            </div>
+
+            <!-- Empty State -->
+            @if (!FilteredTruckReports.Any())
+            {
+                <div class="text-center py-12">
+                    <svg class="w-12 h-12 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <h3 class="mt-4 text-lg font-medium text-gray-900 dark:text-white">No truck data found</h3>
+                    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                        @(AllTruckReports.Any() ? "Try adjusting your filters" : "No truck loading data available")
+                    </p>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@if (IsExporting)
+{
+    <div class="fixed inset-0 bg-gray bg-opacity-50 flex justify-center items-center z-50">
+        <div class="bg-white dark:bg-gray-800 p-6 rounded shadow-md w-96">
+            <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">Exporting...</h2>
+            <div class="w-full bg-gray-200 rounded-full h-4 mb-4 dark:bg-gray-700">
+                <div class="bg-green-500 h-4 rounded-full transition-all duration-300" style="width:@Progress%"></div>
+            </div>
+            <p class="text-sm text-gray-600 dark:text-gray-300">Please wait while we generate the report...</p>
+        </div>
+    </div>
+}
+
+@code {
+    private List<TruckReportDto> AllTruckReports { get; set; } = new();
+    private List<TruckReportDto> FilteredTruckReports { get; set; } = new();
+    private List<string> DisplayMonths { get; set; } = new();
+    private bool IsExporting { get; set; } = false;
+    private int Progress { get; set; } = 0;
+
+    private TruckReportFilters Filters { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        AppState.IsBusy = true;
+        await LoadReportData();
+        AppState.IsBusy = false;
+    }
+
+    private async Task LoadReportData()
+    {
+        // Get all trucks
+        var trucks = await TruckService.GetAsync(AppState.GetCancellationToken());
+        
+        // Generate report data for each truck
+        var reportData = new List<TruckReportDto>();
+        
+        foreach (var truck in trucks)
+        {
+            var truckReport = await GenerateTruckReport(truck);
+            reportData.Add(truckReport);
+        }
+
+        AllTruckReports = reportData;
+        FilteredTruckReports = reportData;
+        DisplayMonths = GetDisplayMonths();
+    }
+
+    private async Task<TruckReportDto> GenerateTruckReport(Truck truck)
+    {
+        // Get trips for this truck for the current year
+        var currentYear = DateTime.Now.Year;        
+        var trips = truck.Trips.ToList();
+
+        var monthlyLoading = new Dictionary<string, int>();
+        var months = GetDisplayMonths();
+
+        // Initialize all months with 0
+        foreach (var month in months)
+        {
+            monthlyLoading[month] = 0;
+        }
+
+        // Count trips by month
+        foreach (var trip in trips)
+        {
+            var monthName = trip.Date.ToString("MMMM yyyy");
+            if (monthlyLoading.ContainsKey(monthName))
+            {
+                monthlyLoading[monthName]++;
+            }
+        }
+
+        return new TruckReportDto
+        {
+            TruckId = truck.Id,
+            TruckNumber = truck.TruckNo,
+            Product = truck.Product?.ToString() ?? "N/A",
+            TruckStatus = GetCurrentTruckStatus(truck, trips),
+            TotalLoading = trips.Count,
+            MonthlyLoading = monthlyLoading
+        };
+    }
+
+    private string GetCurrentTruckStatus(Truck truck, List<Trip> trips)
+    {
+        var currentTrip = trips.FirstOrDefault(t => 
+            t.Status == TripStatus.Active || t.Status == TripStatus.Active);
+
+        if (currentTrip != null)
+        {
+
+            if (string.IsNullOrWhiteSpace(currentTrip.LoadingInfo.WaybillNo))
+                return "Awaiting loading";
+            else 
+                return "Delivery Trip";
+        }
+
+        // Check if truck is TOOS (Temporarily Out Of Service)
+        if (truck.ExpiryDate.HasValue && truck.ExpiryDate.Value < DateOnly.FromDateTime(DateTime.Today))
+            return "TOOS";
+
+        if (!HasValidCalibration(truck))
+            return "TOOS";
+
+        // Check maintenance status or other conditions for TOOS
+        if (IsUnderMaintenance(truck))
+            return "TOOS";
+
+        return "Awaiting loading";
+    }
+
+    private bool IsUnderMaintenance(Truck truck)
+    {
+        // Implement your maintenance check logic here
+        // This could check against a maintenance schedule or status field
+        return false; // Placeholder
+    }
+
+    private bool HasValidCalibration(Truck truck)
+    {
+        return truck.CalibrationParams?.Any() == true;
+    }
+
+    private void ApplyFilters()
+    {
+        FilteredTruckReports = AllTruckReports.Where(report =>
+            (string.IsNullOrEmpty(Filters.ProductType) || report.Product == Filters.ProductType) &&
+            (string.IsNullOrEmpty(Filters.TruckStatus) || report.TruckStatus == Filters.TruckStatus) &&
+            (string.IsNullOrEmpty(Filters.ReportMonth) || report.MonthlyLoading.Any(m => m.Key.Contains(Filters.ReportMonth))) &&
+            (string.IsNullOrEmpty(Filters.ReportYear) || report.MonthlyLoading.Any(m => m.Key.Contains(Filters.ReportYear)))
+        ).ToList();
+    }
+
+    private void ClearFilters()
+    {
+        Filters = new TruckReportFilters();
+        FilteredTruckReports = AllTruckReports;
+    }
+
+    private async Task ExportToCsv()
+    {
+        IsExporting = true;
+        Progress = 5;
+        StateHasChanged();
+        int i = 0;
+        int count = 0;
+        try
+        {
+            AppState.IsProcessing = true;
+            Progress = 25;
+            StateHasChanged();
+            
+             // Create CSV content manually to handle dynamic columns
+            var csvContent = new StringBuilder();
+            
+            // Create header row
+            var headers = new List<string>
+            {
+                "Truck Number",
+                "Product", 
+                "Truck Status",
+                "Total Loading"
+            };
+            
+            // Add monthly headers
+            headers.AddRange(DisplayMonths);
+            
+            csvContent.AppendLine(string.Join(",", headers.Select(EscapeCsvValue)));            
+        
+            // Create data rows
+            count = FilteredTruckReports.Count;
+            foreach (var report in FilteredTruckReports)
+            {
+                i = i + 1;
+                var rowData = new List<string>
+                {
+                    report.TruckNumber,
+                    report.Product,
+                    report.TruckStatus,
+                    report.TotalLoading.ToString()
+                };
+                
+                // Add monthly data
+                foreach (var month in DisplayMonths)
+                {
+                    var monthlyCount = report.MonthlyLoading.ContainsKey(month) ? report.MonthlyLoading[month] : 0;
+                    rowData.Add(monthlyCount.ToString());
+                }
+                
+                csvContent.AppendLine(string.Join(",", rowData.Select(EscapeCsvValue)));
+
+                Progress = 25 + (int)(((i + 1) / (double)count) * 70);
+                StateHasChanged();
+                await Task.Delay(10); // Simulate delay (optional)
+            }
+            
+            // Export the CSV content
+            var fileBytes = Encoding.UTF8.GetBytes(csvContent.ToString());
+            var fileName = $"TruckLoadingReport_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+            
+            await ExportService.ExportCsvContent(fileBytes, fileName);            
+            ToastService.ShowSuccess("Truck report exported to CSV successfully");
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError("Failed to export report: " + ex.Message);
+        }
+        finally
+        {
+            AppState.IsProcessing = false;
+
+            Progress = 100;
+            await Task.Delay(500); // Let progress bar fill
+            IsExporting = false;
+            StateHasChanged();
+        }
+    }
+
+    private string EscapeCsvValue(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return string.Empty;
+
+        // Escape quotes and wrap in quotes if contains comma, newline, or quote
+        if (value.Contains(",") || value.Contains("\"") || value.Contains("\n") || value.Contains("\r"))
+        {
+            value = value.Replace("\"", "\"\"");
+            return $"\"{value}\"";
+        }
+
+        return value;
+    }
+
+    private async Task ExportToExcel()
+    {
+        try
+        {
+            AppState.IsProcessing = true;
+            await TruckService.ExportToExcel(FilteredTruckReports, "TruckLoadingReport.xlsx");
+            ToastService.ShowSuccess("Report exported to Excel successfully");
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError("Failed to export report: " + ex.Message);
+        }
+        finally
+        {
+            AppState.IsProcessing = false;
+        }
+    }
+
+    private List<string> GetDisplayMonths()
+    {
+        var months = new List<string>();
+        var currentDate = DateTime.Now;
+        
+        // Show current year months starting from current month
+        for (int i = 0; i < 12; i++)
+        {
+            var date = currentDate.AddMonths(i);
+            months.Add(date.ToString("MMMM yyyy"));
+        }
+        
+        return months;
+    }
+
+    private List<(string Value, string Text)> GetMonthOptions()
+    {
+        return new List<(string, string)>
+        {
+            ("January", "January"), ("February", "February"), ("March", "March"),
+            ("April", "April"), ("May", "May"), ("June", "June"),
+            ("July", "July"), ("August", "August"), ("September", "September"),
+            ("October", "October"), ("November", "November"), ("December", "December")
+        };
+    }
+
+    private List<int> GetYearOptions()
+    {
+        var currentYear = DateTime.Now.Year;
+        return Enumerable.Range(currentYear - 2, 5).ToList(); // Last 2 years + next 2 years
+    }
+
+    private string GetReportPeriod()
+    {        
+        if (!string.IsNullOrEmpty(Filters.ReportMonth) && !string.IsNullOrEmpty(Filters.ReportYear))
+            return $"{Filters.ReportMonth} {Filters.ReportYear}";
+        else if (!string.IsNullOrEmpty(Filters.ReportYear))
+            return $"Year {Filters.ReportYear}";
+        else
+            return "All Time";
+    }
+
+    private string GetProductBadgeClass(string product)
+    {
+        return product switch
+        {
+            "PMS" => "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
+            "AGO" => "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
+            "ATK" => "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300",
+            "LPG" => "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300",
+            "CNG" => "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
+            _ => "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
+        };
+    }
+
+    private string GetStatusBadgeClass(string status)
+    {
+        return status switch
+        {
+            "Awaiting loading" => "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
+            "Delivery Trip" => "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
+            "TOOS" => "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
+            "Under Maintenance" => "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
+            "Available" => "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300",
+            _ => "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
+        };
+    }    
+}

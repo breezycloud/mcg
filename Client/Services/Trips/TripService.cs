@@ -72,6 +72,35 @@ public class TripService(IHttpClientFactory _httpClient, IJSRuntime js) : ITripS
             throw;
         }
     }
+    public async Task<List<Trip>> GetTripsByTruckAsync(Guid truckId, int year, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var response = await _httpClient.CreateClient("AppUrl").GetAsync($"Trips/truck-trips/{truckId}?year={year}", cancellationToken);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<List<Trip>?>(cancellationToken) ?? [];
+        }
+        catch (System.Exception)
+        {
+
+            throw;
+        }
+    }
+
+    public async Task<Trip[]> GetTripsByDateRangeAsync(ReportFilter filter, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var response = await _httpClient.CreateClient("AppUrl").PostAsJsonAsync($"Trips/trips-byrange", filter, cancellationToken);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<Trip[]?>(cancellationToken) ?? [];
+        }
+        catch (System.Exception)
+        {
+
+            throw;
+        }
+    }
     public async Task<bool> UpdateAsync(Trip model, CancellationToken cancellationToken)
     {
         try

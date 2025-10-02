@@ -37,6 +37,8 @@
         </div>
     </div>
 
+    <ShortagesChart StartDate="@filterStartDate.Value" EndDate="@filterEndDate.Value" />
+
     <!-- Product Shipments Table -->
     <ProductShipments StartDate="@filterStartDate" EndDate="@filterEndDate" Product="@selectedProduct" />        
 </div>
@@ -48,9 +50,11 @@
     private DateOnly? filterEndDate;
     private ProductFilter selectedProduct;
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         @* await HubService.StartConnectionAsync(); *@
+        filterStartDate = DateOnly.FromDateTime(DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek));
+        filterEndDate = DateOnly.FromDateTime(DateTime.Today);
     }
 
     private void HandleProductChanged(ProductFilter product)

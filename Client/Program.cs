@@ -43,6 +43,7 @@ using ApexCharts;
 using Shared.Interfaces.Incidents;
 using Client.Services.Incidents;
 using Client.Services.incidenttypes;
+using Shared.Interfaces;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
@@ -85,8 +86,7 @@ builder.Services.AddApexCharts(e =>
 {
     e.GlobalOptions = new ApexChartBaseOptions
     {
-        Debug = true,
-        Theme = new Theme { Palette = PaletteType.Palette6 }
+        Debug = true
     };
 });
 builder.Services.AddScoped<IFlowbiteService, FlowbiteService>();
@@ -118,5 +118,7 @@ builder.Services.AddHttpClient<ILocationService, LocationService>(client =>
 builder.Services.AddSingleton<ToastService>();
 builder.Services.AddSingleton<AppHubService>();
 builder.Services.AddScoped<SidebarService>();
+
+builder.Services.AddTransient<IExportService, CsvExportService>();
 
 await builder.Build().RunAsync();
