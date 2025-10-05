@@ -23,10 +23,11 @@ public class ServiceRequest
     [Required]
     public string? Description { get; set; }
     [Column(TypeName = "decimal(18,2)")]
-    public decimal? Cost { get; set; }
+    public decimal? Cost { get; set; } = null;
     public RequestStatus Status { get; set; } = RequestStatus.Pending;
 
     public Guid? MaintenanceSiteId { get; set; }
+    public Guid? AssignedStaffId { get; set; }
     public Guid CreatedById { get; set; }
     public Guid? TreatedById { get; set; }
     public Guid? ClosedById { get; set; }
@@ -52,11 +53,10 @@ public class ServiceRequest
 
     [ForeignKey(nameof(MaintenanceSiteId))]
     public virtual MaintenanceSite? Site { get; set; }
-
+    [ForeignKey(nameof(AssignedStaffId))]
+    public virtual User? AssignedStaff { get; set; }
     [ForeignKey(nameof(TripId))]
     public virtual Trip? Trip { get; set; }
-
-    // Collection of status change history
     public virtual ICollection<ServiceRequestHistory> History { get; set; } = new List<ServiceRequestHistory>();
 }
 

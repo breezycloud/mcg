@@ -35,12 +35,17 @@ public class ServiceRequestsController : ControllerBase
             {
                 query = query.Where(x => x.MaintenanceSiteId == request.Id.Value);
             }
+
+            if (request.UserId.HasValue)
+            {
+                query = query.Where(x => x.AssignedStaffId == request.UserId.Value);
+            }
             
             if (!string.IsNullOrEmpty(request.SearchTerm))
-            {
-                string pattern = $"%{request.SearchTerm}%";
-                query = query.Include(x => x.Truck).Where(x => EF.Functions.ILike(x.Truck!.TruckNo, pattern));
-            }
+                {
+                    string pattern = $"%{request.SearchTerm}%";
+                    query = query.Include(x => x.Truck).Where(x => EF.Functions.ILike(x.Truck!.TruckNo, pattern));
+                }
 
             if (!string.IsNullOrEmpty(request.Status))
             {
@@ -147,6 +152,7 @@ public class ServiceRequestsController : ControllerBase
                                                           .Include(x => x.Site)
                                                           .Include(x => x.Truck)
                                                           .Include(x => x.Driver)
+                                                          .Include(x => x.AssignedStaff)
                                                           .Include(x => x.CreatedBy)
                                                           .Include(x => x.TreatedBy)
                                                           .Include(x => x.ClosedBy)
@@ -236,6 +242,22 @@ public class ServiceRequestsController : ControllerBase
         }
 
         _context.ServiceRequest.Remove(serviceRequest);
+        await _context.SaveChangesAsync();
+
+        return NoContent();
+    }
+
+    // DELETE: api/ServiceRequests/5
+    [HttpDelete("History/{id}")]
+    public async Task<IActionResult> DeleteServiceRequestHistory(Guid id)
+    {
+        var history = await _context.ServiceRequestHistory.FindAsync(id);
+        if (history == null)
+        {
+            return NotFound();
+        }
+
+        _context.ServiceRequestHistory.Remove(history);
         await _context.SaveChangesAsync();
 
         return NoContent();

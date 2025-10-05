@@ -1,7 +1,7 @@
 @page "/requests"
 @inject IRequestService RequestService
 @inject IMaintenanceService SiteService
-@attribute [Authorize(Roles ="Supervisor, Monitoring, Admin, Master")]
+@attribute [Authorize(Roles ="Supervisor, Maintenance, Monitoring, Admin, Master")]
 <PageTitle>Requests</PageTitle>
 
 
@@ -141,7 +141,7 @@
                                 </td>
                                 <td class="px-6 py-4 text-right">
                                     <div class="flex justify-end space-x-3">
-                                       <AuthorizeView Roles="Admin, Master, Monitoring">
+                                       <AuthorizeView Roles="Admin, Master, Monitoring, Maintenance">
                                             @if(request.Status == RequestStatus.Pending)
                                             {
                                                 <button 
@@ -149,13 +149,13 @@
                                                     class="font-medium text-blue-600 dark:text-blue-400 hover:underline">
                                                     Edit
                                                 </button>
-                                            }
-                                       </AuthorizeView>
+                                            }                                       
                                         <button 
                                             @onclick="() => ViewRequest(request.Id)" 
                                             class="font-medium text-gray-600 dark:text-gray-400 hover:underline">
                                             View
                                         </button>
+                                       </AuthorizeView>                                                                               
                                         @* <button 
                                             @onclick="() => DeleteRequest(request.Id)" 
                                             class="font-medium text-red-600 dark:text-red-500 hover:underline">
@@ -229,9 +229,11 @@
         AppState.IsBusy = true;  
         request = new GridDataRequest { Page = 0, PageSize = 10};       
         var shopId = await localStorage.GetItemAsync<Guid?>("shopId");
+        var userId = await localStorage.GetItemAsync<Guid>("uid");
         if (shopId is not null || shopId.Equals(Guid.Empty))
         {
             request.Id = shopId.Value;
+            request.UserId = userId;
             IsDisabled = true;
             Site = await SiteService.GetAsync(shopId.Value, AppState.GetCancellationToken());
         }

@@ -97,6 +97,13 @@ public class UsersController : ControllerBase
         return await _context.Users.ToListAsync();
     }
 
+    // GET: api/Users
+    [HttpGet("by-site/{id}")]
+    public async Task<ActionResult<IEnumerable<User>>> GetUsers(Guid id, CancellationToken cancellationToken)
+    {
+        return await _context.Users.AsNoTracking().Where(x => x.MaintenanceSiteId == id).ToListAsync(cancellationToken);
+    }
+
     // GET: api/Users/5
     [HttpGet("{id}")]
     public async Task<ActionResult<User>> GetUser(Guid id)

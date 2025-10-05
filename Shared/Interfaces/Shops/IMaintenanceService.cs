@@ -10,5 +10,6 @@ public interface IMaintenanceService
     Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken);
     Task<MaintenanceSite?> GetAsync(Guid id, CancellationToken cancellationToken);
     Task<MaintenanceSite[]?> GetAsync(CancellationToken cancellationToken);
+
     Task<GridDataResponse<MaintenanceSite>?> GetPagedAsync(GridDataRequest request, CancellationToken cancellationToken);
 }

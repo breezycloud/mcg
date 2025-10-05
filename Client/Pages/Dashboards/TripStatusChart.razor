@@ -134,10 +134,14 @@ else
         }
 
         // Get unique months (format)
-        var months = Data.Select(d => d.Format)
-                         .Distinct()
-                         .OrderByDescending(x => x) // For chronological display if needed
-                         .ToList();
+        var months = Data
+                                    .Select(d => new { d.Format, d.Month, d.Year })
+                                    .Distinct()
+                                    .OrderByDescending(x => x.Year)
+                                    .ThenByDescending(x => x.Month)
+                                    .Select(x => x.Format)
+                                    .ToList();
+
 
         // Get unique products
         var products = Data.Select(d => d.Product)

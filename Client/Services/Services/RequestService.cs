@@ -53,6 +53,21 @@ public class RequestService(IHttpClientFactory _httpClient) : IRequestService
             throw;
         }
     }
+
+    public async Task<bool> DeleteHistoryAsync(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var response = await _httpClient.CreateClient("AppUrl").DeleteAsync($"servicerequests/history/{id}");
+            response.EnsureSuccessStatusCode();
+            return response.IsSuccessStatusCode;
+        }
+        catch (System.Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            throw;
+        }
+    }
     public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken)
     {
         try
