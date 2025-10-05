@@ -70,7 +70,7 @@ public class TripsController : ControllerBase
     {
         try
         {
-            return await _context.Trips.Include(x => x.Discharges).Include(x => x.Truck).Where(x => x.Truck.Product != Shared.Enums.Product.CNG && x.Date >= filter.StartDate && x.Date <= filter.EndDate.Value).ToArrayAsync(cancellationToken);
+            return await _context.Trips.Include(x => x.Discharges).Include(x => x.Truck).Where(x =>  x.Truck.Product != Shared.Enums.Product.CNG && x.Date >= filter.StartDate && x.Date <= filter.EndDate.Value).ToArrayAsync(cancellationToken);
         }
         catch (System.Exception)
         {

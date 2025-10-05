@@ -4,6 +4,9 @@
 @inject IDriverService DriverService
 @inject ITruckService TruckService
 @inject ITripService TripService
+@inject IUserService UserService
+
+
 @attribute [Authorize(Roles = "Supervisor, Monitoring, Admin, Master")]
 
 <div class="max-w-2xl mx-auto p-4 sm:p-6">
@@ -131,7 +134,7 @@
                 <label for="maintenanceSite" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                     Maintenance Site
                 </label>
-                <InputSelect id="maintenanceSite" @bind-Value="CurrentRequest.MaintenanceSiteId" class="@GetInputClass("MaintenanceSiteId")">
+                <InputSelect id="maintenanceSite" @bind-Value="CurrentRequest.MaintenanceSiteId" @bind-Value:after="OnSiteChanged" class="@GetInputClass("MaintenanceSiteId")">
                     <option value="">Select site</option>
                     @if (Sites is not null)
                     {
@@ -146,20 +149,37 @@
                     <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["MaintenanceSiteId"]</p>
                 }
             </div>
+            <div>
+                <label for="staff" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    Staff
+                </label>
+                <InputSelect id="staff" @bind-Value="CurrentRequest.AssignedStaffId" class="@GetInputClass("AssignedStaffId")">
+                    <option value="">Select staff</option>
+                    @if (SiteStaff is not null)
+                    {
+                        @foreach (var staff in SiteStaff)
+                        {
+                            <option value="@staff.Id">@staff.ToString()</option>
+                        }
+                    }
+                </InputSelect>
+                @if (errors.ContainsKey("AssignedStaffId"))
+                {
+                    <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["AssignedStaffId"]</p>
+                }
+            </div>
 
-            <!-- Cost -->
+            @* <!-- Cost -->
             <div>
                 <label for="cost" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                     Cost <span class="text-red-500">*</span>
                 </label>
-                @* <div class="flex flex-col items-end">                    
-                </div> *@
                 <InputNumber id="cost" @bind-Value="CurrentRequest.Cost" class="@(GetInputClass("Cost"))" min="0" step="0.01" />
                 @if (errors.ContainsKey("Cost"))
                 {
                     <p class="mt-1 text-sm text-red-600 dark:text-red-500 text-right">@errors["Cost"]</p>
                 }
-            </div>
+            </div> *@
         </div>
         <!-- Dates (Display only when editing) -->
         @if (EditMode)
@@ -232,6 +252,7 @@
     private Truck[]? Trucks;
     private Driver[]? Drivers;
     private MaintenanceSite[]? Sites;
+    private User[]? SiteStaff;
 
     protected override async Task OnInitializedAsync()
     {
@@ -252,7 +273,7 @@
     {
         var baseClass = "bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500";
         if (fieldName == "Cost")
-            baseClass += "text-right";
+            baseClass += " text-right";
 
         if (errors.ContainsKey(fieldName))
         {
@@ -279,10 +300,10 @@
         if (CurrentRequest.MaintenanceSiteId.Equals(Guid.Empty) || CurrentRequest.TruckId is null)
         {
             errors["MaintenanceSiteId"] = "Maintenance Site is required";
-        }
-        if (Id.HasValue && CurrentRequest.Cost is null)
+        }        
+        if (CurrentRequest.MaintenanceSiteId.HasValue && !CurrentRequest.AssignedStaffId.HasValue)
         {
-            errors["Cost"] = "Cost is required";
+            errors["AssignedStaffId"] = "Select Staff to proceeed";
         }
         if (string.IsNullOrWhiteSpace(CurrentRequest.Description))
         {
@@ -356,6 +377,15 @@
         }        
         StateHasChanged();
     }
+
+    private async Task OnSiteChanged()
+    {
+        if (CurrentRequest.MaintenanceSiteId is not null)
+        {                   
+            SiteStaff = await UserService.GetAllAsync(CurrentRequest.MaintenanceSiteId.Value, AppState.GetCancellationToken());
+        }
+        StateHasChanged();
+    }    
     
     private void Cancel()
     {

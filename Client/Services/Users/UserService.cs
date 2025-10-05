@@ -65,6 +65,22 @@ public class UserService(IHttpClientFactory _httpClient) : IUserService
             throw;
         }
     }
+
+    public async Task<User[]?> GetAllAsync(Guid maintenanceSiteId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var response = await _httpClient.CreateClient("AppUrl").GetAsync($"Users/by-site/{maintenanceSiteId}", cancellationToken);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<User[]?>();
+        }
+        catch (System.Exception)
+        {
+
+            throw;
+        }
+    }
+
     public async Task<GridDataResponse<User>?> GetPagedAsync(GridDataRequest request, CancellationToken cancellationToken)
     {
         try

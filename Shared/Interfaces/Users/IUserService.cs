@@ -12,8 +12,9 @@ public interface IUserService
     
 
     Task<User?> GetAsync(Guid id, CancellationToken cancellationToken);
-    Task<User[]?> GetAsync(CancellationToken cancellationToken);
+    Task<User[]?> GetAsync(CancellationToken cancellationToken);    
     Task<User[]?> GetAsync(string status, CancellationToken cancellationToken);
+    Task<User[]?> GetAllAsync(Guid maintenanceSiteId, CancellationToken cancellationToken);
     Task<GridDataResponse<User>?> GetPagedAsync(GridDataRequest request, CancellationToken cancellationToken);
     ValueTask<bool> ValidateEntry(string type, string value, CancellationToken cancellationToken);
 }

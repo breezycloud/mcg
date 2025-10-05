@@ -10,6 +10,7 @@ namespace Shared.Helpers
     public class GridDataRequest
     {
         public Guid? Id { get; set; }
+        public Guid? UserId { get; set; }
         public string? SearchTerm { get; set; }
         public DateOnly? Date { get; set; }
         public string? Status { get; set; }

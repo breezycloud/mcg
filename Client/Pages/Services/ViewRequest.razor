@@ -1,6 +1,7 @@
 @page "/requests/{id:guid}"
 @using System.Text
 @inject IRequestService ServiceRequestService
+@attribute [Authorize(Roles ="Supervisor, Maintenance, Monitoring, Admin, Master")]
 
 <div class="max-w-4xl mx-auto p-4 sm:p-6">
     @if (AppState.IsBusy)
@@ -67,6 +68,18 @@
                                     <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Description</p>
                                     <p class="text-gray-900 dark:text-white">@serviceRequest.Description</p>
                                 </div>
+                                @if (serviceRequest.Cost.HasValue)
+                                {
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Cost</p>
+                                        <p class="text-gray-900 dark:text-white">@serviceRequest.Cost?.ToString("N2")</p>
+                                    </div>                                    
+                                }
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Staff Assigned</p>
+                                    <p class="text-gray-900 dark:text-white">@serviceRequest.AssignedStaff?.ToString()</p>
+                                </div>
+
                             </div>
                         </div>
                         <div>
@@ -195,14 +208,17 @@
                 </div>
 
                 <!-- Action Buttons -->
-                <div class="p-6">
-                    <div class="flex justify-end space-x-3">
-                        <button @onclick="ShowAddHistoryModal"
-                                class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600">
-                            Add Update
-                        </button>
+                @if (serviceRequest?.Status != RequestStatus.Closed)
+                {
+                    <div class="p-6">
+                        <div class="flex justify-end space-x-3">
+                            <button @onclick="ShowAddHistoryModal"
+                                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600">
+                                Add Update
+                            </button>
+                        </div>
                     </div>
-                </div>
+                }                
             </div>
         }
     }    
@@ -229,19 +245,19 @@
                     <!-- Status Dropdown -->
                     @if (canChangeStatus)
                     {
-                        <div>
-                            <label for="status" class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                                Status
-                            </label>
-                            <select id="status"
-                                    @bind="modalStatus"
-                                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
-                                @foreach (var status in GetAvailableStatuses())
-                                {
-                                    <option value="@status">@StringConverter.ToDescription(status)</option>
-                                }
-                            </select>
-                        </div>
+                            <div>
+                                <label for="status" class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                                    Status
+                                </label>
+                                <select id="status"
+                                        @bind="modalStatus"
+                                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+                                    @foreach (RequestStatus status in GetAvailableStatuses())
+                                    {
+                                        <option value="@status">@StringConverter.ToDescription(status)</option>
+                                    }
+                                </select>
+                            </div>                        
                     }
                     else
                     {
@@ -257,7 +273,7 @@
                         </label>
                         <textarea id="notes"
                                   @bind="modalNotes"
-                                  rows="5"
+                                  rows="4"
                                   class="bg-gray-50 border @(string.IsNullOrEmpty(modalNotes) && isRequiredNote ? "border-red-500" : "border-gray-300") text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
                                   placeholder="Describe what was done or observed...">
                         </textarea>
@@ -265,10 +281,21 @@
                         {
                             <p class="mt-1 text-sm text-red-500">Note is required when changing status.</p>
                         }
-                    </div>
+                    </div>                    
 
-                    @if (serviceRequest?.Status == RequestStatus.Closed)
+                    @if (modalStatus == RequestStatus.Closed)
                     {
+                        <div>
+                            <label for="cost" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                Cost <span class="text-red-500">*</span>
+                            </label>
+                            <InputNumber id="cost" @bind-Value="serviceRequest.Cost" class="@(GetInputClass("Cost"))" min="0" step="0.01" />
+                            @if (errors.ContainsKey("Cost"))
+                            {
+                                <p class="mt-1 text-sm text-red-600 dark:text-red-500 text-right">@errors["Cost"]</p>
+                            }
+                        </div>                        
+
                         <div class="p-3 text-sm text-orange-700 bg-orange-50 dark:bg-orange-900 dark:text-orange-200 rounded-lg">
                             ⚠️ This request is closed. You're adding a follow-up note without changing status.
                         </div>
@@ -305,18 +332,40 @@
 
     private Guid currentUserId;
 
+    private Dictionary<string, string> errors = new();
+
     protected override async Task OnInitializedAsync()
-    {
-        currentUserId = await localStorage.GetItemAsync<Guid>("uid");
+    {        
+        AppState.IsBusy = true;
+        await Task.Delay(500);
         await LoadServiceRequest();
+        currentUserId = await localStorage.GetItemAsync<Guid>("uid");
+        AppState.IsBusy = false;
     }
 
     private async Task LoadServiceRequest()
-    {
-        serviceRequest = await ServiceRequestService.GetAsync(Id, AppState.GetCancellationToken());
+    {        
+        serviceRequest = await ServiceRequestService.GetAsync(Id, AppState.GetCancellationToken());        
+        CurrentStatus = GetAvailableStatuses();
     }
 
-    // Status Badge Class
+    private string GetInputClass(string fieldName)
+    {
+        var baseClass = "bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500";
+        if (fieldName == "Cost")
+            baseClass += " text-right";
+
+        if (errors.ContainsKey(fieldName))
+        {
+            baseClass += " border-red-500 bg-red-50 dark:bg-red-900 dark:border-red-700";
+        }
+        else
+        {
+            baseClass += " border-gray-300";
+        }
+        
+        return baseClass;
+    }
     private string GetStatusBadgeClass(RequestStatus status)
     {
         return status switch
@@ -348,7 +397,7 @@
     private bool canChangeStatus => !editingHistoryId.HasValue;
     private bool isRequiredNote => canChangeStatus && modalStatus != RequestStatus.Pending;
     private bool canSave => !string.IsNullOrEmpty(modalNotes?.Trim()) || !isRequiredNote;
-
+    RequestStatus[] CurrentStatus = [];
     public void ShowAddHistoryModal()
     {
         modalStatus = serviceRequest?.Status ?? RequestStatus.Pending;
@@ -371,6 +420,20 @@
     {
         if (!canSave) return;
 
+        if (serviceRequest?.Status == RequestStatus.Closed)
+        {
+            if (serviceRequest.Cost is null)
+            {
+                errors["Cost"] = "Cost is required";
+            }
+        }
+
+        if (errors.Any())
+        {            
+            StateHasChanged();
+            return;
+        }
+        
         if (editingHistoryId.HasValue)
         {
             var history = serviceRequest?.History.FirstOrDefault(h => h.Id == editingHistoryId.Value);
@@ -391,8 +454,7 @@
                 ChangedAt = DateTimeOffset.UtcNow,                
             };
 
-            await ServiceRequestService.AddHistoryAsync(newHistory, AppState.GetCancellationToken());
-
+            await ServiceRequestService.AddHistoryAsync(newHistory, AppState.GetCancellationToken());            
             if (modalStatus != serviceRequest.Status)
             {
                 serviceRequest.Status = modalStatus;
@@ -405,9 +467,9 @@
                 {
                     serviceRequest.ClosedById = currentUserId;
                     serviceRequest.ClosedAt = DateTimeOffset.UtcNow;
-                }
-                await ServiceRequestService.UpdateAsync(serviceRequest, AppState.GetCancellationToken());
+                }                
             }
+            await ServiceRequestService.UpdateAsync(serviceRequest, AppState.GetCancellationToken());
         }
 
         await LoadServiceRequest();
@@ -422,29 +484,25 @@
         modalNotes = string.Empty;
     }
 
-    private IEnumerable<RequestStatus> GetAvailableStatuses()
+    private RequestStatus[] GetAvailableStatuses()
     {
         var current = serviceRequest?.Status ?? RequestStatus.Pending;
         return current switch
         {
-            RequestStatus.Pending => new[] { RequestStatus.Pending, RequestStatus.InProgress },
-            RequestStatus.InProgress => new[] { RequestStatus.InProgress, RequestStatus.Treated, RequestStatus.Closed },
-            RequestStatus.Treated => new[] { RequestStatus.Treated, RequestStatus.Closed },
-            RequestStatus.Closed => new[] { RequestStatus.Closed },
+            RequestStatus.Pending => new[] { RequestStatus.InProgress },
+            RequestStatus.InProgress => new[] { RequestStatus.Treated, RequestStatus.Closed },
+            RequestStatus.Treated => new[] { RequestStatus.Closed },
             _ => Enum.GetValues<RequestStatus>()
         };
     }
 
     private async Task DeleteNote(ServiceRequestHistory entry)
     {
-        if (entry.ChangedById != currentUserId) return;
+        @* if (entry.ChangedById != currentUserId) return; *@
 
-        @* if (await DialogService.ShowConfirm("Delete Note", "This cannot be undone. Continue?"))
-        {
-            await ServiceRequestService.DeleteHistoryAsync(entry.Id);
-            await LoadServiceRequest();
-            StateHasChanged();
-        } *@
+        await ServiceRequestService.DeleteHistoryAsync(entry.Id, AppState.GetCancellationToken());
+        await LoadServiceRequest();
+        StateHasChanged();    
     }
 
     private void NavigateToList() => nav.NavigateTo("/requests");
