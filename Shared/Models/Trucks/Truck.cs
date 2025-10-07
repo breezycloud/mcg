@@ -41,7 +41,8 @@ public class Truck
     public List<CalibrationParam>? CalibrationParams { get; set; } = [];
     public DateOnly? ExpiryDate { get; set;  }
     [Column(TypeName = "jsonb")]
-    public List<UploadResult> Files { get; set; } = [];    
+    public List<UploadResult> Files { get; set; } = [];
+    public bool IsActive { get; set; } = true;
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? UpdatedAt { get; set; }
     public virtual ICollection<Trip>? Trips { get; set; } = [];
