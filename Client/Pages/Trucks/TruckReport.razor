@@ -381,15 +381,12 @@
         }
 
         // Check if truck is TOOS (Temporarily Out Of Service)
-        if (truck.ExpiryDate.HasValue && truck.ExpiryDate.Value < DateOnly.FromDateTime(DateTime.Today))
-            return "TOOS";
-
-        if (!HasValidCalibration(truck))
-            return "TOOS";
+        if (!truck.IsActive)
+            return "TOOS";        
 
         // Check maintenance status or other conditions for TOOS
-        if (IsUnderMaintenance(truck))
-            return "TOOS";
+        @* if (IsUnderMaintenance(truck))
+            return "TOOS"; *@
 
         return "Awaiting loading";
     }

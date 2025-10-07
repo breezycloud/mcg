@@ -171,8 +171,7 @@
                 Labels = new LegendLabels { Colors = ["#6B7280"] }
             },
             Tooltip = new Tooltip
-            {
-                X = new TooltipX { Formatter = @"function(val) { return val.toFixed(2) }" },
+            {                
                 Y = new TooltipY { Formatter = @"function(val) { return val.toFixed(2) }" }
             }
         };
@@ -187,8 +186,8 @@
             .Select(g => new ProductShortageData
             {
                 Product = g.Key,
-                TotalShortage = (double)g.Sum(x => x.ShortageAmount),
-                AverageShortage = (double)g.Average(x => x.ShortageAmount)
+                TotalShortage = Math.Round((double)g.Sum(x => x.ShortageAmount), 2),
+                AverageShortage = Math.Round((double)g.Average(x => x.ShortageAmount), 2)
             })
             .ToList();
 
