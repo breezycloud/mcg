@@ -25,8 +25,8 @@ public class CsvExportService : IExportService
 
             // For Blazor Server - you might want to save to a temporary file
             // or stream directly to the browser
-            var tempPath = Path.Combine(Path.GetTempPath(), fileName);
-            await File.WriteAllBytesAsync(tempPath, fileBytes);
+            // var tempPath = Path.Combine(Path.GetTempPath(), fileName);
+            // await File.WriteAllBytesAsync(tempPath, fileBytes);
 
             // Trigger file download
             await TriggerFileDownload(fileBytes, fileName, "text/csv");

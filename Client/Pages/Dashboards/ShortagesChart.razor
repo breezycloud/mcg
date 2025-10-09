@@ -27,7 +27,60 @@
         else
         {
             <!-- Summary Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6"> <div class="bg-red-50 dark:bg-red-900/20 rounded-lg p-4 border border-red-200 dark:border-red-800"> <div class="flex items-center"> <div class="p-2 rounded-lg bg-red-100 dark:bg-red-900/30 mr-3"> <svg class="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path> </svg> </div> <div> <p class="text-sm font-medium text-red-600 dark:text-red-400">Total Shortages</p> <p class="text-xl font-bold text-red-700 dark:text-red-300">@TotalShortages</p> </div> </div> </div> <div class="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 border border-orange-200 dark:border-orange-800"> <div class="flex items-center"> <div class="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/30 mr-3"> <svg class="w-5 h-5 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path> </svg> </div> <div> <p class="text-sm font-medium text-orange-600 dark:text-orange-400">Avg Shortage</p> <p class="text-xl font-bold text-orange-700 dark:text-orange-300">@AverageShortage.ToString("F2")</p> </div> </div> </div> <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800"> <div class="flex items-center"> <div class="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30 mr-3"> <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path> </svg> </div> <div> <p class="text-sm font-medium text-blue-600 dark:text-blue-400">Within Tolerance</p> <p class="text-xl font-bold text-blue-700 dark:text-blue-300">@WithinToleranceCount</p> </div> </div> </div> <div class="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800"> <div class="flex items-center"> <div class="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30 mr-3"> <svg class="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path> </svg> </div> <div> <p class="text-sm font-medium text-purple-600 dark:text-purple-400">Highest Shortage</p> <p class="text-xl font-bold text-purple-700 dark:text-purple-300">@HighestShortage.ToString("F2")</p> </div> </div> </div> </div>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div class="bg-red-50 dark:bg-red-900/20 rounded-lg p-4 border border-red-200 dark:border-red-800">
+                    <div class="flex items-center">
+                        <div class="p-2 rounded-lg bg-red-100 dark:bg-red-900/30 mr-3">
+                            <svg class="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-red-600 dark:text-red-400">Total Shortages</p>
+                            <p class="text-xl font-bold text-red-700 dark:text-red-300">@TotalShortages</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 border border-orange-200 dark:border-orange-800">
+                    <div class="flex items-center">
+                        <div class="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/30 mr-3">
+                            <svg class="w-5 h-5 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-orange-600 dark:text-orange-400">Total Shortage Units</p>
+                            <p class="text-xl font-bold text-orange-700 dark:text-orange-300">@TotalShortageUnits.ToString("F2")</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                    <div class="flex items-center">
+                        <div class="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30 mr-3">
+                            <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-blue-600 dark:text-blue-400">Within Tolerance</p>
+                            <p class="text-xl font-bold text-blue-700 dark:text-blue-300">@WithinToleranceCount</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
+                    <div class="flex items-center">
+                        <div class="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30 mr-3">
+                            <svg class="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-purple-600 dark:text-purple-400">Highest Shortage</p>
+                            <p class="text-xl font-bold text-purple-700 dark:text-purple-300">@HighestShortage.ToString("F2")</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <!-- Chart -->
             <ApexChart @ref="chart"
@@ -37,16 +90,9 @@
                 <ApexPointSeries TItem="ProductShortageData"
                                  Items="shortagesByProduct"
                                  SeriesType="SeriesType.Bar"
-                                 Name="Total Shortage"
+                                 Name="Total Shortage Units"
                                  XValue="@(e => e.Product)"
-                                 YValue="@(e => (decimal)e.TotalShortage)"
-                                 ShowDataLabels="true" />
-                <ApexPointSeries TItem="ProductShortageData"
-                                 Items="shortagesByProduct"
-                                 SeriesType="SeriesType.Bar"
-                                 Name="Average Shortage"
-                                 XValue="@(e => e.Product)"
-                                 YValue="@(e => (decimal)e.AverageShortage)"
+                                 YValue="@(e => (decimal)e.TotalShortageUnits)"
                                  ShowDataLabels="true" />
             </ApexChart>
         }
@@ -69,20 +115,28 @@
     private bool IsBusy;
 
     private int TotalShortages => AllShortages.Count;
-    private decimal AverageShortage => AllShortages.Any() ? AllShortages.Average(s => s.ShortageAmount) : 0;
+    private decimal TotalShortageUnits => AllShortages.Any() 
+        ? AllShortages.Sum(s => s.ShortageAmount) 
+        : 0;
     private int WithinToleranceCount => AllShortages.Count(s => s.VariancePercentage <= Tolerance);
     private decimal HighestShortage => AllShortages.Any() ? AllShortages.Max(s => s.ShortageAmount) : 0;
-    
+
     protected override async Task OnInitializedAsync() 
     { 
         await LoadShortagesData(); 
         await InitializeChart(); 
     } 
+
     protected override async Task OnParametersSetAsync() 
     { 
         if (HasParameterChanged()) 
-        { await LoadShortagesData(); await UpdateChart(); } 
-    } private bool HasParameterChanged() { return true; }
+        { 
+            await LoadShortagesData(); 
+            await UpdateChart(); 
+        } 
+    } 
+
+    private bool HasParameterChanged() { return true; }
 
     private async Task LoadShortagesData()
     {
@@ -105,6 +159,7 @@
 
                     return new ShortageAnalysis
                     {
+                        TripId = t.DispatchId,
                         TruckNumber = t.Truck?.TruckNo ?? "Unknown",
                         Product = t.Truck?.Product.ToString() ?? "Unknown",
                         LoadingQuantity = loadingQty,
@@ -151,18 +206,18 @@
                 {
                     Title = new AxisTitle
                     {
-                        Text = "Shortage Amount",
+                        Text = "Total Shortage Units",
                         Style = new AxisTitleStyle { Color = "#6B7280", FontSize = "12px" }
                     },
                     Labels = new YAxisLabels
                     {
                         Style = new AxisLabelStyle { Colors = ["#6B7280"], FontSize = "12px" },
-                        Formatter = @"function(val) { return val.toFixed(2) }"
+                        Formatter = @"function(val) { return val.toFixed(2) }" // Format for decimal units
                     }
                 }
             },
             Fill = new Fill { Opacity = 1 },
-            Colors = ["#EF4444", "#F97316"],
+            Colors = ["#EF4444"], // Single color for one series
             Grid = new Grid { BorderColor = "#E5E7EB", StrokeDashArray = 4 },
             Legend = new Legend
             {
@@ -172,7 +227,7 @@
             },
             Tooltip = new Tooltip
             {                
-                Y = new TooltipY { Formatter = @"function(val) { return val.toFixed(2) }" }
+                Y = new TooltipY { Formatter = @"function(val) { return val.toFixed(2) }" } // Format for decimal units
             }
         };
         chart.Options = chartOptions;
@@ -186,8 +241,8 @@
             .Select(g => new ProductShortageData
             {
                 Product = g.Key,
-                TotalShortage = Math.Round((double)g.Sum(x => x.ShortageAmount), 2),
-                AverageShortage = Math.Round((double)g.Average(x => x.ShortageAmount), 2)
+                TotalShortageCount = g.Count(),
+                TotalShortageUnits = Math.Round((double)g.Sum(x => x.ShortageAmount), 2)
             })
             .ToList();
 
@@ -205,7 +260,7 @@
 
     private class ShortageAnalysis
     {
-        public int TripId { get; set; }
+        public string? TripId { get; set; }
         public string TruckNumber { get; set; } = "";
         public string Product { get; set; } = "";
         [Column(TypeName = "decimal(18,2)")]
@@ -222,7 +277,7 @@
     private class ProductShortageData
     {
         public string Product { get; set; } = "";
-        public double TotalShortage { get; set; }
-        public double AverageShortage { get; set; }
+        public int TotalShortageCount { get; set; }
+        public double TotalShortageUnits { get; set; }
     }
 }
