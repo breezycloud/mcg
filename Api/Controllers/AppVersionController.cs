@@ -14,14 +14,14 @@ public class AppVersionController : ControllerBase
         #if DEBUG
             AppVersion = 1.1;
         #else
-            AppVersion = 2.4;
+            AppVersion = 2.5;
         #endif
         return Ok(new VersionManifest
         {
             AppVersion = AppVersion, // Update this with each release
             ForceUpdate = true,    // Set to true when critical updates are available
             ReleaseDate = DateTime.Now,
-            ReleaseNotes = @"updated dashboard shortage analysis"
+            ReleaseNotes = "added new user permission on edit trip"
         });
     }
 }
