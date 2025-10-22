@@ -6,8 +6,8 @@ namespace Shared.Enums;
 
 public enum TripStatus
 {    
-    Active,
-    Closed,
-    Completed,  
-    Dispatched
+    Active = 0,
+    Closed = 1,
+    Completed = 2,  
+    Dispatched = 4
 }
