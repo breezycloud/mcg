@@ -1,8 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Shared.Enums;
-using Shared.Helpers;
-using Shared.Models.Checkpoints;
 using Shared.Models.Drivers;
 using Shared.Models.Incidents;
 using Shared.Models.Services;
