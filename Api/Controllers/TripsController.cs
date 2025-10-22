@@ -145,19 +145,10 @@ public class TripsController : ControllerBase
                                   .Take(request.PageSize)
                                   .ToListAsync();
 
-            // await foreach (var item in pagedQuery)
-            // {
-            //     response.Data.Add(item);
-            // }
-
-
-            return response;
-
-            
+            return response;        
         }
         catch (System.Exception)
         {
-
             throw;
         }
     }

@@ -64,7 +64,9 @@ string GetEnvironment()
     else
         return "Development";
 }
+
 var environment = GetEnvironment();
+Console.WriteLine(environment);
 
 var configFile = environment switch
 {
