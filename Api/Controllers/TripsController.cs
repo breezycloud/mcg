@@ -123,6 +123,7 @@ public class TripsController : ControllerBase
                                 .AsSplitQuery()
                                 .Where(x => EF.Functions.ILike(x.LoadingInfo.WaybillNo!, pattern)
                                 || EF.Functions.ILike(x.LoadingDepot.Name, pattern)
+                                || EF.Functions.ILike(x.DispatchId, pattern)
                                 || EF.Functions.ILike(x.LoadingInfo.Destination, pattern)
                                 || EF.Functions.ILike(x.Truck.LicensePlate, pattern)
                                 || EF.Functions.ILike(x.Truck.TruckNo, pattern)
