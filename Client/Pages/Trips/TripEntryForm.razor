@@ -333,19 +333,20 @@
             if (!Id.HasValue)
             {
                 CurrentTrip = TripService.MapTripLoadingAsync(tripLoading, AppState.GetCancellationToken());
+                CurrentTrip.SetInitialStatus();
                 result = await TripService.AddAsync(CurrentTrip, AppState.GetCancellationToken());
             }
             else
             {
+                CurrentTrip.UpdateStatusWithLoadingInfo();
                 result = await TripService.UpdateAsync(CurrentTrip, AppState.GetCancellationToken());
             }
 
-            @* alert = new($"Trip Successfully {(EditMode ? "Updated" : "Added")}", ToastIcon.Succees); *@
             if (result)
             {
                 ToastService.ShowSuccess($"Trip successfully {(EditMode ? "updated" : "added")}", 5);
                 Cancel();
-            }                
+            }
         }
         catch (Exception ex)
         {        

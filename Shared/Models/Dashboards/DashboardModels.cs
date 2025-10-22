@@ -84,7 +84,7 @@ public class RecentTripDto
     public string? LoadingPoint { get; set; }
     public string? Destination { get; set; }
     public TripStatus Status { get; set; }
-    public DateTime LoadingDate { get; set; }
+    public DateTimeOffset LoadingDate { get; set; }
     public int? TripDurationDays { get; set; }
 }
 

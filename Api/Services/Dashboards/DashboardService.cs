@@ -93,7 +93,7 @@ public class DashboardService : IDashboardService
                 AvgDurationDays = g.Any(t => t.CloseInfo.ReturnDateTime.HasValue)
                 ? (decimal)g
                 .Where(t => t.CloseInfo.ReturnDateTime.HasValue)
-                .Average(t => (t.CloseInfo.ReturnDateTime!.Value - t.Date.ToDateTime(TimeOnly.MinValue)).TotalDays)
+                .Average(t => (t.CloseInfo.ReturnDateTime!.Value - t.Date).TotalDays)
                 : 0
             })
             .OrderBy(x => x.Year).ThenBy(x => x.Month)
@@ -122,7 +122,7 @@ public class DashboardService : IDashboardService
                 AvgDurationDays = g.Any(t => t.CloseInfo.ReturnDateTime.HasValue)
                 ? (decimal)g
                 .Where(t => t.CloseInfo.ReturnDateTime.HasValue)
-                .Average(t => (t.CloseInfo.ReturnDateTime!.Value - t.Date.ToDateTime(TimeOnly.MinValue)).TotalDays)
+                .Average(t => (t.CloseInfo.ReturnDateTime!.Value - t.Date).TotalDays)
                 : 0
             })
             .OrderBy(x => x.Year).ThenBy(x => x.Month)
@@ -175,9 +175,9 @@ public class DashboardService : IDashboardService
                 LoadingPoint = t.LoadingDepot?.Name,
                 Destination = t.LoadingInfo.Destination,
                 Status = t.Status,
-                LoadingDate = t.Date.ToDateTime(TimeOnly.MinValue),
+                LoadingDate = t.Date,
                 TripDurationDays = t.CloseInfo.ReturnDateTime.HasValue
-                ? (t.CloseInfo.ReturnDateTime.Value - t.Date.ToDateTime(TimeOnly.MinValue)).Days
+                ? (t.CloseInfo.ReturnDateTime.Value - t.Date).Days
                 : 0,
             })
             .ToList();
@@ -296,59 +296,7 @@ public class DashboardService : IDashboardService
         //     })
         //     .OrderByDescending(s => s.TripsProcessed)
         //     .ToList();
-    }
-
-    public async Task<StationThroughputDto?> GetStationThroughputAsync(
-        Guid stationId, 
-        DateOnly? startDate, 
-        DateOnly? endDate,
-        TimeGranularity granularity)
-    {
-        var station = await _context.Stations.FindAsync(stationId);
-        if (station == null) return null;
-
-        var trips = await GetFilteredTripsAsync(startDate, endDate);
-        var stationTrips = trips
-            .Where(t => t.LoadingDepotId == stationId)
-            .ToList();
-
-        var throughputData = granularity switch
-        {
-            TimeGranularity.Hourly => stationTrips
-                .GroupBy(t => new DateTime(
-                    t.Date.Year, t.Date.Month, t.Date.Day, 
-                    t.CreatedAt.Date.Hour, 0, 0))
-                .ToDictionary(
-                    g => g.Key,
-                    g => g.Count()),
-
-            TimeGranularity.Daily => stationTrips
-                .GroupBy(t => t.Date)
-                .ToDictionary(
-                    g => g.Key.ToDateTime(TimeOnly.MinValue),
-                    g => g.Count()),
-
-            TimeGranularity.Weekly => stationTrips
-                .GroupBy(t => 
-                    new DateTime(t.Date.Year, t.Date.Month, t.Date.Day).AddDays(
-                        -(int)t.Date.DayOfWeek))
-                .ToDictionary(
-                    g => g.Key,
-                    g => g.Count()),
-
-            _ => stationTrips
-                .GroupBy(t => new DateTime(t.Date.Year, t.Date.Month, 1))
-                .ToDictionary(
-                    g => g.Key,
-                    g => g.Count())
-        };
-
-        return new StationThroughputDto(
-            StationName: station.Name,
-            ThroughputData: throughputData
-                .OrderBy(kvp => kvp.Key)
-                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value));
-    }
+    }    
 
     #endregion
 
@@ -421,10 +369,18 @@ public class DashboardService : IDashboardService
                                     .AsQueryable();
 
         if (startDate.HasValue)
-            query = query.Where(t => t.Date >= startDate.Value);
+        {
+            var startDateTime = startDate.Value.ToDateTime(TimeOnly.MinValue); // 00:00
+            query = query.Where(t => t.Date >= startDateTime);
+        }
 
         if (endDate.HasValue)
-            query = query.Where(t => t.Date <= endDate.Value);
+        {
+            var endDateTime = endDate.Value.ToDateTime(TimeOnly.MaxValue); // 23:59:59.9999999
+            query = query.Where(t => t.Date <= endDateTime);
+        }
+
+
 
 
         if (!product!.Contains("All"))
@@ -449,7 +405,7 @@ public class DashboardService : IDashboardService
     {
         var durations = trips
             .Where(x => x.CloseInfo.ReturnDateTime.HasValue)
-            .Select(t => t.CalculateTripDuration(t.Date, DateOnly.FromDateTime(t.CloseInfo.ReturnDateTime!.Value)));
+            .Select(t => t.CalculateTripDuration(t.Date, t.CloseInfo.ReturnDateTime!.Value));
 
         return durations.Any() ? (decimal)durations.Average() : 0;
     }

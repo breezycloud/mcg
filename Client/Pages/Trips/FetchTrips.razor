@@ -4,105 +4,160 @@
 @attribute [Authorize(Roles = "Monitoring, Admin, Master, Supervisor")]
 <PageTitle>Trips</PageTitle>
 
-
-
-<section class="bg-gray-50 dark:bg-gray-900 rounded-lg">    
+<section class="bg-gray-50 dark:bg-gray-900 rounded-lg">
     @if (showData)
     {
         <div class="px-4 lg:px-9">
             <div class="bg-white dark:bg-gray-800 relative shadow-md sm:rounded-lg overflow-hidden">
-                <!-- Header with search and add button -->
-                <div class="flex flex-col md:flex-row md:items-center md:justify-between p-4 space-y-3 md:space-y-0 md:space-x-4">
-                    <!-- Search Bar -->
-                    <div class="w-full md:w-1/2 flex-auto">
+                <!-- Header with search, filters, and menu -->
+                <div class="flex flex-col md:flex-row gap-4 p-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm">
+                    <!-- Search Bar -->                    
+                    <div class="relative w-full lg:w-1/2">
                         <label for="trip-search" class="sr-only">Search trips</label>
-                        <div class="relative w-full">
+                        <div class="relative">
                             <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                                <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                <svg class="w-5 h-5 text-gray-400 dark:text-gray-500" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
                                 </svg>
                             </div>
                             <input 
                                 type="text" 
                                 id="trip-search" 
-                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" 
+                                class="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                                 placeholder="Search trips..." 
-                                @bind-value="@request.SearchTerm" @bind-value:event="oninput" @onkeyup="async () => await HandleSearch(request.SearchTerm!)" />
+                                @bind-value="@request.SearchTerm" 
+                                @bind-value:event="oninput" 
+                                @onkeyup="async () => await HandleSearch(request.SearchTerm!)" />
                         </div>
                     </div>
-                    <!-- Date Range Filters -->
-                    <div class="flex flex-col md:flex-row md:items-center md:space-x-3 w-full md:w-auto gap-1 space-y-2">
-                        <div>
-                            @* <label for="start-date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Start Date</label> *@
-                            <input 
-                                type="month"
-                                id="start-date" 
-                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" 
-                                @bind-value="reportFilter.StartDate"
-                                @bind-value:after="Reload"/>
+
+                    <!-- Filters and Action Menu -->
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full lg:w-auto lg:flex-1">
+                        <!-- Filters (Collapsible on Mobile) -->
+                        <div class="relative w-full sm:w-auto flex sm:items-center sm:gap-3">
+                            <button 
+                                type="button" 
+                                class="sm:hidden flex items-center justify-between w-full px-4 py-2 text-sm font-medium text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-600 transition-all duration-200"
+                                @onclick="ToggleFilterMenu">
+                                <span>Filters</span>
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+                            <div class="@(isFilterMenuOpen ? "grid" : "hidden sm:grid") grid-cols-1 sm:auto-cols-max sm:grid-flow-col gap-3 w-full sm:w-auto">
+                                <!-- Date Filter -->
+                                <input 
+                                    type="month" 
+                                    id="start-date" 
+                                    class="bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full sm:w-36 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 transition-all duration-200"
+                                    @bind-value="reportFilter.StartDate" 
+                                    @bind-value:after="Reload" />
+
+                                <!-- Status Filter -->
+                                <select 
+                                    class="bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full sm:w-32 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 transition-all duration-200"
+                                    @onchange="OnStatusChanged">
+                                    <option value="">All Statuses</option>
+                                    @foreach (var status in Enum.GetValues(typeof(TripStatus)))
+                                    {
+                                        if (status.ToString() != "Overdue")
+                                        {
+                                            <option value="@status">@status</option>
+                                        }
+                                    }
+                                </select>
+
+                                <!-- Product Filter -->
+                                <select 
+                                    class="bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full sm:w-32 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 transition-all duration-200"
+                                    @onchange="OnProductChanged">
+                                    <option value="">All Products</option>
+                                    @foreach (var product in Enum.GetValues(typeof(Product)))
+                                    {
+                                        <option value="@product">@product</option>
+                                    }
+                                </select>
+                            </div>                            
                         </div>
-                        <div class="w-full">
-                            <select                         
-                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                                value="Status"    
-                                style="width: 10rem;"                        
-                                @onchange="OnStatusChanged">
-                                <option value="">All Statuses</option>
-                                @foreach (var status in Enum.GetValues(typeof(TripStatus)))
-                                {
-                                    <option value="@status">@status</option>
-                                }
-                            </select>
-                        </div>                                                
-                    </div>
-                    
-                    <!-- Export CSV Button -->
-                   <div class="flex flex-col items-stretch justify-end flex-shrink-0 w-full space-y-2 md:w-auto md:flex-row md:space-y-0 md:items-center md:space-x-3">
-                        <button 
-                            @onclick="ExportCsv"
-                            type="button"
-                            class="flex items-center text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-4 py-2.5 dark:bg-green-700 dark:hover:bg-green-800 focus:outline-none dark:focus:ring-green-900"
-                            disabled="@AppState.IsProcessing">
-                            @if (AppState.IsProcessing)
-                            {
-                                <svg class="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                                </svg>                                
-                            }
-                            else
-                            {
-                                @("Export")
-                            }
-                        </button>
-                    </div>
-                    <!-- Add Trip Button -->
-                    <AuthorizeView Roles="Master, Admin, Supervisor">
-                        <Authorized>
-                            <div class="flex flex-col items-stretch justify-end flex-shrink-0 w-full space-y-2 md:w-auto md:flex-row md:space-y-0 md:items-center md:space-x-3">
-                                <button 
-                                    @onclick="AddTrip" 
-                                    type="button" 
-                                    class="flex items-center justify-center text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">
-                                    <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                                        <path clip-rule="evenodd" fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" />
-                                    </svg>
-                                    Add Trip
-                                </button>
+                        
+                        <div class="relative w-full sm:w-auto">
+                            <button 
+                                type="button" 
+                                class="flex items-center justify-center w-full sm:w-10 h-10 text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-600 transition-all duration-200"
+                                @onclick="ToggleActionMenu">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                                </svg>
+                            </button>
+                            <div class="@(isActionMenuOpen ? "block" : "hidden") absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg z-10">
+                                <div class="py-1">
+                                    <button 
+                                        @onclick="ExportCsv"
+                                        type="button"
+                                        class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                        disabled="@AppState.IsProcessing">
+                                        @if (AppState.IsProcessing)
+                                        {
+                                            <svg class="animate-spin h-4 w-4 mr-2 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                                            </svg>
+                                            @("Exporting...")
+                                        }
+                                        else
+                                        {
+                                            <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                                <path clip-rule="evenodd" fill-rule="evenodd" d="M10 2a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V3a1 1 0 011-1z" />
+                                            </svg>
+                                            @("Export")
+                                        }
+                                    </button>
+                                    <AuthorizeView Roles="Master, Admin, Supervisor">
+                                        <Authorized>
+                                            @* <button 
+                                                @onclick="@(() => nav.NavigateTo("/trips/batch-dispatch"))" 
+                                                type="button" 
+                                                class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                                <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                                    <path clip-rule="evenodd" fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" />
+                                                </svg>
+                                                Batch Dispatch
+                                            </button> *@
+                                            <button 
+                                                @onclick="@(() => nav.NavigateTo("/trips/batch-loading"))" 
+                                                type="button" 
+                                                class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                                <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                                    <path clip-rule="evenodd" fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" />
+                                                </svg>
+                                                Batch Loading Info
+                                            </button>
+                                            <button 
+                                                @onclick="AddTrip" 
+                                                type="button" 
+                                                class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                                <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                                    <path clip-rule="evenodd" fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" />
+                                                </svg>
+                                                Add Trip
+                                            </button>
+                                        </Authorized>
+                                    </AuthorizeView>
+                                </div>
                             </div>
-                        </Authorized>
-                    </AuthorizeView>                    
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Table -->
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                    <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-400">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-400">
                             <tr>
                                 <th scope="col" class="px-6 py-3">Date</th>
                                 <th scope="col" class="px-6 py-3">Reference</th>
                                 <th scope="col" class="px-6 py-3">Truck</th>
-                                <th scope="col" class="px-6 py-3">Driver</th>                                                      
+                                <th scope="col" class="px-6 py-3">Driver</th>
                                 <th scope="col" class="px-6 py-3">Origin</th>
                                 <th scope="col" class="px-6 py-3">Destination</th>
                                 <th scope="col" class="px-6 py-3">Status</th>
@@ -110,114 +165,117 @@
                             </tr>
                         </thead>
                         <tbody>
-                        @if (response != null && response.Data!.Any())
-                        {
-                            foreach (var trip in response.Data!)
+                            @if (response != null && response.Data!.Any())
                             {
-                                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                                    <!-- Trip Date -->
-                                    <td class="px-4 py-4 text-sm text-gray-900 dark:text-white">
-                                        @trip.Date.ToString("MMM dd, yyyy")
-                                    </td>
-
-                                    <!-- Dispatch Number & Waybill -->
-                                    <td class="px-4 py-4 text-sm text-gray-700 dark:text-gray-300">
-                                        <div>
-                                            <span class="font-semibold">Dispatch:</span>
-                                            @trip.DispatchId
-                                        </div>
-                                        <div>
-                                            <span class="font-semibold">Waybill:</span>
-                                            @trip.LoadingInfo.WaybillNo
-                                        </div>
-                                    </td>
-
-                                    <!-- Truck -->
-                                    <td class="px-4 py-4 text-sm text-gray-700 dark:text-gray-300">
-                                        @trip.Truck?.LicensePlate
-                                    </td>
-
-                                    <!-- Driver -->
-                                    <td class="px-4 py-4 text-sm">
-                                        @if (trip.Driver != null)
+                                foreach (var trip in response.Data!)
+                                {
+                                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                                        <!-- Trip Date -->
+                                        <td class="px-4 py-4 text-sm text-gray-900 dark:text-white">
+                                            @trip.Date.ToString("MMM dd, yyyy")
+                                        </td>
+                                        <!-- Dispatch Number & Waybill -->
+                                        <td class="px-4 py-4 text-sm text-gray-700 dark:text-gray-300">
+                                            <div>
+                                                <span class="font-semibold">Dispatch:</span> @trip.DispatchId
+                                            </div>
+                                            <div>
+                                                <span class="font-semibold">Waybill:</span> @trip.LoadingInfo.WaybillNo
+                                            </div>
+                                        </td>
+                                        <!-- Truck -->
+                                        <td class="px-4 py-4 text-sm text-gray-700 dark:text-gray-300">
+                                            @trip.Truck?.LicensePlate
+                                        </td>
+                                        <!-- Driver -->
+                                        <td class="px-4 py-4 text-sm">
+                                            @if (trip.Driver != null)
+                                            {
+                                                <div class="font-medium text-gray-900 dark:text-white">@trip.Driver.FirstName @trip.Driver.LastName</div>
+                                                <div class="text-xs text-gray-500">@trip.Driver.PhoneNo</div>
+                                            }
+                                            else
+                                            {
+                                                <span class="italic text-gray-400">Unassigned</span>
+                                            }
+                                        </td>
+                                        <!-- Origin -->
+                                        <td class="px-4 py-4 text-sm text-gray-700 dark:text-gray-300">
+                                            <div>@trip.LoadingDepot?.Name</div>
+                                            <div class="text-xs text-gray-500">@(trip.LoadingInfo.Quantity is null ? "" : $"{trip.LoadingInfo?.Quantity} {trip.GetUnit()}")</div>
+                                        </td>
+                                        <!-- Destination -->
+                                        <td class="px-4 py-4 text-sm text-gray-700 dark:text-gray-300">
+                                            <div>@trip.LoadingInfo.Destination</div>
+                                        </td>
+                                        <!-- Status -->
+                                        <td class="px-4 py-4">
+                                            <span class="text-xs font-medium px-2.5 py-0.5 rounded
+                                                @(trip.Status == TripStatus.Active ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+                                                : trip.Status == TripStatus.Closed ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"
+                                                : trip.Status == TripStatus.Dispatched ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
+                                                : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300")">
+                                                @trip.Status
+                                            </span>
+                                        </td>
+                                        <!-- Actions -->
+                                        <td class="px-4 py-4 text-right">
+                                            <div class="relative">
+                                                <button 
+                                                    @onclick="() => ToggleRowMenu(trip.Id)" class="p-2 text-gray-700 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200">
+                                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v.01M12 12v.01M12 18v.01" />
+                                                    </svg>
+                                                </button>
+                                                <div class="@(openRowMenuId == trip.Id ? "block" : "hidden") absolute right-0 mt-2 w-32 bg-white dark:bg-gray-800 rounded-lg shadow-lg z-10">
+                                                    <div class="py-1">
+                                                        <button 
+                                                            @onclick="() => ViewTrip(trip)" 
+                                                            class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                                            View
+                                                        </button>
+                                                        @if (trip.Status != TripStatus.Completed)
+                                                        {
+                                                            <button 
+                                                                @onclick="() => EditStatus(trip)" 
+                                                                class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                                                Update
+                                                            </button>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="8" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                                        @if (AppState.IsBusy)
                                         {
-                                            <div class="font-medium text-gray-900 dark:text-white">@trip.Driver.FirstName @trip.Driver.LastName</div>
-                                            <div class="text-xs text-gray-500">@trip.Driver.PhoneNo</div>
+                                            <div class="flex justify-center items-center">
+                                                <svg class="animate-spin h-5 w-5 text-blue-500 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                                </svg>
+                                                Loading trips...
+                                            </div>
                                         }
                                         else
                                         {
-                                            <span class="italic text-gray-400">Unassigned</span>
+                                            <div class="flex flex-col items-center justify-center py-6">
+                                                <svg class="w-8 h-8 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                </svg>
+                                                <span class="text-lg font-medium">No trips found</span>
+                                                <p class="text-sm text-gray-500 mt-1">Try adding a new trip or adjusting your filter</p>
+                                            </div>
                                         }
-                                    </td>                                                                
-
-                                    <!-- Origin -->
-                                    <td class="px-4 py-4 text-sm text-gray-700 dark:text-gray-300">
-                                        <div>@trip.LoadingDepot?.Name</div>
-                                        <div class="text-xs text-gray-500">@(trip.LoadingInfo.Quantity is null ? "" : $"{trip.LoadingInfo?.Quantity} {trip.GetUnit()}") </div>                                        
                                     </td>
-
-                                    <!-- Destination -->
-                                    <td class="px-4 py-4 text-sm text-gray-700 dark:text-gray-300">
-                                        <div>@trip.LoadingInfo.Destination</div>
-                                        @* <div class="text-xs text-gray-500">@trip @trip.Destination.DischargedUnit</div>                                         *@
-                                    </td>
-
-                                    <!-- Status -->
-                                    <td class="px-4 py-4">
-                                        <span class="text-xs font-medium px-2.5 py-0.5 rounded
-                                            @(trip.Status == TripStatus.Active
-                                                ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
-                                                : trip.Status == TripStatus.Closed ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300" : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300")">
-                                            @trip.Status
-                                        </span>
-                                    </td>
-
-                                    <!-- Actions -->
-                                    <td class="px-4 py-4 text-right">
-                                        <div class="flex justify-end space-x-3">                                           
-                                            <button @onclick="() => ViewTrip(trip)" class="font-medium text-green-600 dark:text-green-500 hover:underline">
-                                                View
-                                            </button>                           
-                                            @if (trip.Status != TripStatus.Completed)
-                                            {
-                                                <button @onclick="() => EditStatus(trip)" class="font-medium text-blue-600 dark:text-blue-500 hover:underline">
-                                                    Update
-                                                </button>
-                                            }                                                        
-                                        </div>
-                                    </td>                                
                                 </tr>
                             }
-                        }
-                        else
-                        {
-                            <tr>
-                                <td colspan="8" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
-                                    @if (AppState.IsBusy)
-                                    {
-                                        <div class="flex justify-center items-center">
-                                            <svg class="animate-spin h-5 w-5 text-blue-500 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                <path class="opacity-75" fill="currentColor"
-                                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                                            </svg>
-                                            Loading trips...
-                                        </div>
-                                    }
-                                    else
-                                    {
-                                        <div class="flex flex-col items-center justify-center py-6">
-                                            <svg class="w-8 h-8 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                            </svg>
-                                            <span class="text-lg font-medium">No trips found</span>
-                                            <p class="text-sm text-gray-500 mt-1">Try adding a new trip or adjusting your filter</p>
-                                        </div>
-                                    }
-                                </td>
-                            </tr>
-                        }
                         </tbody>
                     </table>
                 </div>
@@ -237,29 +295,13 @@
             </div>
         </div>
     }
-    @* @if (showStatusModal)
-    {
-         <EditTrip 
-            Trip="selectedTrip" 
-            CloseModal="() => showStatusModal = false" 
-            OnSave="UpdateTrip"
-            OnUpdateDestination="UpdateDestination" />
-    }
-
-
-    @if (selectedTrip != null && !showData)
-    {
-        <ViewTrip
-            Trip="selectedTrip" 
-            OnBack="() => {  selectedTrip = null; showData = true; }" 
-            OnEdit="() => EditStatus(selectedTrip)" />
-    } *@
 </section>
 
-
-
-
 @code {
+    private bool isActionMenuOpen = false;
+    private bool isFilterMenuOpen = false;
+    private Guid? openRowMenuId = null;
+
     private GridDataResponse<Trip>? response = null;
     private GridDataRequest request = new();
     private Trip selectedTrip;
@@ -279,6 +321,40 @@
     {
         request = new GridDataRequest { Page = 0, PageSize = 10};
         await LoadTrips();
+    }    
+
+    private string GetFilterPanelClasses()
+    {
+        // Always visible from md: and up; transition used on mobile
+        return "overflow-hidden transition-all duration-300 md:block";
+    }
+
+    private string GetFilterPanelStyles()
+    {
+        // max-height enables slide-down animation
+        return isFilterMenuOpen
+            ? "max-height: 500px; margin-top: 0.5rem;"
+            : "max-height: 0; margin-top: 0; padding: 0;";
+    }
+
+
+    private void ToggleActionMenu()
+    {
+        isActionMenuOpen = !isActionMenuOpen;
+        isFilterMenuOpen = false; // Close filter menu if action menu is opened
+        StateHasChanged();
+    }
+
+    private void ToggleFilterMenu()
+    {
+        isFilterMenuOpen = !isFilterMenuOpen;
+        isActionMenuOpen = false; // Close action menu if filter menu is opened
+        StateHasChanged();
+    }
+
+    private void ToggleRowMenu(Guid tripId)
+    {
+        openRowMenuId = openRowMenuId == tripId ? null : tripId;
     }
 
     private void ToggleMenu(string tripId)
@@ -361,6 +437,24 @@
             AppState.IsBusy = false;
         }
         StateHasChanged();
+    }
+
+    private async Task OnProductChanged(ChangeEventArgs e)
+    {
+        response = null;
+        if (Enum.TryParse<Product>(e.Value?.ToString(), out var selected))
+        {
+            request.Product = selected.ToString();
+        }
+        else
+        {
+            request.Product = null;
+        }
+        request.Page = 0;
+        AppState.IsBusy = true;
+        await Task.Yield();
+        await LoadTrips();
+        AppState.IsBusy = false;
     }
 
     private void AddTrip()

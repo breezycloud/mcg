@@ -9,16 +9,29 @@
             <!-- Modal header -->
             <div class="flex items-start justify-between p-4 border-b rounded-t dark:border-gray-600">
                 <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
-                    @(EditMode  ? "Edit Discharge" : "Add New Discharge")
+                    @(EditMode ? "Edit Discharge" : "Add New Discharge")
                 </h3>
+                
+                <!-- Siding Status Badge -->
+                @if (IsSiding)
+                {
+                    <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium 
+                                bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                        </svg>
+                        SIDING: @SidingHours.ToString("F1") hrs
+                    </div>
+                }
+                
                 <button type="button" @onclick="CloseCheckpointModal"
                         class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white">
                     <svg aria-hidden="true" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
                     </svg>
-                    <span class="sr-only">Close modal</span>
                 </button>
             </div>
+            
             @if (IsLoading)
             {
                 <div class="m-4 p-4">
@@ -27,53 +40,60 @@
             }
             else
             {
-            
-            <!-- Modal body -->
+                <!-- Modal body -->
                 <div class="p-6 space-y-4">                
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Arrival Date/Time -->
                         <div>
-                            <label for="arrival-date-time" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Arrival Date/Time</label>
+                            <label for="arrival-date-time" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                Arrival Date/Time <span class="text-red-500">*</span>
+                            </label>
                             <input type="datetime-local" id="arrival-date-time" @bind="Data.TruckArrival"
                                 class="@GetInputClass(nameof(Data.TruckArrival))">
+                            @if (errors.ContainsKey("TruckArrival"))
+                            {
+                                <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["TruckArrival"]</p>
+                            }
                         </div>
 
+                        <div>
+                            @* <label for="invoiced-station" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                Invoiced Station <span class="text-red-500">*</span>
+                            </label> *@
+                            <StationAutocomplete 
+                                @bind-Value="SelectedInvoicedStation"
+                                Destionation="@Destination"
+                                StationType="StationType.DischargeStation"
+                                Label="Select Invoiced Station *"
+                                Placeholder="Start typing invoiced station..."
+                                ShowDetails="true"
+                                AllowClear="true" />
+                            @if (errors.ContainsKey("InvoicedStationId"))
+                            {
+                                <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["InvoicedStationId"]</p>
+                            }
+                        </div>
+                        
                         <div>
                             <StationAutocomplete 
                                 @bind-Value="SelectedStation"
                                 Destionation="@Destination"
                                 StationType="StationType.DischargeStation"
-                                Label="Select Discharge Station"
-                                Placeholder="Start typing station name..."
+                                Label="Select Actual Station *"
+                                Placeholder="Start typing actual station..."
                                 ShowDetails="true"
                                 AllowClear="true" />
-
-                            @* @if (SelectedStation != null)
-                            {
-                                <div class="mt-4 p-4 bg-green-50 rounded">
-                                    <h4 class="font-bold">Selected Station:</h4>
-                                    <p>@SelectedStation.Name</p>
-                                    <p><small>@(StringConverter.ToDescription(SelectedStation.Type))</small></p>
-                                </div>
-                            } *@
-                            @* <label for="StationId" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Station</label>
-                            <InputSelect id="StationId"
-                                class="@GetInputClass("StationId")"
-                                @bind-Value="Data.StationId"
-                                @bind-Value:after="OnValueChanged">
-                                <option value="">-- Select Station --</option>
-                                @foreach (var state in Stations)
-                                {
-                                    <option value="@state.Id">@StringConverter.ConvertToTitleCase(state.Name)</option>
-                                }                                
-                            </InputSelect> *@
                             @if (errors.ContainsKey("StationId"))
                             {
                                 <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["StationId"]</p>
-                            }                                                    
+                            }
                         </div>
 
+                        <!-- Discharge Start Time -->
                         <div>
-                            <label for="discharge-start-time" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Discharge Start Time</label>
+                            <label for="discharge-start-time" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                Discharge Start Time <span class="text-red-500">*</span>
+                            </label>
                             <input type="datetime-local" id="discharge-start-time" @bind="Data.DischargeStartTime"
                                 class="@GetInputClass(nameof(Data.DischargeStartTime))">
                             @if (errors.ContainsKey("DischargeStartTime"))
@@ -81,8 +101,12 @@
                                 <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["DischargeStartTime"]</p>
                             }
                         </div>
+
+                        <!-- Quantity Discharged -->
                         <div>
-                            <label for="quantity-discharged" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Quantity Discharged</label>
+                            <label for="quantity-discharged" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                Quantity Discharged <span class="text-red-500">*</span>
+                            </label>
                             <input type="number" id="quantity-discharged" step="0.01" 
                                 @bind="Data.QuantityDischarged"
                                 max="@InitialQuantity"
@@ -91,24 +115,30 @@
                             {
                                 <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["QuantityDischarged"]</p>
                             }
-                        </div>
-
-                        <div>
-                            <FileUploadView OnFilesUploaded="@OnUploadComplete"/>
-                        </div>
+                        </div>                       
                         
-                        @if (Data.Files.Any())
-                        {
-                            <div>
-                                <FileListView Files="Data.Files" ShowDelete="@(Data.Files.Any())" OnDelete="@OnDelete" />
-                            </div>
-                        }
-                        <div class="flex items-center space-x-2 mt-6">
+                        <!-- Final Discharge Checkbox -->
+                        <div class="flex items-center space-x-2">
                             <input type="checkbox" id="is-final-discharge" @bind="Data.IsFinalDischarge"
-                                class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
-                            <label for="is-final-discharge" class="text-sm font-medium text-gray-900 dark:text-white">Final Discharge</label>
+                                class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500">
+                            <label for="is-final-discharge" class="text-sm font-medium text-gray-900 dark:text-white">
+                                Final Discharge
+                            </label>
                         </div>                        
                     </div>
+
+                    <div>
+                        <FileUploadView OnFilesUploaded="@OnUploadComplete"/>
+                    </div>
+                        
+                    @if (Data.Files.Any())
+                    {
+                        <div>
+                            <FileListView Files="Data.Files" ShowDelete="@(Data.Files.Any())" OnDelete="@OnDelete" />
+                        </div>
+                    }
+                    
+                    <!-- Notes -->
                     <div>
                         <label for="notes" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notes</label>
                         <textarea id="notes" rows="3" maxlength="500" @bind="Data.Notes"
@@ -125,51 +155,57 @@
                 </button>
                 <button @onclick="SaveCheckpoint" type="button"
                         class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
-                    @(EditMode  ? "Add Discharge" : "Save Changes")
+                    @(EditMode ? "Save Changes" : "Add Discharge")
                 </button>
             </div>
         </div>
     </div>
 </div>
-@code {
-    [Parameter]
-    public bool IsVisible { get; set; } = false;
-    [Parameter]
-    public decimal InitialQuantity { get; set; }
-    [Parameter]
-    public string? Destination { get; set; }
 
-    [Parameter]
-    public bool EditMode { get; set; } = false;
-    [Parameter]
-    public Discharge Data { get; set; } = new();
-    private Discharge? editingDischarge;
-    private bool showDeleteDischargeModal = false;
-    private Discharge? checkpointToDelete;
-    [Parameter]
-    public EventCallback<Discharge> OnSave { get; set; }
-    [Parameter]
-    public EventCallback OnClose { get; set; }
+@code {
+    [Parameter] public bool IsVisible { get; set; } = false;
+    [Parameter] public decimal InitialQuantity { get; set; }
+    [Parameter] public string? Destination { get; set; }
+    [Parameter] public bool EditMode { get; set; } = false;
+    [Parameter] public Discharge Data { get; set; } = new();
+    
+    [Parameter] public EventCallback<Discharge> OnSave { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
 
     private Dictionary<string, string> errors = new();
     private bool IsLoading = false;
 
     private Station? SelectedStation;
+    private Station? SelectedInvoicedStation; // NEW: For invoiced station
     
-    private Station[]? Stations = [];
+    // Siding Calculation Properties
+    private bool IsSiding => Data.TruckArrival != default && Data.DischargeStartTime != default && 
+                            (Data.DischargeStartTime - Data.TruckArrival).GetValueOrDefault().TotalHours > 0 && 
+                            (Data.DischargeStartTime - Data.TruckArrival).GetValueOrDefault().TotalHours <= 24;
+    private double SidingHours => IsSiding ? (Data.DischargeStartTime - Data.TruckArrival).GetValueOrDefault().TotalHours : 0;
 
     protected override async Task OnInitializedAsync()
     {        
         if (string.IsNullOrEmpty(Destination))
         {
-            ToastService.ShowInfo("Trip has not reached discharge destionation");
+            ToastService.ShowInfo("Trip has not reached discharge destination");
             CloseCheckpointModal();
             return;
         }
+        
         IsLoading = true;        
         await Task.Delay(500);
-        @* Stations = await StationService.GetAsync(StationType.DischargeStation.ToString(), Destination!, AppState.GetCancellationToken());         *@
         IsLoading = false;
+    }
+
+    protected override void OnParametersSet()
+    {
+        // Populate stations when editing
+        if (EditMode && Data != null)
+        {
+            SelectedStation = Data.Station;
+            SelectedInvoicedStation = Data.InvoicedStation; // NEW
+        }
     }
 
     private string GetInputClass(string fieldName)
@@ -188,46 +224,65 @@
         return baseClass;
     }
 
-    void OnValueChanged()
-    {
-        Data.Station = Stations!.FirstOrDefault(x => x.Id == Data.StationId);
-        StateHasChanged();
-    }
-
     private async Task SaveCheckpoint()
     {        
         errors.Clear();
 
-        if (SelectedStation is null)
+        if (SelectedInvoicedStation is null)
         {
-            errors[nameof(Data.StationId)] = "Station is required.";
+            errors["InvoicedStationId"] = "Invoiced station is required.";
         }
         else
         {
-            Data.StationId = SelectedStation.Id;
+            Data.InvoicedStationId = SelectedInvoicedStation.Id;
+            Data.InvoicedStation = SelectedInvoicedStation;
         }
+    
+        if (SelectedStation != null)
+        {
+            Data.StationId = SelectedStation.Id;
+            Data.Station = SelectedStation;
+        }
+
+        if (Data.TruckArrival == default)
+        {
+            errors["TruckArrival"] = "Arrival time is required.";
+        }
+        
         if (Data.QuantityDischarged <= 0)
         {
-            errors[nameof(Data.QuantityDischarged)] = "Quantity discharged must be greater than zero.";
+            errors["QuantityDischarged"] = "Quantity discharged must be greater than zero.";
         }
-        @* if (Data.QuantityDischarged > InitialQuantity)
+        
+        if (Data.DischargeStartTime == default)
         {
-            errors[nameof(Data.QuantityDischarged)] = $"Quantity can't exceed quantity of {InitialQuantity}.";
-        } *@
-        if (Data.DischargeStartTime == default || Data.DischargeStartTime is null)
-        {
-            errors[nameof(Data.DischargeStartTime)] = "Discharge start time is required.";
+            errors["DischargeStartTime"] = "Discharge start time is required.";
         }
+
         if (errors.Count > 0)
         {
             ToastService.ShowWarning("Fill the required fields to proceed");
             StateHasChanged();
-            return; // Validation failed, do not proceed
+            return;
         }
 
-        if (!string.IsNullOrEmpty(Data!.Notes))
+        if (Data.TruckArrival.HasValue && Data.DischargeStartTime.HasValue)
+        {
+            var hours = (Data.DischargeStartTime.Value - Data.TruckArrival.Value).TotalHours;
+            Data.IsSiding = hours > 0 && hours <= 24;
+            Data.SidingHours = Math.Max(0, hours);
+        }
+
+        @* // Auto-calculate siding flag
+        Data.IsSiding = IsSiding;
+        Data.SidingHours = SidingHours; *@
+
+        // Format notes
+        if (!string.IsNullOrEmpty(Data.Notes))
             Data.Notes = StringConverter.ConvertToTitleCase(Data.Notes);
+            
         await OnSave.InvokeAsync(Data);
+        ToastService.ShowSuccess(EditMode ? "Discharge updated successfully" : "Discharge added successfully");
     }
 
     private async Task OnUploadComplete(List<UploadResult> files)
@@ -235,15 +290,14 @@
         if (files.Any())
         {
             Data.Files.AddRange(files);
-            await OnSave.InvokeAsync(Data);
+            @* await OnSave.InvokeAsync(Data); *@
         }
         StateHasChanged();        
     }
 
     private async Task OnDelete(UploadResult file)
     {
-        if (string.IsNullOrWhiteSpace(file.FileName))        
-            return;
+        if (string.IsNullOrWhiteSpace(file.FileName)) return;
 
         Data.Files.Remove(file);
         await OnSave.InvokeAsync(Data);
@@ -253,6 +307,7 @@
     {
         IsVisible = false;        
         EditMode = false;
+        errors.Clear();
         await OnClose.InvokeAsync();
     }
 }

@@ -18,7 +18,7 @@ public class Trip
 {
     [Key]
     public Guid Id { get; set; }
-    public DateOnly Date { get; set; }
+    public DateTimeOffset Date { get; set; }
     public Guid? DriverId { get; set; }
     public Guid TruckId { get; set; }
     public string? DispatchId { get; set; }
@@ -43,6 +43,7 @@ public class Trip
     [ForeignKey(nameof(TruckId))]
     public virtual Truck? Truck { get; set; }
     public virtual ICollection<TripCheckpoint>? Checkpoints { get; set; } = [];
+    public virtual ICollection<ServiceRequest> ServiceRequests { get; set; } = [];
     public virtual ICollection<Incident> Incidents { get; set; } = [];
     public virtual ICollection<Discharge> Discharges { get; set; } = [];
     [ForeignKey(nameof(LoadingDepotId))]
@@ -56,11 +57,16 @@ public class Trip
     [ForeignKey(nameof(CompletedById))]
     public User? CompletedBy { get; set; }
 
-    public int CalculateTripDuration(DateOnly createdDate, DateOnly? returnDate)
+    [NotMapped]
+    public bool IsSelected { get; set; }
+
+    public int CalculateTripDuration(DateTimeOffset createdDate, DateTimeOffset? returnDate)
     {
-        DateOnly endDate = returnDate ?? DateOnly.FromDateTime(DateTime.Today);
-        return endDate.DayNumber - createdDate.DayNumber;
+        var endDate = (returnDate ?? DateTimeOffset.Now).Date;
+        var startDate = createdDate.Date;
+        return (endDate - startDate).Days;
     }
+
 
     public decimal? CalculateShortageOverageAmount(decimal? Quantity, decimal? SumQuantity)
     {
@@ -120,6 +126,18 @@ public class Trip
             {
                 LoadingInfo.Quantity = LoadingInfo.Quantity;
             }
+        }
+    }
+    public void SetInitialStatus()
+    {
+        Status = LoadingInfo == null || string.IsNullOrEmpty(LoadingInfo.WaybillNo) ? TripStatus.Dispatched : TripStatus.Active;
+    }
+
+    public void UpdateStatusWithLoadingInfo()
+    {
+        if (Status == TripStatus.Dispatched && LoadingInfo != null && !string.IsNullOrEmpty(LoadingInfo.WaybillNo))
+        {
+            Status = TripStatus.Active;
         }
     }        
 }

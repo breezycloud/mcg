@@ -25,7 +25,6 @@ public class ServiceRequest
     [Column(TypeName = "decimal(18,2)")]
     public decimal? Cost { get; set; } = null;
     public RequestStatus Status { get; set; } = RequestStatus.Pending;
-
     public Guid? MaintenanceSiteId { get; set; }
     public Guid? AssignedStaffId { get; set; }
     public Guid CreatedById { get; set; }
@@ -68,13 +67,12 @@ public class ServiceRequestHistory
     public Guid ServiceRequestId { get; set; }
     public RequestStatus Status { get; set; }
 
-    public string? Notes { get; set; } // Notes added during this status update
+    public string? Notes { get; set; }
 
-    public Guid? ChangedById { get; set; } // Who triggered the status change (e.g., wrote the note)
+    public Guid? ChangedById { get; set; }
 
     public DateTimeOffset ChangedAt { get; set; } = DateTimeOffset.UtcNow;
-
-    // Navigation properties
+    
     [ForeignKey(nameof(ServiceRequestId))]
     public virtual ServiceRequest? ServiceRequest { get; set; }
 

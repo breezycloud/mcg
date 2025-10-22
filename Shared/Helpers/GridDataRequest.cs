@@ -17,5 +17,6 @@ namespace Shared.Helpers
         public int Paging => Page * PageSize;
         public int Page { get; set; }
         public int PageSize { get; set; } = 10;
+        public string? Product { get; set; }
     }
 }

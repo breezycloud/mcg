@@ -499,6 +499,7 @@
 
 @if (showDischargeModal)
 {
+
     <DischargeModal Data="@currentDischarge"
         IsVisible="@showDischargeModal"
         Destination="@(Trip?.LoadingInfo.DispatchType == DispatchType.Depot ? Trip?.ArrivalInfo.Destination  : Trip?.LoadingInfo.Destination)"
@@ -641,29 +642,29 @@
             {
                 errors["LoadingDepotId"] = "Loading Depot is required";
             }
-            if (Trip!.LoadingInfo.LoadingDate is null)
+            else if (Trip!.LoadingInfo.LoadingDate is null)
             {
                 errors["LoadingDate"] = "Date is required";
             }
-
-            if (Trip!.LoadingInfo.Quantity is null || Trip!.LoadingInfo.Quantity <= 0)
+            else if (Trip!.LoadingInfo.Quantity is null || Trip!.LoadingInfo.Quantity <= 0)
             {
                 errors["Quantity"] = "Quantity is required";
             }
-
-            if (string.IsNullOrWhiteSpace(Trip!.LoadingInfo.WaybillNo))
+            else if (string.IsNullOrWhiteSpace(Trip!.LoadingInfo.WaybillNo))
             {
                 errors["WaybillNo"] = "WayBill No is required";
             }
-
-            if (Trip.LoadingInfo.DispatchType == DispatchType.Depot && Trip?.ReceivingDepotId is null)
+            else if (Trip.LoadingInfo.DispatchType == DispatchType.Depot && Trip?.ReceivingDepotId is null)
             {
                 errors["ReceivingDepotId"] = "Receiving Depot is required";
             }
-
-            if (string.IsNullOrWhiteSpace(Trip!.LoadingInfo.Destination))
+            else if (string.IsNullOrWhiteSpace(Trip!.LoadingInfo.Destination))
             {
                 errors["Destination"] = "WayBill No is required";
+            }
+            else
+            {
+                Trip.UpdateStatusWithLoadingInfo();
             }
         }
 
@@ -723,6 +724,10 @@
             StateHasChanged();
             return;
         }
+
+        if (string.IsNullOrEmpty(Trip!.DispatchId))
+            Trip.DispatchId = $"{Trip.Date:yy}{Trip.Date:MM}{Trip.Date:dd}{Trip?.Truck?.LicensePlate?.Substring(2, 6)}";
+
         Trip!.UpdatedAt = DateTimeOffset.UtcNow;
         try
         {

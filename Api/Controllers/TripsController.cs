@@ -43,18 +43,19 @@ public class TripsController : ControllerBase
 
         if (request.EndDate.HasValue)
         {
-            query = query.Where(x => x.Date <= request.EndDate.Value);
+            var endDateTime = request.EndDate.Value.ToDateTime(TimeOnly.MaxValue); // 23:59:59.9999999
+            query = query.Where(t => t.Date <= endDateTime);            
         }
         
         var csv = new StringBuilder();
-        csv.AppendLine("Date,Dispatch Id,Truck Number,Product,Status,Loading Point,Waybill No,Dispatch Quantity,Driver Name,Destination,Elock Status,Arrived At ATV,ATV Arrival Date, Invoice Date, Arrived At Station,Station Arrival Date,Discharged,Discharge Location,Discharged Date,Discharged Quantity,Discharged Unit,Has Shortage,Shortage Amount,Return Date,Duration Days,Discharge Summary,Notes");
+        csv.AppendLine("Date,Dispatch Id,Truck Number,Product,Status,Loading Point,Loading Date,Waybill No,Dispatch Quantity,Driver Name,Destination,Elock Status,Arrived At ATV,ATV Arrival Date, Invoice Date, Arrived At Station,Station Arrival Date,Discharged,Discharge Location,Discharged Date,Discharged Quantity,Discharged Unit,Has Shortage,Shortage Amount,Return Date,Duration Days,Discharge Summary,Notes");
 
         var trips = await query.OrderByDescending(x => x.CreatedAt).ToListAsync(cancellationToken);
 
         var report = TripMapper.ToExportDto(trips);
         foreach (var s in report)
         {
-            csv.AppendLine($"{EscapeCsv(s.Date.ToString("dd/MM/yyyy"))},{EscapeCsv(s.DispatchId)},{EscapeCsv(s.TruckPlate)},{EscapeCsv(s.Product)},{EscapeCsv(s.Status)},{EscapeCsv(s.LoadingPoint)},{EscapeCsv(s.WaybillNo)},{EscapeCsv(s.DispatchQuantity.ToString())},{EscapeCsv(s.DriverName)},{EscapeCsv(s.Dest)},{EscapeCsv(s.ElockStatus)},{EscapeCsv(s.ArrivedAtATV)},{EscapeCsv(s.AtvArrivalDate)}, {EscapeCsv(s.InvoiceDate)},{EscapeCsv(s.ArrivedAtStation)},{EscapeCsv(s.StationArrivalDate)},{EscapeCsv(s.Discharged)},{EscapeCsv(s.DischargeLocation)},{EscapeCsv(s.DischargedDate)},{s.DischargedQuantity},{EscapeCsv(s.DischargedUnit)},{EscapeCsv(s.HasShortage)},{s.ShortageAmount},{EscapeCsv(s.ReturnDate)},{s.DurationDays},{EscapeCsv(s.DischargeSummary)},{EscapeCsv(s.Notes)}");
+            csv.AppendLine($"{EscapeCsv(s.Date.ToString("dd/MM/yyyy"))},{EscapeCsv(s.DispatchId)},{EscapeCsv(s.TruckPlate)},{EscapeCsv(s.Product)},{EscapeCsv(s.Status)},{EscapeCsv(s.LoadingPoint)},{EscapeCsv(s.LoadingDate)},{EscapeCsv(s.WaybillNo)},{EscapeCsv(s.DispatchQuantity.ToString())},{EscapeCsv(s.DriverName)},{EscapeCsv(s.Dest)},{EscapeCsv(s.ElockStatus)},{EscapeCsv(s.ArrivedAtATV)},{EscapeCsv(s.AtvArrivalDate)}, {EscapeCsv(s.InvoiceDate)},{EscapeCsv(s.ArrivedAtStation)},{EscapeCsv(s.StationArrivalDate)},{EscapeCsv(s.Discharged)},{EscapeCsv(s.DischargeLocation)},{EscapeCsv(s.DischargedDate)},{s.DischargedQuantity},{EscapeCsv(s.DischargedUnit)},{EscapeCsv(s.HasShortage)},{s.ShortageAmount},{EscapeCsv(s.ReturnDate)},{s.DurationDays},{EscapeCsv(s.DischargeSummary)},{EscapeCsv(s.Notes)}");
         }       
         var bytes = Encoding.UTF8.GetBytes(csv.ToString());
         var stream = new MemoryStream(bytes);
@@ -70,7 +71,7 @@ public class TripsController : ControllerBase
     {
         try
         {
-            return await _context.Trips.Include(x => x.Discharges).Include(x => x.Truck).Where(x =>  x.Truck.Product != Shared.Enums.Product.CNG && x.Date >= filter.StartDate && x.Date <= filter.EndDate.Value).ToArrayAsync(cancellationToken);
+            return await _context.Trips.Include(x => x.Discharges).Include(x => x.Truck).Where(x =>  x.Truck.Product != Shared.Enums.Product.CNG && x.Date >= filter.StartDate.ToDateTime(TimeOnly.MinValue) && x.Date <= filter.EndDate.Value.ToDateTime(TimeOnly.MinValue)).ToArrayAsync(cancellationToken);
         }
         catch (System.Exception)
         {
@@ -107,6 +108,11 @@ public class TripsController : ControllerBase
             if (request.Date is not null)
             {
                 query = query.Where(x => x.Date.Month == request.Date.Value.Month && x.Date.Year == request.Date.Value.Year);
+            }
+
+            if (!string.IsNullOrEmpty(request.Product))
+            {
+                query = query.Where(t => t.Truck.Product.ToString() == request.Product);
             }
 
             if (!string.IsNullOrEmpty(request.SearchTerm))
@@ -173,6 +179,8 @@ public class TripsController : ControllerBase
                                 .Include(x => x.ReceivingDepot)
                                 .Include(x => x.Discharges)
                                 .ThenInclude(x => x.Station)
+                                .Include(x => x.Discharges)
+                                .ThenInclude(x => x.InvoicedStation)
                                 .Include(x => x.Incidents)
                                 .ThenInclude(x => x.IncidentType)
                                 .Include(x => x.ClosedBy)

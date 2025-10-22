@@ -1,0 +1,346 @@
+@page "/trips/batch-loading"
+@inject ITripService TripService
+@inject IStationService StationService
+@inject NavigationManager nav
+@attribute [Authorize(Roles = "Admin, Master, Supervisor")]
+
+<div class="max-w-4xl mx-auto p-4 sm:p-6">
+    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Batch Loading Info</h2>
+    <p class="text-sm text-gray-500 dark:text-gray-400">Update loading information for dispatched trucks</p>
+
+    @if (AppState.IsBusy)
+    {
+        <Loader />
+    }
+    else
+    {
+        <EditForm Model="@batchLoading" OnValidSubmit="HandleBatchLoading">
+            <div class="space-y-6">
+                <!-- COMMON FIELDS (Applied to all selected trips) -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Loading Depot -->
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            Loading Depot <span class="text-red-500">*</span>
+                        </label>
+                        <StationAutocomplete
+                            @bind-Value="SelectedStation"
+                            StationType="StationType.LoadingDepot"
+                            Label=""
+                            Placeholder="Start typing station name..."
+                            ShowDetails="true"
+                            AllowClear="true" />
+                        @if (errors.ContainsKey("LoadingDepotId"))
+                        {
+                            <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["LoadingDepotId"]</p>
+                        }
+                    </div>
+
+                    <!-- Loading Date & Time -->
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            Loading Date & Time <span class="text-red-500">*</span>
+                        </label>
+                        <InputDate id="loadingDate" Type="InputDateType.DateTimeLocal" @bind-Value="batchLoading.LoadingDate"
+                            class="@GetInputClass("LoadingDate")" />
+                        @if (errors.ContainsKey("LoadingDate"))
+                        {
+                            <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["LoadingDate"]</p>
+                        }
+                    </div>
+
+                    <!-- Dispatch Type -->
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            Dispatch Type <span class="text-red-500">*</span>
+                        </label>
+                        <select @bind="batchLoading.DispatchType" class="@GetInputClass("DispatchType")">
+                            <option value="">-- Select Dispatch Type --</option>
+                            <option value="@DispatchType.Direct">Direct</option>
+                            <option value="@DispatchType.Depot">Depot</option>
+                        </select>
+                        @if (errors.ContainsKey("DispatchType"))
+                        {
+                            <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["DispatchType"]</p>
+                        }
+                    </div>
+
+                    <!-- Destination -->
+                    <StateSelector IsRequired="true" Destination="@batchLoading.Destination" 
+                                   OnLocationChanged="@DestinationChanged" FieldName="Destination" 
+                                   Errors="errors" GetInputClass="GetInputClass" />
+                </div>
+
+                <!-- Receiving Point (Conditional) -->
+                @if (batchLoading.DispatchType == DispatchType.Depot)
+                {
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            Receiving Point <span class="text-red-500">*</span>
+                        </label>
+                        <StationAutocomplete
+                            @bind-Value="SelectedReceivingStation"
+                            Label=""
+                            StationType="StationType.ReceivingDepot"
+                            Placeholder="Start typing depot name..."
+                            ShowDetails="true"
+                            AllowClear="true" />
+                        @if (errors.ContainsKey("ReceivingDepotId"))
+                        {
+                            <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["ReceivingDepotId"]</p>
+                        }
+                    </div>
+                }
+
+                <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        Select Trucks <span class="text-red-500">*</span>
+                    </label>
+                    <div class="space-y-4 max-h-96 overflow-y-auto">
+                        @foreach (var trip in DispatchedTrips)
+                        {
+                            <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800">
+                                <div class="flex items-center justify-between mb-4 pb-3 border-b border-gray-200 dark:border-gray-700">
+                                    <div class="flex items-center space-x-3">
+                                        <InputCheckbox @bind-Value="trip.IsSelected" />
+                                        <span class="font-medium text-gray-900 dark:text-white">@trip.Truck?.LicensePlate</span>
+                                        <span class="text-sm text-gray-500 dark:text-gray-400">(@trip.Truck?.Product)</span>
+                                    </div>
+                                    <span class="text-xs text-gray-500 dark:text-gray-400">
+                                        @trip.DispatchId
+                                    </span>
+                                </div>
+                                
+                                @if (trip.IsSelected)
+                                {
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block mb-1 text-xs font-medium text-gray-700 dark:text-gray-300">
+                                                Quantity <span class="text-red-500">*</span>
+                                            </label>
+                                            <div class="flex">
+                                                <InputNumber @bind-Value="trip.LoadingInfo.Quantity" step="0.01"
+                                                    class="@($"{GetInputClass("Quantity_" + trip.Id)} rounded-l-lg flex-1")" />
+                                                <span class="inline-flex items-center px-3 text-sm text-gray-900 bg-gray-200 border border-l-0 border-gray-300 rounded-r-md dark:bg-gray-600 dark:text-gray-400 dark:border-gray-600">
+                                                    @trip.GetUnit()
+                                                </span>
+                                            </div>
+                                            @if (errors.ContainsKey("Quantity_" + trip.Id))
+                                            {
+                                                <p class="mt-1 text-xs text-red-600 dark:text-red-500">@errors["Quantity_" + trip.Id]</p>
+                                            }
+                                        </div>
+
+                                        <div>
+                                            <label class="block mb-1 text-xs font-medium text-gray-700 dark:text-gray-300">
+                                                Waybill No <span class="text-red-500">*</span>
+                                            </label>
+                                            <InputText @bind-Value="trip.LoadingInfo.WaybillNo" 
+                                                class="@GetInputClass("WaybillNo_" + trip.Id)" />
+                                            @if (errors.ContainsKey("WaybillNo_" + trip.Id))
+                                            {
+                                                <p class="mt-1 text-xs text-red-600 dark:text-red-500">@errors["WaybillNo_" + trip.Id]</p>
+                                            }
+                                        </div>                                        
+                                    </div>
+                                    <div>
+                                        <label class="block mb-1 text-xs font-medium text-gray-700 dark:text-gray-300">
+                                            Documents
+                                        </label>
+                                        <FileUploadView Model="@GetFileUploadModel(trip.Id)" 
+                                                        OnFilesUploaded="@((files) => OnFilesUploaded(trip.Id, files))" />
+                                    </div>
+
+                                    @if (trip.LoadingInfo.Files.Any())
+                                    {
+                                        <div class="mt-4">
+                                            <FileListView Files="trip.LoadingInfo.Files" 
+                                                          ShowDelete="true" 
+                                                          OnDelete="@((file) => OnFileDeleted(trip.Id, file))" />
+                                        </div>
+                                    }
+                                }
+                            </div>
+                        }
+                    </div>
+                    @if (errors.ContainsKey("Trips"))
+                    {
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["Trips"]</p>
+                    }
+                </div>
+
+                <!-- Summary -->
+                <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                    <div class="flex justify-between items-center text-sm">
+                        <span>Selected Trucks: <strong>@DispatchedTrips.Count(t => t.IsSelected)</strong></span>
+                        <span>Total Files: <strong>@DispatchedTrips.Where(t => t.IsSelected).Sum(t => t.LoadingInfo.Files.Count)</strong></span>
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="flex justify-end gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <button type="button" @onclick="Cancel"
+                        class="px-5 py-2.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600 dark:hover:border-gray-700 dark:focus:ring-gray-700">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                        class="px-5 py-2.5 text-sm font-medium text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800 flex items-center justify-center min-w-[120px]"
+                        disabled="@AppState.IsProcessing">
+                        @if (AppState.IsProcessing)
+                        {
+                            <svg class="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                            </svg>
+                            @("Processing...")
+                        }
+                        else
+                        {
+                            @("Update Loading Info")
+                        }
+                    </button>
+                </div>
+            </div>
+        </EditForm>
+    }
+</div>
+
+@code {
+    private BatchLoadingModel batchLoading = new();
+    private Dictionary<string, string> errors = new();
+    private Trip[] DispatchedTrips = [];
+    private Station? SelectedStation;
+    private Station? SelectedReceivingStation;
+    private Dictionary<Guid, FileUploadModel> fileUploadModels = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        AppState.IsBusy = true;
+        var request = new GridDataRequest { Page = 0, PageSize = 100, Status = TripStatus.Dispatched.ToString() };
+        var response = await TripService.GetPagedAsync(request, AppState.GetCancellationToken());
+        DispatchedTrips = response.Data?.Where(x => string.IsNullOrEmpty(x.LoadingInfo.WaybillNo) || x.LoadingInfo.LoadingDate is null).ToArray() ?? [];
+        AppState.IsBusy = false;
+    }
+
+    private FileUploadModel GetFileUploadModel(Guid tripId)
+    {
+        if (!fileUploadModels.ContainsKey(tripId))
+        {
+            fileUploadModels[tripId] = new FileUploadModel
+            {
+                InputId = $"fileUpload_{tripId}",
+                Label = "",
+                Multiple = true,
+                MaxFileSizeBytes = 10 * 1024 * 1024, // 10MB
+                AllowedExtensions = new[] { ".pdf", ".jpg", ".jpeg", ".png", ".doc", ".docx" }
+            };
+        }
+        return fileUploadModels[tripId];
+    }
+
+    private string GetInputClass(string fieldName)
+    {
+        var baseClass = "bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500";
+        if (errors.ContainsKey(fieldName))
+        {
+            baseClass += " border-red-500 bg-red-50 dark:bg-red-900 dark:border-red-700";
+        }
+        else
+        {
+            baseClass += " border-gray-300";
+        }
+        return baseClass;
+    }
+
+    private void DestinationChanged(string destination)
+    {
+        batchLoading.Destination = destination;
+    }
+
+    private async Task OnFilesUploaded(Guid tripId, List<UploadResult> files)
+    {
+        var trip = DispatchedTrips.FirstOrDefault(t => t.Id == tripId);
+        if (trip != null)
+        {
+            trip.LoadingInfo.Files.AddRange(files);
+            StateHasChanged();
+        }
+    }
+
+    private void OnFileDeleted(Guid tripId, UploadResult file)
+    {
+        var trip = DispatchedTrips.FirstOrDefault(t => t.Id == tripId);
+        if (trip != null)
+        {
+            trip.LoadingInfo.Files.Remove(file);
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleBatchLoading()
+    {
+        AppState.IsProcessing = true;
+        errors.Clear();
+
+        // Validate common fields
+        if (SelectedStation == null)
+            errors["LoadingDepotId"] = "Loading Depot is required";
+        if (batchLoading.LoadingDate == null)
+            errors["LoadingDate"] = "Loading Date & Time is required";
+        if (batchLoading.DispatchType == null)
+            errors["DispatchType"] = "Dispatch Type is required";
+        if (batchLoading.Destination == null)
+            errors["Destination"] = "Destination is required";
+        if (batchLoading.DispatchType == DispatchType.Depot && SelectedReceivingStation == null)
+            errors["ReceivingDepotId"] = "Receiving Point is required";
+
+        // Validate selected trips
+        if (!DispatchedTrips.Any(t => t.IsSelected))
+            errors["Trips"] = "At least one trip must be selected";
+
+        foreach (var trip in DispatchedTrips.Where(t => t.IsSelected))
+        {
+            if (trip.LoadingInfo.Quantity <= 0)
+                errors["Quantity_" + trip.Id] = "Quantity must be greater than 0";
+            if (string.IsNullOrWhiteSpace(trip.LoadingInfo.WaybillNo))
+                errors["WaybillNo_" + trip.Id] = "Waybill Number is required";
+        }
+
+        if (errors.Any())
+        {
+            AppState.IsProcessing = false;
+            StateHasChanged();
+            return;
+        }
+
+        try
+        {
+            foreach (var trip in DispatchedTrips.Where(t => t.IsSelected))
+            {
+                trip.LoadingDepotId = SelectedStation!.Id;
+                trip.ReceivingDepotId = batchLoading.DispatchType == DispatchType.Depot ? SelectedReceivingStation!.Id : null;
+                trip.LoadingInfo.LoadingDate = batchLoading.LoadingDate!.Value;
+                trip.LoadingInfo.DispatchType = batchLoading.DispatchType!.Value;
+                trip.LoadingInfo.Destination = batchLoading.Destination!;
+                trip.Date = batchLoading.LoadingDate.Value;
+                trip.UpdateStatusWithLoadingInfo();
+                await TripService.UpdateAsync(trip, AppState.GetCancellationToken());
+            }
+            ToastService.ShowSuccess("Loading info updated successfully", 5);
+            nav.NavigateTo("/trips");
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError("Failed to update loading info");
+        }
+        finally
+        {
+            AppState.IsProcessing = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        nav.NavigateTo("/trips");
+    }
+}

@@ -3,12 +3,13 @@ namespace Shared.Dtos;
 
 public class TripExportDto
 {
-    public DateOnly Date { get; set; }
+    public DateTimeOffset Date { get; set; }
     public string? DispatchId { get; set; }
     public string? TruckPlate { get; set; }
     public string? Product { get; set; }
     public string? Status { get; set; }
     public string? LoadingPoint { get; set; }
+    public string? LoadingDate { get; set; }
     public string? WaybillNo { get; set; }
     public decimal DispatchQuantity { get; set; }
     public string? DriverName { get; set; }
