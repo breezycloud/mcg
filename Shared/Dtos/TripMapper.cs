@@ -25,7 +25,7 @@ public static class TripMapper
         return new TripExportDto
         {
             Date = trip.Date,
-            DispatchId = trip.DispatchId,
+            DispatchId = trip.DispatchId?.Trim(),
             TruckPlate = trip.Truck?.LicensePlate ?? "N/A",
             Product = trip.Truck?.Product.ToString() ?? "N/A",
             Status = GetTripStatus(trip),
@@ -66,23 +66,23 @@ public static class TripMapper
             return "Dispatched";
 
         if (currentTrip != null && !string.IsNullOrWhiteSpace(currentTrip.LoadingInfo?.WaybillNo) && (currentTrip.ArrivalInfo is null && !currentTrip.ArrivalInfo.ArrivedAtStation || !currentTrip.ArrivalInfo.ArrivedDepot))
-            return ("Delivery Trip");
+            return "Delivery Trip";
 
         if (currentTrip != null && currentTrip.LoadingInfo?.DispatchType == DispatchType.Depot && currentTrip.ArrivalInfo?.ArrivedDepot == true && currentTrip.ArrivalInfo?.InvoiceIssued ==false)
-            return ("Arrived at Depot");
+            return "Arrived at Depot";
 
         
         if (currentTrip != null && currentTrip.LoadingInfo?.DispatchType == DispatchType.Depot && currentTrip.ArrivalInfo?.InvoiceIssued == true && currentTrip.Discharges is null || !currentTrip.Discharges.Any())
-            return ("Invoiced to Station");
+            return "Invoiced to Station";
 
         if (currentTrip != null && !currentTrip.Discharges.Any() && (currentTrip.ArrivalInfo?.ArrivedAtStation == true || currentTrip.ArrivalInfo?.ArrivedDepot == true))
-            return ("Arrived at Discharge");
+            return "Arrived at Discharge";
 
         if (currentTrip != null && currentTrip.Discharges.Any() && currentTrip.Discharges.Count(d => d.IsFinalDischarge) < 1)
-            return ("Discharging");
+            return "Discharging";
 
         if (currentTrip != null && currentTrip.Discharges.Any(d => d.IsFinalDischarge))
-            return ("Return Trip");
+            return "Return Trip";
 
         // if (currentTrip.Status == TripStatus.Closed || currentTrip.Status == TripStatus.Completed)
         //     return ("Awaiting Loading");

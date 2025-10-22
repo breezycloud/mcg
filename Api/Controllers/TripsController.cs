@@ -25,6 +25,39 @@ public class TripsController : ControllerBase
 
     }
 
+    [HttpGet("generate-dispatch")]
+    public async Task<ActionResult<string>> GenerateDispatchId(Guid truckId, string date, CancellationToken cancellationToken)
+    {
+        var truck = await _context.Trucks.FindAsync(truckId);
+        if (truck == null)
+        {
+            return NotFound("Truck not found");
+        }
+        var parsedDate = DateOnly.ParseExact(date, "yyyy-MM-dd");
+        var baseDispatchId = parsedDate.ToString("yyMMdd") + truck.LicensePlate?.Substring(2, 6);
+        
+        var start = parsedDate.ToDateTime(TimeOnly.MinValue); // 00:00
+        var end = parsedDate.ToDateTime(TimeOnly.MaxValue);   // 23:59:59.9999999
+
+        var sameDayTrips = await _context.Trips
+            .Where(t => t.TruckId == truckId && t.Date >= start && t.Date <= end)
+            .Select(t => t.DispatchId)
+            .ToListAsync(cancellationToken);
+
+
+        if (!sameDayTrips.Any(d => d == baseDispatchId || d.StartsWith($"{baseDispatchId}-")))
+            return Ok(baseDispatchId);
+
+
+        int suffix = 1;
+        while (sameDayTrips.Contains($"{baseDispatchId}-{suffix}"))
+        {
+            suffix++;
+        }
+
+        return Ok($"{baseDispatchId}-{suffix}");
+    }
+
     [HttpPost("report")]
     public async Task<IActionResult> ExportReport([FromBody]ReportFilter request, CancellationToken cancellationToken = default)
     {
@@ -246,6 +279,15 @@ public class TripsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Trip>> PostTrip(Trip trip)
     {
+        var dispatchResult = await GenerateDispatchId(trip.TruckId, trip.Date.ToString("yyyy-MM-dd"), CancellationToken.None);
+        if (dispatchResult.Result is OkObjectResult okResult && okResult.Value is string dispatchId)
+        {
+            trip.DispatchId = dispatchId;
+        }
+        else
+        {
+            return BadRequest("Failed to generate DispatchId.");
+        }
         _context.Trips.Add(trip);
         await _context.SaveChangesAsync();
 
@@ -271,5 +313,5 @@ public class TripsController : ControllerBase
     private bool TripExists(Guid id)
     {
         return _context.Trips.Any(e => e.Id == id);
-    }
+    }    
 }

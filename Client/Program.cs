@@ -57,6 +57,7 @@ builder.Services.AddBlazoredLocalStorage();
 string GetEnvironment()
 {
     var host = new Uri(builder.HostEnvironment.BaseAddress).Host;
+    Console.WriteLine("Host: {0}", host);
     if (host.Contains("staging"))
         return "Staging";
     else if (host.Contains("atlanticlogistics-atv.com.ng"))
@@ -64,9 +65,7 @@ string GetEnvironment()
     else
         return "Development";
 }
-
 var environment = GetEnvironment();
-Console.WriteLine(environment);
 
 var configFile = environment switch
 {
@@ -80,7 +79,7 @@ var config = await httpClient.GetFromJsonAsync<AppSettings>(configFile);
 
 builder.Services.AddSingleton(config);
 
-string uri = config!.ApiBaseUrl;
+string uri = config?.ApiBaseUrl!;
 
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(uri) });
 builder.Services.AddHttpClient(Constants.Url, http =>
