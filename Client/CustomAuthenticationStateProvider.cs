@@ -79,7 +79,6 @@ namespace Client
             var keyValuePairs = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonBytes);
             return keyValuePairs?.Select(kvp => new Claim(kvp.Key, kvp!.Value!.ToString()!))!;
         }
-
         private static byte[] ParseBase64WithoutPadding(string base64)
         {
             switch (base64.Length % 4)
@@ -89,7 +88,6 @@ namespace Client
             }
             return Convert.FromBase64String(base64);
         }
-
         public void LogOutNotfiy()
         {
             NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
