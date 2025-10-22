@@ -44,6 +44,7 @@ using Shared.Interfaces.Incidents;
 using Client.Services.Incidents;
 using Client.Services.incidenttypes;
 using Shared.Interfaces;
+using System.Net.Http.Json;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
@@ -53,12 +54,31 @@ builder.Services.AddOptions();
 builder.Services.AddAuthorizationCore();
 builder.Services.AddBlazoredLocalStorage();
 
-string uri = string.Empty;
-#if DEBUG
-    uri = Constants.DevBaseAddress!;
-#else
-    uri = Constants.ProdBaseAddress;
-#endif
+string GetEnvironment()
+{
+    var host = new Uri(builder.HostEnvironment.BaseAddress).Host;
+    if (host.Contains("staging"))
+        return "Staging";
+    else if (host.Contains("atlanticlogistics-atv.com.ng"))
+        return "Production";
+    else
+        return "Development";
+}
+var environment = GetEnvironment();
+
+var configFile = environment switch
+{
+    "Staging" => "appsettings.Staging.json",
+    "Production" => "appsettings.Production.json",
+    _ => "appsettings.json",
+};
+
+var httpClient = new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) };
+var config = await httpClient.GetFromJsonAsync<AppSettings>(configFile);
+
+builder.Services.AddSingleton(config);
+
+string uri = config!.ApiBaseUrl;
 
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(uri) });
 builder.Services.AddHttpClient(Constants.Url, http =>

@@ -65,8 +65,8 @@ jobs:
               password: ${{ secrets.VPS_PASSWORD }}
               script: |
                   echo "✅ Deployed files to VPS"
-                  echo "🔄 Restarting mcc-staging-api.service..."
-                  sudo systemctl stop mcc-staging-api.service            
-                  sudo systemctl start mcc-staging-api.service
-                  sudo systemctl status mcc-staging-api.service --no-pager -l --lines=10
+                  echo "🔄 Restarting mcc-api.service..."
+                  sudo systemctl stop mcc-api.service            
+                  sudo systemctl start mcc-api.service
+                  sudo systemctl status mcc-api.service --no-pager -l --lines=10
                   echo "✅ Deployment complete!"
