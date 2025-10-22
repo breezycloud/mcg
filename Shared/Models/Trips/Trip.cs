@@ -9,7 +9,6 @@ using Shared.Models.TripCheckpoints;
 using Shared.Models.Trucks;
 using Shared.Models.Users;
 
-
 namespace Shared.Models.Trips;
 
 public class Trip
@@ -137,7 +136,7 @@ public class Trip
         {
             Status = TripStatus.Active;
         }
-    }        
+    }
 }
 
 public class ArrivalInfo
@@ -166,12 +165,12 @@ public class TripReconciliation
     public decimal LoadingQuantity { get; set; }
     public List<Discharge> Discharges { get; set; } = new();
     public decimal TolerancePercentage { get; set; } = 0.29m;
-    
+
     // Calculated properties
     public decimal TotalDischarged => Discharges.Sum(d => d.QuantityDischarged);
     public decimal Variance => LoadingQuantity - TotalDischarged;
     public decimal VariancePercentage => (Math.Abs(Variance) / LoadingQuantity) * 100m;
     public decimal AllowedVariance => LoadingQuantity * (TolerancePercentage / 100m);
-    
+
     public bool IsWithinTolerance => Math.Abs(Variance) <= AllowedVariance;
 }
