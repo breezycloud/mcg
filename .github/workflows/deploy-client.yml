@@ -3,7 +3,8 @@ name: Deploy Blazor App to VPS
 on:
   push:
     branches:
-      - staging  # Change if using 'master'
+      - main
+      - staging
     paths:
       - 'Client/**'   # Only trigger when files in Client/ are modified
       - 'Shared/**'
