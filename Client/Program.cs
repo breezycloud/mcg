@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Client;
 using Client.Services.Flowbites;
-using Shared.Helpers;
 using Blazored.LocalStorage;
 using Client.Handlers;
 using Polly;
@@ -45,6 +44,8 @@ using Client.Services.Incidents;
 using Client.Services.incidenttypes;
 using Shared.Interfaces;
 using System.Net.Http.Json;
+using Microsoft.AspNetCore.Components;
+using Shared.Helpers;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
@@ -54,35 +55,11 @@ builder.Services.AddOptions();
 builder.Services.AddAuthorizationCore();
 builder.Services.AddBlazoredLocalStorage();
 
-string GetEnvironment()
-{
-    var host = new Uri(builder.HostEnvironment.BaseAddress).Host;
-    Console.WriteLine("Host: {0}", host);
-    if (host.Contains("staging"))
-        return "Staging";
-    else if (host.Contains("atlanticlogistics-atv.com.ng"))
-        return "Production";
-    else
-        return "Development";
-}
-var environment = GetEnvironment();
 
-var configFile = environment switch
-{
-    "Staging" => "appsettings.Staging.json",
-    "Production" => "appsettings.Production.json",
-    _ => "appsettings.json",
-};
-
-var httpClient = new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) };
-var config = await httpClient.GetFromJsonAsync<AppSettings>(configFile);
-
-builder.Services.AddSingleton(config);
-
-string uri = config?.ApiBaseUrl!;
+string uri = new Client.Handlers.Constants(builder.Services.BuildServiceProvider().GetRequiredService<NavigationManager>()).BaseAddress();
 
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(uri) });
-builder.Services.AddHttpClient(Constants.Url, http =>
+builder.Services.AddHttpClient("AppUrl", http =>
 {
     http.BaseAddress = new Uri(uri);
 }).AddHttpMessageHandler<CustomAuthorizationHandler>()
