@@ -3,10 +3,11 @@ name: Deploy Production API to VPS
 on:
   push:
     branches:
-        - main  # Change if using 'master'
+      - main
+      - staging
     paths:
-        - 'Api/**'   # Only trigger when files in Api/ are modified
-        - 'Shared/**'
+      - 'Api/**'   # Only trigger when files in Api/ are modified
+      - 'Shared/**'
 
 jobs:
     deploy:
@@ -39,7 +40,7 @@ jobs:
               username: ${{ secrets.VPS_USERNAME }}
               password: ${{ secrets.VPS_PASSWORD }}
               source: "./publish/*"
-              target: ${{ secrets.API_TARGET }}
+              target: ${{ secrets.DEV_API_TARGET }}
               rm: true  # Remove old files before copy
 
            # 👇 NEW STEP: Create uploads directory on VPS with proper permissions
@@ -65,8 +66,8 @@ jobs:
               password: ${{ secrets.VPS_PASSWORD }}
               script: |
                   echo "✅ Deployed files to VPS"
-                  echo "🔄 Restarting mcc-api.service..."
-                  sudo systemctl stop mcc-api.service            
-                  sudo systemctl start mcc-api.service
-                  sudo systemctl status mcc-api.service --no-pager -l --lines=10
+                  echo "🔄 Restarting mcc-staging-api.service..."
+                  sudo systemctl stop mcc-staging-api.service            
+                  sudo systemctl start mcc-staging-api.service
+                  sudo systemctl status mcc-staging-api.service --no-pager -l --lines=10
                   echo "✅ Deployment complete!"

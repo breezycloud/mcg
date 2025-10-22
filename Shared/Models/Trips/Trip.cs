@@ -1,8 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Shared.Enums;
-using Shared.Helpers;
-using Shared.Models.Checkpoints;
 using Shared.Models.Drivers;
 using Shared.Models.Incidents;
 using Shared.Models.Services;
@@ -10,7 +8,6 @@ using Shared.Models.Stations;
 using Shared.Models.TripCheckpoints;
 using Shared.Models.Trucks;
 using Shared.Models.Users;
-
 
 namespace Shared.Models.Trips;
 
@@ -139,7 +136,7 @@ public class Trip
         {
             Status = TripStatus.Active;
         }
-    }        
+    }
 }
 
 public class ArrivalInfo
@@ -168,12 +165,12 @@ public class TripReconciliation
     public decimal LoadingQuantity { get; set; }
     public List<Discharge> Discharges { get; set; } = new();
     public decimal TolerancePercentage { get; set; } = 0.29m;
-    
+
     // Calculated properties
     public decimal TotalDischarged => Discharges.Sum(d => d.QuantityDischarged);
     public decimal Variance => LoadingQuantity - TotalDischarged;
     public decimal VariancePercentage => (Math.Abs(Variance) / LoadingQuantity) * 100m;
     public decimal AllowedVariance => LoadingQuantity * (TolerancePercentage / 100m);
-    
+
     public bool IsWithinTolerance => Math.Abs(Variance) <= AllowedVariance;
 }
