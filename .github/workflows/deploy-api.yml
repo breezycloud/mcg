@@ -3,10 +3,11 @@ name: Deploy Production API to VPS
 on:
   push:
     branches:
-        - staging  # Change if using
+      - main
+      - staging
     paths:
-        - 'Api/**'   # Only trigger when files in Api/ are modified
-        - 'Shared/**'
+      - 'Api/**'   # Only trigger when files in Api/ are modified
+      - 'Shared/**'
 
 jobs:
     deploy:
