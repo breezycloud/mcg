@@ -34,7 +34,7 @@ public class TripsController : ControllerBase
             return NotFound("Truck not found");
         }
         var parsedDate = DateOnly.ParseExact(date, "yyyy-MM-dd");
-        var baseDispatchId = parsedDate.ToString("yyMMdd") + truck.LicensePlate?.Substring(2, 6);
+        var baseDispatchId = (parsedDate.ToString("yyMMdd") + truck.LicensePlate?.Substring(2, 6)).Trim();
         
         var start = parsedDate.ToDateTime(TimeOnly.MinValue); // 00:00
         var end = parsedDate.ToDateTime(TimeOnly.MaxValue);   // 23:59:59.9999999
