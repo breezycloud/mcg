@@ -102,6 +102,8 @@ public class TripService(IHttpClientFactory _httpClient, IJSRuntime js) : ITripS
             throw;
         }
     }
+    
+
     public async Task<bool> UpdateAsync(Trip model, CancellationToken cancellationToken)
     {
         model.UpdateStatusWithLoadingInfo();
@@ -174,6 +176,21 @@ public class TripService(IHttpClientFactory _httpClient, IJSRuntime js) : ITripS
             var fileName = $"{request.StartDate:MMMM-yyyy} Trips_{DateTime.Now:yyyyMMddHHmmss}.csv";
             // In a Blazor WebAssembly app, use JS interop to save the file
             await js.InvokeVoidAsync("downloadReport", fileName, Convert.ToBase64String(content));
+        }
+        catch (System.Exception)
+        {
+
+            throw;
+        }
+    }
+
+    public async Task<string?> GenerateDispatchIdAsync(Guid truckId, DateOnly date, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var response = await _httpClient.CreateClient("AppUrl").GetAsync($"Trips/generate-dispatch?truckId={truckId}&date={date:yyyy-MM-dd}", cancellationToken);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<string?>();
         }
         catch (System.Exception)
         {

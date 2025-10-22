@@ -211,39 +211,28 @@
                                         <!-- Status -->
                                         <td class="px-4 py-4">
                                             <span class="text-xs font-medium px-2.5 py-0.5 rounded
-                                                @(trip.Status == TripStatus.Active ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+                                                @(trip.Status == TripStatus.Active && string.IsNullOrEmpty(trip.LoadingDepot?.Name) ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
+                                                : trip.Status == TripStatus.Active ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
                                                 : trip.Status == TripStatus.Closed ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"
                                                 : trip.Status == TripStatus.Dispatched ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
                                                 : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300")">
-                                                @trip.Status
+                                                @(trip.Status == TripStatus.Active && string.IsNullOrEmpty(trip.LoadingDepot?.Name) ? "Dispatched" : trip.Status.ToString())
                                             </span>
                                         </td>
                                         <!-- Actions -->
                                         <td class="px-4 py-4 text-right">
-                                            <div class="relative">
-                                                <button 
-                                                    @onclick="() => ToggleRowMenu(trip.Id)" class="p-2 text-gray-700 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200">
-                                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v.01M12 12v.01M12 18v.01" />
-                                                    </svg>
+                                        <div class="space-x-2">
+                                            <button @onclick="() => ViewTrip(trip)"  class="font-medium text-green-600 dark:text-green-500 hover:underline">
+                                                    View
                                                 </button>
-                                                <div class="@(openRowMenuId == trip.Id ? "block" : "hidden") absolute right-0 mt-2 w-32 bg-white dark:bg-gray-800 rounded-lg shadow-lg z-10">
-                                                    <div class="py-1">
-                                                        <button 
-                                                            @onclick="() => ViewTrip(trip)" 
-                                                            class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                                            View
-                                                        </button>
-                                                        @if (trip.Status != TripStatus.Completed)
-                                                        {
-                                                            <button 
-                                                                @onclick="() => EditStatus(trip)" 
-                                                                class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                                                Update
-                                                            </button>
-                                                        }
-                                                    </div>
-                                                </div>
+                                                @if (trip.Status != TripStatus.Completed)
+                                                {
+                                                    <button 
+                                                        @onclick="() => EditStatus(trip)" 
+                                                        class="font-medium text-blue-600 dark:text-blue-400 hover:underline">
+                                                        Update
+                                                    </button>
+                                                }                                                
                                             </div>
                                         </td>
                                     </tr>
