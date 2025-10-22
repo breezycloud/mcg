@@ -5,7 +5,7 @@
         <!-- Modal Header -->
         <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
             <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
-                Discharges
+                Discharges (@Trip!.Discharges.Count)
             </h3>
             <button @onclick="OnClose" class="text-gray-400 hover:text-gray-500">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -15,27 +15,38 @@
         </div>
         
         <!-- Modal Body -->
-        <div class="p-6 space-y-4  max-h-[90vh] overflow-y-auto">
-            @foreach (var discharge in Trip!.Discharges)
+        <div class="p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            @if (!Trip!.Discharges.Any())
             {
-                <DischargeCard Data="discharge" OnDelete="DeleteDischarge"/>
+                <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+                    <svg class="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <p class="mt-2">No discharges recorded yet</p>
+                </div>
+            }
+            else
+            {
+                @foreach (var discharge in Trip!.Discharges.OrderBy(d => d.DischargeStartTime))
+                {
+                    <DischargeCard Data="discharge" OnDelete="DeleteDischarge" OnEdit="EditDischarge"/>
+                }
             }
         </div>
-         <!-- Modal Footer -->
+        
+        <!-- Modal Footer -->
         <div class="flex items-center justify-end p-4 gap-5 border-t border-gray-200 dark:border-gray-700">
-            <button @onclick="OnClose" type="button" class="py-2.5 px-5 me-2 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700">
-                Cancel
+            <button @onclick="OnClose" type="button" class="py-2.5 px-5 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700">
+                Close
             </button>        
         </div>
     </div>
 </div>
 
-
-@code
-{
-    [Parameter]
-    public EventCallback OnClose { get; set; }
+@code {
+    [Parameter] public EventCallback OnClose { get; set; }
     [Parameter] public Trip? Trip { get; set; }
+    [Parameter] public EventCallback<Discharge> OnEdit { get; set; } // NEW
 
     private async Task DeleteDischarge(Guid id)
     {
@@ -49,17 +60,12 @@
                 {
                     Trip!.Discharges.Remove(dischargeToRemove);
                 }
-                 ToastService.ShowSuccess($"Discharge deleted", 5);
-                  
+                ToastService.ShowSuccess("Discharge deleted successfully", 3);
             }
-            else
-            {
-                Console.WriteLine("Failed to delete discharge.");
-            }               
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error deleting discharge: {ex.Message}");
+            ToastService.ShowError($"Error deleting discharge: {ex.Message}");
         }
         finally
         {           
@@ -67,5 +73,8 @@
         }
     }
 
-    
+    private void EditDischarge(Discharge discharge)
+    {
+        OnEdit.InvokeAsync(discharge);
+    }
 }

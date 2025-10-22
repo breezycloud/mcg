@@ -15,7 +15,7 @@ public class TripService(IHttpClientFactory _httpClient, IJSRuntime js) : ITripS
         return new Trip
         {
             Id = id,
-            Date = DateOnly.FromDateTime(model.LoadingDate!.Value),
+            Date = model.LoadingDate!.Value,
             DriverId = model.DriverId,
             TruckId = model.TruckId,
             DispatchId = model.DispatchId,     
@@ -45,6 +45,7 @@ public class TripService(IHttpClientFactory _httpClient, IJSRuntime js) : ITripS
     // }
     public async Task<bool> AddAsync(Trip model, CancellationToken cancellationToken)
     {
+        model.SetInitialStatus();
         try
         {
             using var response = await _httpClient.CreateClient("AppUrl").PostAsJsonAsync("Trips", model, cancellationToken);
@@ -103,6 +104,7 @@ public class TripService(IHttpClientFactory _httpClient, IJSRuntime js) : ITripS
     }
     public async Task<bool> UpdateAsync(Trip model, CancellationToken cancellationToken)
     {
+        model.UpdateStatusWithLoadingInfo();
         try
         {
             using var response = await _httpClient.CreateClient("AppUrl").PutAsJsonAsync($"Trips/{model.Id}", model, cancellationToken);

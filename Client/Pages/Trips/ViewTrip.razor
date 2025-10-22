@@ -1,5 +1,6 @@
 @page "/view-trip/{id:guid}"
 @inject ITripService TripService
+@inject IJSRuntime JSRuntime
 @attribute [Authorize (Roles = "Admin, Master, Monitoring, Supervisor")]
 
 <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-7 bg-gray-50 dark:bg-gray-900 min-h-screen">
@@ -9,7 +10,7 @@
     }
     else
     {
-        <!-- Header Section -->
+        <!-- Header Section (UNCHANGED) -->
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 mb-8 transition-all duration-300 hover:shadow-xl">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
                 <div class="space-y-6 w-full">
@@ -57,7 +58,7 @@
             </div>
         </div>
 
-        <!-- Loading Info Section -->
+        <!-- Loading Info Section (UNCHANGED) -->
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 mb-8 transition-all duration-300 hover:shadow-xl">
             <h3 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 border-b-2 border-blue-200 dark:border-blue-900 pb-3">Loading Info</h3>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -80,7 +81,7 @@
             </div>
         </div>
 
-        <!-- Arrival Info Section -->
+        <!-- Arrival Info Section (UNCHANGED) -->
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 mb-8 transition-all duration-300 hover:shadow-xl">
             <h3 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 border-b-2 border-blue-200 dark:border-blue-900 pb-3">Arrival Info</h3>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -134,9 +135,8 @@
                 </div>
             </div>
         }
-        
 
-        <!-- Close Info Section -->
+        <!-- Close Info Section (UNCHANGED) -->
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 mb-8 transition-all duration-300 hover:shadow-xl">
             <h3 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 border-b-2 border-blue-200 dark:border-blue-900 pb-3">Return Info</h3>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -156,7 +156,7 @@
                     }
                     else
                     {
-                        <Rating CurrentRating="@Trip!.CloseInfo!.Rating"
+                        <Rating CurrentRating="@Trip!.CloseInfo.Rating"
                             MaxRating="5"
                             Disabled="true" />
                     }                    
@@ -183,46 +183,85 @@
             </div>
         </div>
 
-        <!-- Discharges Section -->
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 mb-8 transition-all duration-300 hover:shadow-xl">
-            <h3 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 border-b-2 border-blue-200 dark:border-blue-900 pb-3">Discharges</h3>
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-gray-800 dark:text-white border-b-2 border-blue-200 dark:border-blue-900 pb-3">Discharges</h3>
+                
+                @{
+                    var sidingCount = Trip?.Discharges?.Count(d => d.IsSiding) ?? 0;
+                    var totalDischarges = Trip?.Discharges?.Count ?? 0;
+                }
+                @if (sidingCount > 0)
+                {
+                    <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium 
+                                bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                        </svg>
+                        @sidingCount/@totalDischarges SIDING
+                    </div>
+                }
+                
+                @* <AuthorizeView Roles="Admin, Master, Monitoring, Supervisor">
+                    <Authorized>
+                        @if (Trip?.Status != TripStatus.Completed)
+                        {
+                            <button class="px-4 py-2 bg-green-600 text-white rounded-lg shadow-md hover:bg-green-700 text-sm font-medium ml-2"
+                                    @onclick="ShowAddDischargeModal">
+                                <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                </svg>
+                                Add Discharge
+                            </button>
+                        }
+                    </Authorized>
+                </AuthorizeView> *@
+            </div>
+
             @if (Trip?.Discharges != null && Trip.Discharges.Any())
             {
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                        <thead class="bg-gray-100 dark:bg-gray-700 sticky top-0">
-                            <tr>
-                                <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Station</th>
-                                <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Arrival</th>
-                                <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Start Time</th>
-                                <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Quantity</th>
-                                <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Final?</th>
-                                <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Notes</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                            @foreach (var discharge in Trip.Discharges)
-                            {
-                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
-                                    <td class="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-gray-100 font-medium">@discharge.Station?.Name</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-gray-100 font-medium">@discharge.TruckArrival?.ToString("dd MMM yyyy HH:mm")</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-gray-100 font-medium">@discharge.DischargeStartTime?.ToString("dd MMM yyyy HH:mm")</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-gray-100 font-medium">@discharge.QuantityDischarged @Trip?.GetUnit()</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-gray-100 font-medium">@(discharge.IsFinalDischarge ? "Yes" : "No")</td>
-                                    <td class="px-6 py-4 text-gray-900 dark:text-gray-100 font-medium">@discharge.Notes</td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
+                <div class="space-y-4 max-h-96 overflow-y-auto">
+                    @foreach (var discharge in Trip.Discharges.OrderBy(d => d.DischargeStartTime))
+                    {                        
+                        <DischargeCard Data="discharge" 
+                                       OnDelete="DeleteDischarge" 
+                                       OnEdit="EditDischarge"
+                                       InitialQuantity="Trip!.LoadingInfo!.Quantity.GetValueOrDefault()"
+                                       Destination="@Trip!.LoadingInfo!.Destination" />
+                    }
+                </div>
+                
+                <div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <div class="flex justify-between items-center">
+                        <span class="text-lg font-semibold text-gray-900 dark:text-white">Total Discharged:</span>
+                        <span class="text-2xl font-bold text-green-600 dark:text-green-400">
+                            @Trip.Discharges.Sum(d => d.QuantityDischarged) @Trip.GetUnit()
+                        </span>
+                    </div>
+                    @{
+                        var remaining = Trip!.LoadingInfo!.Quantity - Trip.Discharges.Sum(d => d.QuantityDischarged);
+                        @if (remaining > 0)
+                        {
+                            <div class="flex justify-between items-center mt-2 text-sm text-gray-600 dark:text-gray-400">
+                                <span>Remaining:</span>
+                                <span class="font-semibold text-orange-600">@remaining @Trip.GetUnit()</span>
+                            </div>
+                        }
+                    }
                 </div>
             }
             else
             {
-                <div class="text-gray-500 dark:text-gray-400 italic text-center py-4">No discharge records available.</div>
+                <div class="text-center py-12 text-gray-500 dark:text-gray-400">
+                    <svg class="mx-auto h-12 w-12 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <p class="text-lg">No discharge records yet</p>
+                    <p class="mt-2">Add your first discharge above</p>
+                </div>
             }
         </div>
 
-        <!-- Requests Section -->
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 mb-8 transition-all duration-300 hover:shadow-xl">
             <h3 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 border-b-2 border-blue-200 dark:border-blue-900 pb-3">Incidents</h3>
             @if (Trip?.Incidents != null && Trip.Incidents.Any())
@@ -250,7 +289,6 @@
             }
         </div>
 
-        <!-- Checkpoints Section -->
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 mb-4 transition-all duration-300 hover:shadow-xl">
             <h3 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 border-b-2 border-blue-200 dark:border-blue-900 pb-3">Trip Checkpoints</h3>
             @if (Trip?.Checkpoints != null && Trip.Checkpoints.Any())
@@ -271,7 +309,15 @@
             }
         </div>
 
-        <!-- Actions Section -->
+        @* <DischargeModal @ref="dischargeModalRef"
+                IsVisible="showDischargeModal"
+                InitialQuantity="Trip!.LoadingInfo!.Quantity"
+                Destination="Trip!.LoadingInfo!.Destination"
+                Data="editingDischarge ?? new()"
+                EditMode="editingDischarge != null"
+                OnSave="SaveDischarge"
+                OnClose="HideDischargeModal" /> *@
+        
         <div class="flex justify-end space-x-4">            
             <AuthorizeView Roles="Admin, Master, Monitoring, Supervisor">
                 <Authorized>
@@ -283,14 +329,6 @@
                             Edit Trip
                         </button>
                     }
-                    else if (Trip!.Status == TripStatus.Closed && (Authentication is not null && Authentication.User.IsInRole("Supervisor") || Authentication.User.IsInRole("Admin") || Authentication.User.IsInRole("Master") || Authentication.User.IsInRole("Supervisor")))
-                    {
-                        <button class="px-6 py-2 mb-5 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-all duration-200 transform hover:-translate-y-0.5"
-                                @onclick="() => OnEditTrip()"
-                                aria-label="Edit trip details">
-                            Edit Trip
-                        </button>
-                    }                        
                 </Authorized>
             </AuthorizeView>            
             <button class="px-6 py-2 mb-5 bg-gray-200 text-gray-800 rounded-lg shadow-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-all duration-200 transform hover:-translate-y-0.5"
@@ -306,25 +344,30 @@
     [Parameter] public Guid id { get; set; }
     public Trip? Trip { get; set; }
     Product Product { get; set; }
-    [CascadingParameter]
-    public Task<AuthenticationState>? authenticationState { get; set; }
-    private AuthenticationState? Authentication { get; set;}
+    [CascadingParameter] public Task<AuthenticationState>? authenticationState { get; set; }
+    private AuthenticationState? Authentication { get; set; }
+
+    private bool showDischargeModal = false;
+    private Discharge? editingDischarge;
+    private Discharges.DischargeModal? dischargeModalRef;
+
     protected override async Task OnParametersSetAsync()
     {
         AppState.IsBusy = true;
         try
         {
             Trip = await TripService.GetAsync(id, AppState.GetCancellationToken());
+            if (Trip == null)
+            {
+                ToastService.ShowError("Trip not found.");
+                nav.NavigateTo("/trips");
+                return;
+            }
             Product = Trip!.Truck!.Product!.Value;
             Authentication = await authenticationState!;
-            @* if (Authentication is not null && Authentication.User.IsInRole("Supervisor"))
-            {
-
-            } *@
         }
         catch (Exception ex)
         {
-            // Handle error (e.g., show error message to user)
             Console.WriteLine($"Error loading trip: {ex.Message}");
         }
         finally
@@ -332,23 +375,82 @@
             AppState.IsBusy = false;
         }
     }
-
-    private void OnEditTrip()
+    private void ShowAddDischargeModal()
     {
-        nav.NavigateTo($"/edit-trip/{Trip?.Id}");
+        editingDischarge = null;
+        showDischargeModal = true;
     }
 
-    private void OnBackToTrips()
+    private void EditDischarge(Discharge discharge)
     {
-        nav.NavigateTo("/trips");
+        editingDischarge = discharge;
+        showDischargeModal = true;
     }
+
+    private void HideDischargeModal()
+    {
+        showDischargeModal = false;
+        editingDischarge = null;
+        StateHasChanged();
+    }
+
+    private async Task SaveDischarge(Discharge discharge)
+    {
+        try
+        {
+            bool isEditMode = editingDischarge != null;
+            
+            if (isEditMode)
+            {
+                editingDischarge.TruckArrival = discharge.TruckArrival;
+                editingDischarge.DischargeStartTime = discharge.DischargeStartTime;
+                editingDischarge.QuantityDischarged = discharge.QuantityDischarged;
+                editingDischarge.StationId = discharge.StationId;
+                editingDischarge.InvoicedStationId = discharge.InvoicedStationId ?? discharge.StationId;
+                editingDischarge.IsFinalDischarge = discharge.IsFinalDischarge;
+                editingDischarge.Notes = discharge.Notes;
+                editingDischarge.IsSiding = discharge.IsSiding;
+                editingDischarge.SidingHours = discharge.SidingHours;
+                editingDischarge.InvoicedStation = discharge.InvoicedStation;
+            }
+            else
+            {
+                discharge.Id = Guid.NewGuid();
+                discharge.TripId = Trip!.Id;
+                Trip!.Discharges.Add(discharge);
+            }
+            
+            ToastService.ShowSuccess(isEditMode ? "Discharge updated!" : "Discharge added!");
+            HideDischargeModal();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error: {ex.Message}");
+        }
+    }
+    
+
+    private async Task DeleteDischarge(Guid dischargeId)
+    {
+        var discharge = Trip!.Discharges.FirstOrDefault(d => d.Id == dischargeId);
+        if (discharge != null)
+        {
+            Trip!.Discharges.Remove(discharge);
+            ToastService.ShowSuccess("Discharge deleted!");
+            StateHasChanged();
+        }
+    }
+
+    private void OnEditTrip() => nav.NavigateTo($"/edit-trip/{Trip?.Id}");
+    private void OnBackToTrips() => nav.NavigateTo("/trips");
 
     private string GetStatusBadgeClass(TripStatus status)
     {
         return status switch
         {
             TripStatus.Closed => "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 shadow-sm",
-            TripStatus.Overdue => "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 shadow-sm",
+            TripStatus.Dispatched => "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 shadow-sm",
             TripStatus.Active => "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 shadow-sm",
             _ => "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200 shadow-sm",
         };
@@ -362,15 +464,5 @@
             IncidentStatus.Reported or IncidentStatus.Resolved => "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
             IncidentStatus.Closed => "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
             _ => "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
-        };
-
-    private string GetStatusIconColor(IncidentStatus status) =>
-        status switch
-        {
-            IncidentStatus.New => "bg-yellow-500",
-            IncidentStatus.Treated => "bg-blue-500",
-            IncidentStatus.Reported or IncidentStatus.Resolved => "bg-green-500",
-            IncidentStatus.Closed => "bg-red-500",
-            _ => "bg-gray-500"
         };
 }

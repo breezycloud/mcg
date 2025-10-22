@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using Shared.Enums;
 using Shared.Helpers;
 using Shared.Models.Drivers;
+using Shared.Models.Services;
 using Shared.Models.Trips;
 
 namespace Shared.Models.Trucks;
@@ -46,8 +47,11 @@ public class Truck
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? UpdatedAt { get; set; }
     public virtual ICollection<Trip>? Trips { get; set; } = [];
+    public virtual ICollection<ServiceRequest> ServiceRequests { get; set; } = [];
     [ForeignKey(nameof(DriverId))]
     public virtual Driver? Driver { get; set; }
+    [NotMapped]
+    public bool IsSelected { get; set; }
 
     [NotMapped]
     public string? OriginalTruckNo => TruckNo;
@@ -57,6 +61,18 @@ public class Truck
     public string? OriginalVIN => VIN;
     [NotMapped]
     public string? OriginalEngineNo => EngineNo;
+    public string GetProductColor(string? product)
+    {
+        return product switch
+        {
+            "CNG" => "bg-blue-500",
+            "PMS" => "bg-yellow-500",
+            "ATK" => "bg-red-500",
+            "LPG" => "bg-green-500",
+            "AGO" => "bg-purple-500",
+            _ => "bg-gray-500"
+        };
+    }
 }
 
 public class TruckReportFilters
@@ -73,6 +89,7 @@ public class TruckReportDto
     public string TruckNumber { get; set; } = string.Empty;
     public string Product { get; set; } = string.Empty;
     public string TruckStatus { get; set; } = string.Empty;
+    public string Location { get; set; } = "";
     public int TotalLoading { get; set; }
     public Dictionary<string, int> MonthlyLoading { get; set; } = new();
 }

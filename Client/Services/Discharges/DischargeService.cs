@@ -60,6 +60,7 @@ public class DischargeService(IHttpClientFactory _httpClient) : IDischargeServic
         try
         {
             model.Station = null;
+            model.InvoicedStation = null;
             using var response = await _httpClient.CreateClient("AppUrl").PostAsJsonAsync("Discharges", model, cancellationToken);
             response.EnsureSuccessStatusCode();
             return response.IsSuccessStatusCode;

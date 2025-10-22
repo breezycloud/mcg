@@ -1,14 +1,29 @@
 @using Shared.Models.Checkpoints
 
-<div class="p-6 bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700">
+<div class="p-6 bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700
+            @(Data.IsSiding ? "border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20" : "")">
     <div class="flex justify-between items-start">
         <div>
             <h5 class="mb-1 text-xl font-medium text-gray-900 dark:text-white">
                 @Data.Station?.Name
             </h5>
+            @if (Data.InvoicedStationId.HasValue && Data.InvoicedStationId != Data.StationId && Data.InvoicedStation != null)
+            {
+                <p class="text-sm text-gray-500 dark:text-gray-400">
+                    💰 Invoiced: @Data.InvoicedStation.Name
+                </p>
+            }
         </div>
-        <div class="flex space-x-2">
-            <button type="button" class="inline-flex items-center p-2 text-sm font-medium text-red-700 bg-white border border-red-700 rounded-lg hover:bg-red-700 hover:text-white focus:z-10 focus:ring-2 focus:ring-red-700 dark:bg-gray-800 dark:text-red-400 dark:border-red-400 dark:hover:bg-red-400 dark:hover:text-white"
+        <div class="flex space-x-2">            
+            @* <button type="button" 
+                    class="inline-flex items-center p-2 text-sm font-medium text-blue-700 bg-white border border-blue-700 rounded-lg hover:bg-blue-700 hover:text-white"
+                    @onclick="() => OnEdit.InvokeAsync(Data)">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+            </button> *@
+            
+            <button type="button" class="inline-flex items-center p-2 text-sm font-medium text-red-700 bg-white border border-red-700 rounded-lg hover:bg-red-700 hover:text-white"
                     @onclick="ShowDeleteConfirmation">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
@@ -17,40 +32,57 @@
         </div>
     </div>
 
+    
+    @if (Data.IsSiding && Data.SidingHours > 0)
+    {
+        <div class="mt-2 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium 
+                    bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+            <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+            </svg>
+            SIDING: @Data.SidingHours.ToString("0.0") hrs
+        </div>
+    }
+
     <div class="mt-4 grid grid-cols-2 gap-4 text-sm">
         <div>
-            <p class="text-gray-500 dark:text-gray-400">Arrival Date/Time</p>
-            <p>@Data.TruckArrival?.ToString("g")</p>
+            <p class="text-gray-500 dark:text-gray-400">Arrival</p>
+            <p class="font-medium">@Data.TruckArrival?.ToString("g")</p>
         </div>
         <div>
             <p class="text-gray-500 dark:text-gray-400">Station</p>
-            <p>@Data.Station?.Name</p>
+            <p class="font-medium">@Data.Station?.Name</p>
         </div>
         <div>
-            <p class="text-gray-500 dark:text-gray-400">Discharge Time</p>
-            <p>@Data.DischargeStartTime?.ToString("g")</p>
+            <p class="text-gray-500 dark:text-gray-400">Discharge</p>
+            <p class="font-medium">@Data.DischargeStartTime?.ToString("g")</p>
         </div>
         <div>
-            <p class="text-gray-500 dark:text-gray-400">Quantity Discharged</p>
-            <p>@Data.QuantityDischarged.ToString("0.##")</p>
+            <p class="text-gray-500 dark:text-gray-400">Quantity</p>
+            <p class="font-medium">@Data.QuantityDischarged.ToString("0.##")</p>
         </div>
         <div>
-            <p class="text-gray-500 dark:text-gray-400">Final Discharge</p>
-            <p>@(Data.IsFinalDischarge ? "Yes" : "No")</p>
+            <p class="text-gray-500 dark:text-gray-400">Final</p>
+            <p class="font-medium">@(Data.IsFinalDischarge ? "✅ Yes" : "⏳ No")</p>
+        </div>
+        <div>
+            <p class="text-gray-500 dark:text-gray-400">Files</p>
+            <p class="font-medium">@Data.Files.Count</p>
         </div>
     </div>
 
     @if (!string.IsNullOrEmpty(Data.Notes))
     {
-        <div class="mt-4">
+        <div class="mt-4 p-3 bg-gray-50 dark:bg-gray-700 rounded">
             <p class="text-sm text-gray-700 dark:text-gray-300">@Data.Notes</p>
         </div>
     }
 </div>
 
+<!-- Delete Confirmation Modal (unchanged) -->
 @if (showDeleteModal)
 {
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-gray bg-opacity-100">
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-gray bg-opacity-50">
         <div class="relative p-4 w-full max-w-md max-h-full">
             <div class="relative bg-white rounded-lg shadow-sm dark:bg-gray-700">
                 <button type="button" class="absolute top-3 end-2.5 text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white"
@@ -58,20 +90,19 @@
                     <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
                         <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
                     </svg>
-                    <span class="sr-only">Close modal</span>
                 </button>
                 <div class="p-4 md:p-5 text-center">
                     <svg class="mx-auto mb-4 text-gray-400 w-12 h-12 dark:text-gray-200" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
                         <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 11V6m0 8h.01M19 10a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
                     </svg>
-                    <h3 class="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">Are you sure you want to delete?</h3>
-                    <button type="button" class="text-white bg-red-600 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 dark:focus:ring-red-800 font-medium rounded-lg text-sm inline-flex items-center px-5 py-2.5 text-center"
+                    <h3 class="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">Delete Discharge?</h3>
+                    <button type="button" class="text-white bg-red-600 hover:bg-red-800 px-5 py-2.5 rounded-lg"
                             @onclick="() => ConfirmDelete(Data.Id)">
-                        Yes, I'm sure
+                        Yes, delete
                     </button>
-                    <button type="button" class="py-2.5 px-5 ms-3 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700"
+                    <button type="button" class="py-2.5 px-5 ms-3 text-gray-900 bg-white border rounded-lg"
                             @onclick="HideDeleteConfirmation">
-                        No, cancel
+                        Cancel
                     </button>
                 </div>
             </div>
@@ -86,22 +117,12 @@
 
     private bool showDeleteModal = false;
 
-    private void ShowDeleteConfirmation()
-    {
-        showDeleteModal = true;
-    }
-
-    private void HideDeleteConfirmation()
-    {
-        showDeleteModal = false;
-    }
+    private void ShowDeleteConfirmation() => showDeleteModal = true;
+    private void HideDeleteConfirmation() => showDeleteModal = false;
 
     private async Task ConfirmDelete(Guid id)
     {
         showDeleteModal = false;
-        if (OnDelete.HasDelegate)
-        {
-            await OnDelete.InvokeAsync(id);
-        }
+        await OnDelete.InvokeAsync(id);
     }
 }

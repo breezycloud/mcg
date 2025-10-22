@@ -1,0 +1,182 @@
+@page "/trips/batch-dispatch"
+@inject ITripService TripService
+@inject ITruckService TruckService
+@inject IStationService StationService
+@inject NavigationManager nav
+
+<div class="max-w-4xl mx-auto p-4 sm:p-6">
+    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Batch Dispatch</h2>
+    <p class="text-sm text-gray-500 dark:text-gray-400">Select trucks and dispatch details to create a queue</p>
+
+    @if (AppState.IsBusy)
+    {
+        <Loader />
+    }
+    else
+    {
+        <EditForm Model="@batchDispatch" OnValidSubmit="HandleBatchDispatch">
+            <div class="space-y-6">
+                <!-- Loading Station -->
+                <div>
+                    <StationAutocomplete
+                        @bind-Value="SelectedStation"
+                        StationType="StationType.LoadingDepot"
+                        Label="Select Loading Station"
+                        Placeholder="Start typing station name..."
+                        ShowDetails="true"
+                        AllowClear="true" />
+                    @if (errors.ContainsKey("LoadingDepotId"))
+                    {
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["LoadingDepotId"]</p>
+                    }
+                </div>
+
+                <!-- Dispatch Date -->
+                <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        Dispatch Date <span class="text-red-500">*</span>
+                    </label>
+                    <InputDate id="dispatchDate" Type="InputDateType.DateTimeLocal" @bind-Value="batchDispatch.DispatchDate"
+                        class="@GetInputClass("DispatchDate")" aria-placeholder="select dispatch date" />
+                    @if (errors.ContainsKey("DispatchDate"))
+                    {
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["DispatchDate"]</p>
+                    }
+                </div>
+
+                <!-- Truck Selection -->
+                <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        Select Trucks <span class="text-red-500">*</span>
+                    </label>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        @foreach (var truck in Trucks)
+                        {
+                            <label class="flex items-center space-x-2">
+                                <InputCheckbox @bind-Value="truck.IsSelected" />
+                                <span>@truck.LicensePlate</span>                                
+                                <span>(@truck.Product)</span>
+                            </label>
+                        }
+                    </div>
+                    @if (errors.ContainsKey("Trucks"))
+                    {
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["Trucks"]</p>
+                    }
+                </div>
+
+                <!-- Form Actions -->
+                <div class="flex justify-end gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <button type="button" @onclick="Cancel"
+                        class="px-5 py-2.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-700 dark:focus:ring-gray-700">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                        class="px-5 py-2.5 text-sm font-medium text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800 flex items-center justify-center min-w-[120px]"
+                        disabled="@AppState.IsProcessing">
+                        @if (AppState.IsProcessing)
+                        {
+                            <svg class="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                            </svg>
+                            @("Processing...")                            
+                        }
+                        else
+                        {
+                            @("Dispatch Trucks")
+                        }
+                    </button>
+                </div>
+            </div>
+        </EditForm>
+    }
+</div>
+
+@code {
+    private BatchDispatchModel batchDispatch = new();
+    private Dictionary<string, string> errors = new();
+    private Truck[] Trucks = [];
+    private Station? SelectedStation;
+
+    protected override async Task OnInitializedAsync()
+    {
+        AppState.IsBusy = true;
+        Trucks = await TruckService.GetAsync(TripStatus.Closed.ToString(), AppState.GetCancellationToken());
+        AppState.IsBusy = false;
+    }
+
+    private string GetInputClass(string fieldName)
+    {
+        var baseClass = "bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500";
+        if (errors.ContainsKey(fieldName))
+        {
+            baseClass += " border-red-500 bg-red-50 dark:bg-red-900 dark:border-red-700";
+        }
+        else
+        {
+            baseClass += " border-gray-300";
+        }
+        return baseClass;
+    }
+
+    private async Task HandleBatchDispatch()
+    {
+        AppState.IsProcessing = true;
+        errors.Clear();
+
+        // Validate inputs
+        if (SelectedStation == null)
+        {
+            errors["LoadingDepotId"] = "Loading Station is required";
+        }
+        if (batchDispatch.DispatchDate == null)
+        {
+            errors["DispatchDate"] = "Dispatch Date is required";
+        }
+        if (!Trucks.Any(t => t.IsSelected))
+        {
+            errors["Trucks"] = "At least one truck must be selected";
+        }
+
+        if (errors.Any())
+        {
+            AppState.IsProcessing = false;
+            StateHasChanged();
+            return;
+        }
+
+        try
+        {
+            foreach (var truck in Trucks.Where(t => t.IsSelected))
+            {
+                var trip = new Trip
+                {
+                    TruckId = truck.Id,
+                    LoadingDepotId = SelectedStation!.Id,
+                    DispatchId = $"{batchDispatch.DispatchDate!.Value:yy}{batchDispatch.DispatchDate!.Value:MM}{batchDispatch.DispatchDate!.Value:dd}{truck.LicensePlate?.Substring(2, 6)}",
+                    Date = batchDispatch.DispatchDate.Value,
+                    DriverId = truck.DriverId,
+                    Status = TripStatus.Dispatched,
+                    CreatedAt = DateTimeOffset.UtcNow
+                };
+                await TripService.AddAsync(trip, AppState.GetCancellationToken());
+            }
+            ToastService.ShowSuccess("Trucks dispatched successfully", 5);
+            nav.NavigateTo("/trips");
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError("Failed to dispatch trucks");
+        }
+        finally
+        {
+            AppState.IsProcessing = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        nav.NavigateTo("/trips");
+    }
+}

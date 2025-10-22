@@ -271,7 +271,7 @@
         public decimal ShortageAmount { get; set; }
         [Column(TypeName = "decimal(18,2)")]
         public decimal VariancePercentage { get; set; }
-        public DateOnly TripDate { get; set; }
+        public DateTimeOffset TripDate { get; set; }
     }
 
     private class ProductShortageData
