@@ -3,7 +3,7 @@ name: Deploy Production API to VPS
 on:
   push:
     branches:
-      - main
+      - staging
     paths:
       - 'Api/**'   # Only trigger when files in Api/ are modified
       - 'Shared/**'
@@ -39,7 +39,7 @@ jobs:
               username: ${{ secrets.VPS_USERNAME }}
               password: ${{ secrets.VPS_PASSWORD }}
               source: "./publish/*"
-              target: ${{ secrets.API_TARGET }}
+              target: ${{ secrets.DEV_API_TARGET }}
               rm: true  # Remove old files before copy
 
            # 👇 NEW STEP: Create uploads directory on VPS with proper permissions
