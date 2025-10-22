@@ -2,8 +2,8 @@ name: Deploy Blazor App to VPS
 
 on:
   push:
-    branches:
-      - main
+    branches:      
+      - staging
     paths:
       - 'Client/**'   # Only trigger when files in Client/ are modified
       - 'Shared/**'
@@ -36,5 +36,5 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           password: ${{ secrets.VPS_PASSWORD }}
           source: "./publish/*"
-          target: ${{ secrets.CLIENT_TARGET }}
+          target: ${{ secrets.STAGING_CLIENT_TARGET }}
           rm: true  # Remove old files before copy      
