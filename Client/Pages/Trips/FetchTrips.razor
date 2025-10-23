@@ -52,7 +52,7 @@
                                     class="bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full sm:w-36 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 transition-all duration-200"
                                     @bind-value="reportFilter.StartDate" 
                                     @bind-value:after="Reload" />
-
+                                
                                 <!-- Status Filter -->
                                 <select 
                                     class="bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full sm:w-32 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 transition-all duration-200"
@@ -114,7 +114,7 @@
                                     </button>
                                     <AuthorizeView Roles="Master, Admin, Supervisor">
                                         <Authorized>
-                                            @* <button 
+                                            <button 
                                                 @onclick="@(() => nav.NavigateTo("/trips/batch-dispatch"))" 
                                                 type="button" 
                                                 class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
@@ -122,8 +122,8 @@
                                                     <path clip-rule="evenodd" fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" />
                                                 </svg>
                                                 Batch Dispatch
-                                            </button> *@
-                                            <button 
+                                            </button>
+                                            @* <button 
                                                 @onclick="@(() => nav.NavigateTo("/trips/batch-loading"))" 
                                                 type="button" 
                                                 class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
@@ -131,7 +131,7 @@
                                                     <path clip-rule="evenodd" fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" />
                                                 </svg>
                                                 Batch Loading Info
-                                            </button>
+                                            </button> *@
                                             <button 
                                                 @onclick="AddTrip" 
                                                 type="button" 

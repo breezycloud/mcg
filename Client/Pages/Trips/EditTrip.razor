@@ -125,18 +125,7 @@
                                 {
                                     <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["LoadingPointId"]</p>
                                 }
-                            </div>
-                            <div>
-                            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                                    Loading Area Arrival Date & Time <span class="text-red-500">*</span>
-                                </label>
-                                <input type="datetime-local" @bind="Trip.LoadingInfo.LoadingLocationArrivalDateTime"                                
-                                    class="@GetInputClass("LoadingLocationArrivalDateTime")">
-                                    @if (errors.ContainsKey("LoadingLocationArrivalDateTime"))
-                                    {
-                                        <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["LoadingLocationArrivalDateTime"]</p>
-                                    }
-                            </div>
+                            </div>                            
                             <div>
                                 <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                                     Loading Date & Time <span class="text-red-500">*</span>
@@ -258,9 +247,27 @@
                         
                     }
                     else if (activeTab == 3)
-                    {                        
+                    {    
+                        <div class="space-y-4 pt-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                        Loading Area Arrival Date & Time <span class="text-red-500">*</span>
+                                    </label>
+                                    <input type="datetime-local" @bind="Trip!.ArrivalInfo.LoadingLocationArrivalDateTime"
+                                        class="@GetInputClass("LoadingLocationArrivalDateTime")">
+                                        @if (errors.ContainsKey("LoadingLocationArrivalDateTime"))
+                                        {
+                                            <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["LoadingLocationArrivalDateTime"]</p>
+                                        }
+                                </div>
+                                <div>
+                                </div>
+                            </div>                                        
+                        </div>
+
                         @if (Trip!.LoadingInfo.DispatchType == DispatchType.Depot)
-                        {
+                        {                            
                             <div class="">
                                 <div class="flex items-center">
                                     <input id="arrived-checkbox" type="checkbox" @bind="Trip!.ArrivalInfo.ArrivedDepot" 
@@ -648,11 +655,7 @@
         // Validate required fields       
 
         if (activeTab == 1)
-        {
-            if (Trip.LoadingInfo.LoadingLocationArrivalDateTime is null)
-            {
-                errors["LoadingLocationArrivalDateTime"] = "Loading Area Date/Time is required";
-            }
+        {            
             if (Trip!.LoadingDepotId is null || Trip!.LoadingDepotId.Equals(Guid.Empty))
             {
                 errors["LoadingDepotId"] = "Loading Depot is required";

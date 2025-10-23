@@ -12,7 +12,7 @@ public interface ITruckService
     Task<Truck?> GetAsync(Guid id, CancellationToken cancellationToken);
     Task<Truck[]?> GetAsync(CancellationToken cancellationToken);
     Task<Truck[]?> GetAsync(string status, CancellationToken cancellationToken);
-    Task<Truck[]?> GetTrucksAvailableAsync(CancellationToken cancellationToken);
+    Task<Truck[]?> GetTrucksAvailableAsync(string product= "", CancellationToken cancellationToken = default);
     Task<GridDataResponse<Truck>?> GetPagedAsync(GridDataRequest request, CancellationToken cancellationToken);
     ValueTask<bool> ValidateEntry(string type, string value, CancellationToken cancellationToken);
 

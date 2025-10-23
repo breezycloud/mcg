@@ -104,39 +104,24 @@ public class TrucksController : ControllerBase
     }
 
     [HttpGet("available-trucks")]
-    public async Task<ActionResult<IEnumerable<Truck>?>> GetAvailableTrucksAsync(CancellationToken cancellationToken = default)
+    public async Task<ActionResult<IEnumerable<Truck>?>> GetAvailableTrucksAsync(string product, CancellationToken cancellationToken = default)
     {
-        GridDataResponse<Truck> response = new();
-        try
+        // Get trucks with no active trip (assuming "Active" and "Dispatched" are statuses for active trips)
+        var trucksWithActiveTrips = _context.Trips
+            .Where(t => t.Status == TripStatus.Active || t.Status == TripStatus.Dispatched)
+            .Select(t => t.TruckId)
+            .Distinct();
+
+        var truckQuery = _context.Trucks.AsNoTracking().Include(x => x.Driver)
+            .Where(truck => !trucksWithActiveTrips.Contains(truck.Id));
+
+        // Filter by product if provided
+        if (!string.IsNullOrEmpty(product))
         {
-            IQueryable<Truck> truckQuery;
-
-            // Get trucks with no active trip (assuming "Active" is the status for active trips)
-            var trucksWithActiveTrips = _context.Trips
-                .Where(t => t.Status == TripStatus.Active || t.Status == TripStatus.Dispatched)
-                .Select(t => t.TruckId)
-                .Distinct();
-
-            truckQuery = _context.Trucks
-                .Where(truck => !trucksWithActiveTrips.Contains(truck.Id));
-
-
-            response.Total = await truckQuery.CountAsync(cancellationToken);
-
-            response.Data = [];
-            var pagedQuery = truckQuery.OrderBy(x => x.LicensePlate).AsAsyncEnumerable().WithCancellation(cancellationToken);
-
-            await foreach (var item in pagedQuery)
-            {
-                response.Data.Add(item);
-            }
-
-            return response.Data.ToArray();
+            truckQuery = truckQuery.Where(truck => truck.Product.ToString()!.Trim() == product.Trim());
         }
-        catch (System.Exception)
-        {
-            throw;
-        }
+
+        return await truckQuery.OrderBy(x => x.LicensePlate).ToListAsync(cancellationToken);
     }
 
     // GET: api/Validate/{type}/value
