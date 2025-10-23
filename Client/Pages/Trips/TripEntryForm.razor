@@ -1,4 +1,5 @@
 @page "/trips/{Action}/{Id:guid?}"
+@using Client.Pages.Modals
 @using Shared.Dtos
 @inject ITripService TripService
 @inject ITruckService TruckService
@@ -194,7 +195,13 @@
             </div>
         </EditForm>
     }
+
+<ConfirmationModal @ref="ConfirmModal"
+                   Title="Trip Exists"
+                   Message="A trip for this truck and date already exists. Do you want to continue?"
+                   OnClose="OnConfirmModalClose" />
 </div>
+
 
 @code {
     [Parameter] public string Action { get; set; } = "Add";
@@ -204,6 +211,9 @@
     [Parameter] public bool EditMode { get; set; }
     [Parameter] public EventCallback OnSubmit { get; set; }
     [Parameter] public EventCallback OnCancel { get; set; }
+
+    private ConfirmationModal? ConfirmModal;
+    private bool userConfirmed = false;
 
     bool result = false;
     private NotificationAlert? alert = null;
@@ -220,8 +230,7 @@
     protected override async Task OnInitializedAsync()
     {
         AppState.IsBusy = true;
-        Trucks = await TruckService.GetAsync(TripStatus.Closed.ToString(), AppState.GetCancellationToken());
-        @* Depots = await StationService.GetAsync(StationType.LoadingDepot.ToString(), AppState.GetCancellationToken()); *@
+        Trucks = await TruckService.GetTrucksAvailableAsync(AppState.GetCancellationToken());        
         Destionations = await StationService.GetAsync(StationType.DischargeStation.ToString(), AppState.GetCancellationToken());
         Drivers = await DriverService.GetAsync(AppState.GetCancellationToken());
         if (Id.HasValue)
@@ -308,6 +317,21 @@
         return baseClass;
     }
 
+    private async Task OnConfirmModalClose(bool confirmed)
+    {
+        if (confirmed)
+        {
+            userConfirmed = true;
+            await HandleSubmit(); // retry the submission with confirmation
+        }
+        else
+        {
+            userConfirmed = false;
+            AppState.IsProcessing = false;
+        }
+    }
+
+
     private async Task HandleSubmit()
     {
         AppState.IsProcessing = true;
@@ -334,14 +358,6 @@
         {
             errors["DriverId"] = "Driver is required";
         }
-        @* else
-        {
-            if (string.IsNullOrWhiteSpace(tripLoading.DispatchId))
-            {
-                errors["DispatchId"] = "DispatchId is required"; 
-                await UpdateDispatchIdIfPossible();
-            }            
-        } *@
 
         if (errors.Any())
         {
@@ -351,9 +367,27 @@
         }
                 
         try
-        {           
+        {
+
             if (!Id.HasValue)
             {
+                bool exists = await TripService.DispatchExistAsync(
+                    tripLoading.TruckId,
+                    DateOnly.FromDateTime(tripLoading.LoadingDate!.Value.DateTime),
+                    AppState.GetCancellationToken());
+
+                if (exists && !userConfirmed)
+                {                    
+                    AppState.IsProcessing = false;
+                    ConfirmModal?.Show();
+                    return;
+                }
+            }
+            if (!Id.HasValue)
+            {               
+                if (SelectedStation is not null)             
+                    tripLoading.LoadingPointId = SelectedStation!.Id;
+
                 CurrentTrip = TripService.MapTripLoadingAsync(tripLoading, AppState.GetCancellationToken());
                 CurrentTrip.SetInitialStatus();
                 result = await TripService.AddAsync(CurrentTrip, AppState.GetCancellationToken());
