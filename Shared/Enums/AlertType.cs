@@ -1,6 +1,4 @@
 namespace Shared.Enums;
-
-
 public enum AlertType
 {
     Success,

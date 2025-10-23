@@ -7,7 +7,7 @@ namespace Shared.Dtos;
 public class TripLoadingDto
 {
     [Required]
-    public DateTime? LoadingDate { get; set; }  
+    public DateTimeOffset? LoadingDate { get; set; }  
     public Guid TruckId { get; set; }
     public Truck? Truck { get; set; }
     public string? LicensePlate { get; set; }
@@ -17,7 +17,7 @@ public class TripLoadingDto
     public Guid? LoadingPointId { get; set; }
 
     [Required]
-    public string? DispatchId => $"{LoadingDate:yy}{LoadingDate:MM}{LoadingDate:dd}{LicensePlate?.Substring(2, 6)}";
+    public string? DispatchId { get; set; }
     public string? WaybillNumber { get; set; }
     [Required]
     public string? Destination { get; set; } = "abuja";

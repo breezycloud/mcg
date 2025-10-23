@@ -69,4 +69,6 @@ jobs:
                   sudo systemctl stop mcc-staging-api.service            
                   sudo systemctl start mcc-staging-api.service
                   sudo systemctl status mcc-staging-api.service --no-pager -l --lines=10
+                  sudo systemctl reload nginx
+                  sudo systemctl restart nginx
                   echo "✅ Deployment complete!"
