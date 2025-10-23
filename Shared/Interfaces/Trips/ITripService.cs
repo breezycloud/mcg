@@ -18,4 +18,5 @@ public interface ITripService
     Task<GridDataResponse<Trip>?> GetPagedAsync(GridDataRequest request, CancellationToken cancellationToken);
     Task<Trip[]> GetTripsByDateRangeAsync(ReportFilter filter, CancellationToken cancellationToken);
     Task<string?> GenerateDispatchIdAsync(Guid truckId, DateOnly date, CancellationToken cancellationToken);
+    Task<bool> DispatchExistAsync(Guid truckId, DateOnly date, CancellationToken cancellationToken);
 }

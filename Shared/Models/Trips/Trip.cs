@@ -140,7 +140,7 @@ public class Trip
 }
 
 public class ArrivalInfo
-{
+{    
     public bool ArrivedDepot { get; set; }
     public bool ArrivedAtStation { get; set; }
     public bool InvoiceIssued { get; set; }

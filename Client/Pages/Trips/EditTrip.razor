@@ -109,7 +109,7 @@
                     {                        
                         <!-- Loading Info/E-Lock Status Tab -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <!-- Loading Point -->
+                            <!-- Loading Point -->                            
                             <div>
                                 <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                                     Loading Depot <span class="text-red-500">*</span>
@@ -125,6 +125,17 @@
                                 {
                                     <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["LoadingPointId"]</p>
                                 }
+                            </div>
+                            <div>
+                            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                    Loading Area Arrival Date & Time <span class="text-red-500">*</span>
+                                </label>
+                                <input type="datetime-local" @bind="Trip.LoadingInfo.LoadingLocationArrivalDateTime"                                
+                                    class="@GetInputClass("LoadingLocationArrivalDateTime")">
+                                    @if (errors.ContainsKey("LoadingLocationArrivalDateTime"))
+                                    {
+                                        <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["LoadingLocationArrivalDateTime"]</p>
+                                    }
                             </div>
                             <div>
                                 <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
@@ -247,7 +258,7 @@
                         
                     }
                     else if (activeTab == 3)
-                    {
+                    {                        
                         @if (Trip!.LoadingInfo.DispatchType == DispatchType.Depot)
                         {
                             <div class="">
@@ -638,6 +649,10 @@
 
         if (activeTab == 1)
         {
+            if (Trip.LoadingInfo.LoadingLocationArrivalDateTime is null)
+            {
+                errors["LoadingLocationArrivalDateTime"] = "Loading Area Date/Time is required";
+            }
             if (Trip!.LoadingDepotId is null || Trip!.LoadingDepotId.Equals(Guid.Empty))
             {
                 errors["LoadingDepotId"] = "Loading Depot is required";
@@ -669,7 +684,7 @@
         }
 
         if (activeTab == 3)
-        {
+        {            
             if (Trip.LoadingInfo.DispatchType == DispatchType.Depot)
             {
                 if (Trip.ArrivalInfo.ArrivedDepot && Trip?.ArrivalInfo.DepotArrivalDateTime is null)
@@ -695,7 +710,7 @@
         }        
         if (activeTab == 6)
         {
-            if (Trip.CloseInfo.ReturnDateTime is null)
+            if (Trip?.CloseInfo.ReturnDateTime is null)
             {
                 errors["ReturnDateTime"] = "Date is required";                
             }
@@ -718,15 +733,11 @@
         }        
         if (errors.Any())
         {
-            await _js.InvokeVoidAsync("console.log", errors);
             ToastService.ShowWarning("Fill the required fields to proceed");            
             AppState.IsProcessing = false;
             StateHasChanged();
             return;
         }
-
-        if (string.IsNullOrEmpty(Trip!.DispatchId))
-            Trip.DispatchId = $"{Trip.Date:yy}{Trip.Date:MM}{Trip.Date:dd}{Trip?.Truck?.LicensePlate?.Substring(2, 6)}";
 
         Trip!.UpdatedAt = DateTimeOffset.UtcNow;
         try

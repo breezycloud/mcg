@@ -36,16 +36,13 @@ public class TripsController : ControllerBase
         var parsedDate = DateOnly.ParseExact(date, "yyyy-MM-dd");
         var baseDispatchId = (parsedDate.ToString("yyMMdd") + truck.LicensePlate?.Substring(2, 6)).Trim();
         
-        var start = parsedDate.ToDateTime(TimeOnly.MinValue); // 00:00
-        var end = parsedDate.ToDateTime(TimeOnly.MaxValue);   // 23:59:59.9999999
-
         var sameDayTrips = await _context.Trips
-            .Where(t => t.TruckId == truckId && t.Date >= start && t.Date <= end)
+            .Where(t => t.TruckId == truckId && EF.Functions.ILike(t.DispatchId, $"{baseDispatchId}%"))
             .Select(t => t.DispatchId)
             .ToListAsync(cancellationToken);
 
 
-        if (!sameDayTrips.Any(d => d == baseDispatchId || d.StartsWith($"{baseDispatchId}-")))
+        if (!(sameDayTrips.Count > 0 && !sameDayTrips.Contains($"-")))
             return Ok(baseDispatchId);
 
 
@@ -56,6 +53,24 @@ public class TripsController : ControllerBase
         }
 
         return Ok($"{baseDispatchId}-{suffix}");
+    }
+    
+    [HttpGet("dispatch-exist")]
+    public async Task<ActionResult<bool>> DispatchExistAsync(Guid truckId, string date, CancellationToken cancellationToken)
+    {
+        var truck = await _context.Trucks.FindAsync(truckId);
+        if (truck == null)
+        {
+            return NotFound(false);
+        }
+        var parsedDate = DateOnly.ParseExact(date, "yyyy-MM-dd");
+        var baseDispatchId = (parsedDate.ToString("yyMMdd") + truck.LicensePlate?.Substring(2, 6)).Trim();
+        
+        var start = parsedDate.ToDateTime(TimeOnly.MinValue); // 00:00
+        var end = parsedDate.ToDateTime(TimeOnly.MaxValue);   // 23:59:59
+
+        var exist = await _context.Trips.AnyAsync(t => t.TruckId == truckId && t.Date >= start && t.Date <= end);
+        return Ok(exist);
     }
 
     [HttpPost("report")]
@@ -180,7 +195,7 @@ public class TripsController : ControllerBase
 
             return response;        
         }
-        catch (System.Exception)
+        catch (Exception)
         {
             throw;
         }
@@ -282,6 +297,7 @@ public class TripsController : ControllerBase
         var dispatchResult = await GenerateDispatchId(trip.TruckId, trip.Date.ToString("yyyy-MM-dd"), CancellationToken.None);
         if (dispatchResult.Result is OkObjectResult okResult && okResult.Value is string dispatchId)
         {
+            Console.WriteLine($"Generated DispatchId: {dispatchId}");
             trip.DispatchId = dispatchId;
         }
         else
