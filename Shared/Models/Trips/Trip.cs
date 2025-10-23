@@ -141,6 +141,7 @@ public class Trip
 
 public class ArrivalInfo
 {    
+    public DateTimeOffset? LoadingLocationArrivalDateTime { get; set; }
     public bool ArrivedDepot { get; set; }
     public bool ArrivedAtStation { get; set; }
     public bool InvoiceIssued { get; set; }
