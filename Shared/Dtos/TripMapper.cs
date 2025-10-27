@@ -24,25 +24,29 @@ public static class TripMapper
 
         return new TripExportDto
         {
+
             Date = trip.Date,
             DispatchId = trip.DispatchId?.Trim(),
             TruckPlate = trip.Truck?.LicensePlate ?? "N/A",
             Product = trip.Truck?.Product.ToString() ?? "N/A",
             Status = GetTripStatus(trip),
             LoadingPoint = trip.LoadingDepot?.Name ?? "N/A",
-            LoadingDate = trip.LoadingInfo.LoadingDate?.ToString("dd/MM/yyyy"),
+            LoadingDate = trip.LoadingInfo.LoadingDate?.ToString("dd/MM/yyyy HH:mm:ss"),
             WaybillNo = trip.LoadingInfo.WaybillNo,
+            DispatchType = trip.LoadingInfo.DispatchType.ToString(),
             DispatchQuantity = trip.LoadingInfo?.Quantity ?? 0,
             DriverName = trip.Driver?.ToString() ?? "N/A",
             Dest = trip.LoadingInfo?.Destination,
             ElockStatus = trip.LoadingInfo?.ElockStatus.ToString(),
-            ArrivedAtATV = trip.ArrivalInfo.ArrivedDepot ? "Yes" : "No",
-            AtvArrivalDate = trip.ArrivalInfo.DepotArrivalDateTime.HasValue ? trip.ArrivalInfo.DepotArrivalDateTime.Value.ToString("dd/MM/yyyy") : "N/A",
-            InvoiceDate = trip.ArrivalInfo.InvoiceToStationDateTime.HasValue ? trip.ArrivalInfo.InvoiceToStationDateTime.Value.ToString("dd/MM/yyyy") : "N/A",
-            ArrivedAtStation = trip.ArrivalInfo.ArrivedAtStation == true ? "Yes" : "No",
+            ArrivedDepot = trip.ArrivalInfo.ArrivedDepot ? "Yes" : "No",
+            DepotArrival = trip.ArrivalInfo.DepotArrivalDateTime.HasValue ? trip.ArrivalInfo.DepotArrivalDateTime.Value.ToString("dd/MM/yyyy HH:mm:ss") : "N/A",
+            Invoiced = trip.ArrivalInfo.InvoiceIssued ? "Yes" : "N/A",
+            DepotName = trip.LoadingDepot?.Name ?? "N/A",
+            InvoiceDate = trip.ArrivalInfo.InvoiceToStationDateTime.HasValue ? trip.ArrivalInfo.InvoiceToStationDateTime.Value.ToString("dd/MM/yyyy HH:mm:ss") : "N/A",
+            ArrivedStation = trip.ArrivalInfo.ArrivedAtStation == true ? "Yes" : "No",
             StationArrivalDate = trip.ArrivalInfo.StationArrivalDateTime.HasValue == true
-                ? trip.ArrivalInfo.StationArrivalDateTime.Value.ToString("dd/MM/yyyy")
-                : "N/A",
+            ? trip.ArrivalInfo.StationArrivalDateTime.Value.ToString("dd/MM/yyyy HH:mm:ss")
+            : "N/A",
             Discharged = trip.Discharges!.Any() ? "Yes" : "No",
             DischargeLocation = dischargeLocation,
             DischargedDate = dischargeDate,
@@ -51,8 +55,8 @@ public static class TripMapper
             HasShortage = trip.CalculateShortageOverage(trip.LoadingInfo?.Quantity - trip.Discharges!.Sum(x => x.QuantityDischarged)),
             ShortageAmount = trip.CalculateShortageOverageAmount(trip.LoadingInfo?.Quantity, trip.Discharges!.Sum(x => x.QuantityDischarged)) ?? 0,
             ReturnDate = trip.CloseInfo.ReturnDateTime.HasValue
-                ? trip.CloseInfo.ReturnDateTime?.ToString("dd/MM/yyyy")
-                : "N/A",
+            ? trip.CloseInfo.ReturnDateTime?.ToString("dd/MM/yyyy HH:mm:ss")
+            : "N/A",
 
             DischargeSummary = dischargeSummary,
             DurationDays = trip.CalculateTripDuration(trip.Date, trip.CloseInfo.ReturnDateTime),

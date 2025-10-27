@@ -8,4 +8,5 @@ public class ReportFilter
     public DateOnly? EndDate { get; set; }
     public Guid? Id { get; set; }
     public TripStatus? Status { get; set; }
+    public string? Product { get; set; }
 }

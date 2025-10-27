@@ -54,7 +54,7 @@ public class TripsController : ControllerBase
 
         return Ok($"{baseDispatchId}-{suffix}");
     }
-    
+
     [HttpGet("dispatch-exist")]
     public async Task<ActionResult<bool>> DispatchExistAsync(Guid truckId, string date, CancellationToken cancellationToken)
     {
@@ -65,7 +65,7 @@ public class TripsController : ControllerBase
         }
         var parsedDate = DateOnly.ParseExact(date, "yyyy-MM-dd");
         var baseDispatchId = (parsedDate.ToString("yyMMdd") + truck.LicensePlate?.Substring(2, 6)).Trim();
-        
+
         var start = parsedDate.ToDateTime(TimeOnly.MinValue); // 00:00
         var end = parsedDate.ToDateTime(TimeOnly.MaxValue);   // 23:59:59
 
@@ -73,46 +73,149 @@ public class TripsController : ControllerBase
         return Ok(exist);
     }
 
+    // [HttpPost("report")]
+    // public async Task<IActionResult> ExportReport([FromBody]ReportFilter request, CancellationToken cancellationToken = default)
+    // {
+    //     var query = _context.Trips
+    //         .Include(x => x.Driver)
+    //         .Include(x => x.Truck)
+    //         .Include(x => x.LoadingDepot)
+    //         .Include(x => x.Discharges)
+    //         .ThenInclude(x => x.Station)
+    //         .Include(x => x.ClosedBy)
+    //         .Include(x => x.CompletedBy)
+    //         .Where(x => x.Date.Month == request.StartDate.Month && x.Date.Year == request.StartDate.Year)
+    //         .AsSplitQuery()
+    //         .AsQueryable();
+
+    //     if (request.Product is not null && request.Product != "")
+    //     {
+    //         query = query.Where(t => t.Truck.Product.ToString() == request.Product);
+    //     }
+        
+    //     if (request.EndDate.HasValue)
+    //     {
+    //         var endDateTime = request.EndDate.Value.ToDateTime(TimeOnly.MaxValue);
+    //         query = query.Where(t => t.Date <= endDateTime);            
+    //     }
+        
+    //     var csv = new StringBuilder();
+    //     csv.AppendLine("Date,Dispatch Id,Truck Number,Product,Status,Loading Point,Loading Date,Waybill No,Dispatch Quantity,Driver Name,Destination,Elock Status,Arrived At ATV,ATV Arrival Date, Invoice Date, Arrived At Station,Station Arrival Date,Discharged,Discharge Location,Discharged Date,Discharged Quantity,Discharged Unit,Has Shortage,Shortage Amount,Return Date,Duration Days,Discharge Summary,Notes");
+
+    //     var trips = await query.OrderByDescending(x => x.CreatedAt).ToListAsync(cancellationToken);
+
+    //     var report = TripMapper.ToExportDto(trips);
+    //     foreach (var s in report)
+    //     {
+    //         csv.AppendLine($"{EscapeCsv(s.Date.ToString("dd/MM/yyyy"))},{EscapeCsv(s.DispatchId)},{EscapeCsv(s.TruckPlate)},{EscapeCsv(s.Product)},{EscapeCsv(s.Status)},{EscapeCsv(s.LoadingPoint)},{EscapeCsv(s.LoadingDate)},{EscapeCsv(s.WaybillNo)},{EscapeCsv(s.DispatchQuantity.ToString())},{EscapeCsv(s.DriverName)},{EscapeCsv(s.Dest)},{EscapeCsv(s.ElockStatus)},{EscapeCsv(s.ArrivedAtATV)},{EscapeCsv(s.AtvArrivalDate)}, {EscapeCsv(s.InvoiceDate)},{EscapeCsv(s.ArrivedAtStation)},{EscapeCsv(s.StationArrivalDate)},{EscapeCsv(s.Discharged)},{EscapeCsv(s.DischargeLocation)},{EscapeCsv(s.DischargedDate)},{s.DischargedQuantity},{EscapeCsv(s.DischargedUnit)},{EscapeCsv(s.HasShortage)},{s.ShortageAmount},{EscapeCsv(s.ReturnDate)},{s.DurationDays},{EscapeCsv(s.DischargeSummary)},{EscapeCsv(s.Notes)}");
+    //     }       
+    //     var bytes = Encoding.UTF8.GetBytes(csv.ToString());
+    //     var stream = new MemoryStream(bytes);
+
+    //     return new FileStreamResult(stream, "text/csv")
+    //     {
+    //         FileDownloadName = $"Loading from {request.StartDate:MMMM-yyyy} {(request.EndDate.HasValue ? $"to {request.EndDate:MMMM-yyyy}" : "")}.csv"
+    //     };        
+    // }
+    
     [HttpPost("report")]
-    public async Task<IActionResult> ExportReport([FromBody]ReportFilter request, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> ExportReport([FromBody] ReportFilter request, CancellationToken cancellationToken = default)
     {
-        // Build date range for selected months in the given year        
         var query = _context.Trips
             .Include(x => x.Driver)
             .Include(x => x.Truck)
             .Include(x => x.LoadingDepot)
-            .Include(x => x.Discharges)
-            .ThenInclude(x => x.Station)
+            .Include(x => x.Discharges).ThenInclude(x => x.Station)
             .Include(x => x.ClosedBy)
             .Include(x => x.CompletedBy)
             .Where(x => x.Date.Month == request.StartDate.Month && x.Date.Year == request.StartDate.Year)
             .AsSplitQuery()
             .AsQueryable();
 
+        if (!string.IsNullOrWhiteSpace(request.Product))
+            query = query.Where(t => t.Truck.Product.ToString() == request.Product);
+
         if (request.EndDate.HasValue)
         {
-            var endDateTime = request.EndDate.Value.ToDateTime(TimeOnly.MaxValue); // 23:59:59.9999999
-            query = query.Where(t => t.Date <= endDateTime);            
+            var endDateTime = request.EndDate.Value.ToDateTime(TimeOnly.MaxValue);
+            query = query.Where(t => t.Date <= endDateTime);
         }
-        
-        var csv = new StringBuilder();
-        csv.AppendLine("Date,Dispatch Id,Truck Number,Product,Status,Loading Point,Loading Date,Waybill No,Dispatch Quantity,Driver Name,Destination,Elock Status,Arrived At ATV,ATV Arrival Date, Invoice Date, Arrived At Station,Station Arrival Date,Discharged,Discharge Location,Discharged Date,Discharged Quantity,Discharged Unit,Has Shortage,Shortage Amount,Return Date,Duration Days,Discharge Summary,Notes");
 
         var trips = await query.OrderByDescending(x => x.CreatedAt).ToListAsync(cancellationToken);
-
         var report = TripMapper.ToExportDto(trips);
+
+        var csv = new StringBuilder();
+        
+        csv.AppendLine(
+            "S/N,Dispatch Date,Loading Depot Arrival Date,Loading Date,Truck Number,Product,Trip Status,Loading Point,Waybill Number,Dispatch Quantity,Driver Name,Destination,E-lock Status,Dispatch Type,Arrived Depot,Depot Arrival Date,Depot Name,Invoiced,Invoice Date,Arrived Station,Station Arrival Date,Discharging/Discharged?,Discharged Date,Discharge Location,Discharged Quantity,Unit (SCM/KG/MT/LTR),Return Date,Shortage/Overage?,Shortage/Overage Amount,Remarks,Duration Days,Discharge Summary"
+        );
+
+        int sn = 1;
         foreach (var s in report)
         {
-            csv.AppendLine($"{EscapeCsv(s.Date.ToString("dd/MM/yyyy"))},{EscapeCsv(s.DispatchId)},{EscapeCsv(s.TruckPlate)},{EscapeCsv(s.Product)},{EscapeCsv(s.Status)},{EscapeCsv(s.LoadingPoint)},{EscapeCsv(s.LoadingDate)},{EscapeCsv(s.WaybillNo)},{EscapeCsv(s.DispatchQuantity.ToString())},{EscapeCsv(s.DriverName)},{EscapeCsv(s.Dest)},{EscapeCsv(s.ElockStatus)},{EscapeCsv(s.ArrivedAtATV)},{EscapeCsv(s.AtvArrivalDate)}, {EscapeCsv(s.InvoiceDate)},{EscapeCsv(s.ArrivedAtStation)},{EscapeCsv(s.StationArrivalDate)},{EscapeCsv(s.Discharged)},{EscapeCsv(s.DischargeLocation)},{EscapeCsv(s.DischargedDate)},{s.DischargedQuantity},{EscapeCsv(s.DischargedUnit)},{EscapeCsv(s.HasShortage)},{s.ShortageAmount},{EscapeCsv(s.ReturnDate)},{s.DurationDays},{EscapeCsv(s.DischargeSummary)},{EscapeCsv(s.Notes)}");
-        }       
+            csv.AppendLine(string.Join(",", new[]
+            {
+                sn++.ToString(),
+                EscapeCsv(s.Date.ToString("dd/MM/yyyy")),
+                EscapeCsv(s.LoadingDepotDate),
+                EscapeCsv(s.LoadingDate),
+                EscapeCsv(s.TruckPlate),
+                // EscapeCsv(s.DispatchId),
+                EscapeCsv(s.Product),
+                EscapeCsv(s.Status),
+                EscapeCsv(s.LoadingPoint),
+                EscapeCsv(s.WaybillNo),
+                EscapeCsv(s.DispatchQuantity.ToString("N2")),
+                EscapeCsv(s.DriverName),
+                EscapeCsv(s.Dest),
+                EscapeCsv(s.ElockStatus),
+                EscapeCsv(s.DispatchType),
+                EscapeCsv(s.ArrivedDepot),
+                EscapeCsv(s.DepotArrival),
+                EscapeCsv(s.DepotName),
+                EscapeCsv(s.Invoiced),
+                EscapeCsv(s.InvoiceDate),
+                EscapeCsv(s.ArrivedStation),
+                EscapeCsv(s.StationArrivalDate),
+                EscapeCsv(s.Discharged),
+                EscapeCsv(s.DischargedDate),
+                EscapeCsv(s.DischargeLocation),
+                EscapeCsv(s.DischargedQuantity.ToString("N2")),
+                EscapeCsv(s.DischargedUnit),
+                EscapeCsv(s.ReturnDate),
+                EscapeCsv(s.HasShortage),
+                EscapeCsv(s.ShortageAmount?.ToString("N2")),
+                EscapeCsv(s.Notes),
+                EscapeCsv(s.DurationDays.ToString()),
+                EscapeCsv(s.DischargeSummary)
+            }));
+        }
+
         var bytes = Encoding.UTF8.GetBytes(csv.ToString());
         var stream = new MemoryStream(bytes);
 
+        var fileName = $"Trip_Report_{request.StartDate:MMMM-yyyy}" +
+                    (request.EndDate.HasValue ? $"_to_{request.EndDate:MMMM-yyyy}" : "") +
+                    ".csv";
+
         return new FileStreamResult(stream, "text/csv")
         {
-            FileDownloadName = $"Loading from {request.StartDate:MMMM-yyyy} {(request.EndDate.HasValue ? $"to {request.EndDate:MMMM-yyyy}" : "")}.csv"
-        };        
+            FileDownloadName = fileName
+        };
     }
+
+    private string EscapeCsv(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return "";
+
+        value = value.Replace("\"", "\"\"");
+        if (value.Contains(',') || value.Contains('\n') || value.Contains('\r'))
+            value = $"\"{value}\"";
+
+        return value;
+    }
+
 
     [HttpPost("trips-byrange")]
     public async Task<ActionResult<IEnumerable<Trip>>> TripsByRange(ReportFilter filter, CancellationToken cancellationToken)
@@ -128,13 +231,13 @@ public class TripsController : ControllerBase
         }
     }
 
-    private string EscapeCsv(string? value)
-    {
-        if (string.IsNullOrEmpty(value)) return "";
-        if (value.Contains(',') || value.Contains('"') || value.Contains('\n'))
-            return $"\"{value.Replace("\"", "\"\"")}\"";
-        return value;
-    }
+    // private string EscapeCsv(string? value)
+    // {
+    //     if (string.IsNullOrEmpty(value)) return "";
+    //     if (value.Contains(',') || value.Contains('"') || value.Contains('\n'))
+    //         return $"\"{value.Replace("\"", "\"\"")}\"";
+    //     return value;
+    // }
 
      // POST: api/Paged
     [HttpPost("paged")]
@@ -298,7 +401,7 @@ public class TripsController : ControllerBase
         if (dispatchResult.Result is OkObjectResult okResult && okResult.Value is string dispatchId)
         {
             Console.WriteLine($"Generated DispatchId: {dispatchId}");
-            trip.DispatchId = dispatchId;
+            trip.DispatchId = dispatchId.Trim();
         }
         else
         {
