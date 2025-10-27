@@ -59,7 +59,7 @@ public class Trip
 
     public int CalculateTripDuration(DateTimeOffset createdDate, DateTimeOffset? returnDate)
     {
-        var endDate = (returnDate ?? DateTimeOffset.Now).Date;
+        var endDate = returnDate?.Date ?? DateTimeOffset.Now.Date;
         var startDate = createdDate.Date;
         return (endDate - startDate).Days;
     }
