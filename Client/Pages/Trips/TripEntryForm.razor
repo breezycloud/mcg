@@ -230,7 +230,7 @@
     protected override async Task OnInitializedAsync()
     {
         AppState.IsBusy = true;
-        Trucks = await TruckService.GetTrucksAvailableAsync("",AppState.GetCancellationToken());        
+        Trucks = await TruckService.GetTrucksAvailableAsync("All",AppState.GetCancellationToken());        
         Destionations = await StationService.GetAsync(StationType.DischargeStation.ToString(), AppState.GetCancellationToken());
         Drivers = await DriverService.GetAsync(AppState.GetCancellationToken());
         if (Id.HasValue)

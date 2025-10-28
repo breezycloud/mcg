@@ -116,7 +116,7 @@ public class TrucksController : ControllerBase
             .Where(truck => !trucksWithActiveTrips.Contains(truck.Id));
 
         // Filter by product if provided
-        if (!string.IsNullOrEmpty(product))
+        if (!string.IsNullOrEmpty(product) && product != "All")
         {
             truckQuery = truckQuery.Where(truck => truck.Product.ToString()!.Trim() == product.Trim());
         }

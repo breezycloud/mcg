@@ -22,6 +22,8 @@ public static class TripMapper
                 $"{d.DischargeStartTime:g}"))
             : "None";
 
+        var tStatus = trip.Status.ToString();
+        var tripStatus =  tStatus == "Overdue" ? "Closed" : tStatus;
         return new TripExportDto
         {
 
@@ -29,7 +31,7 @@ public static class TripMapper
             DispatchId = trip.DispatchId?.Trim(),
             TruckPlate = trip.Truck?.LicensePlate ?? "N/A",
             Product = trip.Truck?.Product.ToString() ?? "N/A",
-            Status = GetTripStatus(trip),
+            Status = tripStatus,
             LoadingPoint = trip.LoadingDepot?.Name ?? "N/A",
             LoadingDate = trip.LoadingInfo.LoadingDate?.ToString("dd/MM/yyyy HH:mm:ss"),
             WaybillNo = trip.LoadingInfo.WaybillNo,
@@ -41,7 +43,7 @@ public static class TripMapper
             ArrivedDepot = trip.ArrivalInfo.ArrivedDepot ? "Yes" : "No",
             DepotArrival = trip.ArrivalInfo.DepotArrivalDateTime.HasValue ? trip.ArrivalInfo.DepotArrivalDateTime.Value.ToString("dd/MM/yyyy HH:mm:ss") : "N/A",
             Invoiced = trip.ArrivalInfo.InvoiceIssued ? "Yes" : "N/A",
-            DepotName = trip.LoadingDepot?.Name ?? "N/A",
+            DepotName = trip.ReceivingDepot?.Name ?? "N/A",
             InvoiceDate = trip.ArrivalInfo.InvoiceToStationDateTime.HasValue ? trip.ArrivalInfo.InvoiceToStationDateTime.Value.ToString("dd/MM/yyyy HH:mm:ss") : "N/A",
             ArrivedStation = trip.ArrivalInfo.ArrivedAtStation == true ? "Yes" : "No",
             StationArrivalDate = trip.ArrivalInfo.StationArrivalDateTime.HasValue == true
