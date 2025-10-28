@@ -47,6 +47,10 @@
                             <span class="font-semibold text-gray-600 dark:text-gray-300 text-sm uppercase tracking-wide">Receiving Depot</span>
                             <span class="text-gray-900 dark:text-gray-100 font-medium">@(Trip?.ReceivingDepot?.Name is null ? "Not assigned" : Trip?.ReceivingDepot?.Name)</span>
                         </div>
+                        @* <div class="flex flex-col">
+                            <span class="font-semibold text-gray-600 dark:text-gray-300 text-sm uppercase tracking-wide">Receiving Depot</span>
+                            <span class="text-gray-900 dark:text-gray-100 font-medium">@(Trip?.ReceivingDepot?.Name is null ? "Not assigned" : Trip?.ReceivingDepot?.Name)</span>
+                        </div> *@
                     </div>
                 </div>
                 <div class="flex items-center">
@@ -184,7 +188,16 @@
                 </div>
                 <div class="flex flex-col">
                     <span class="font-semibold text-gray-600 dark:text-gray-300 text-sm uppercase tracking-wide">Completed By</span>
-                    <span class="text-gray-900 dark:text-gray-100 font-medium">@Trip?.CompletedBy?.ToString()</span>
+                    <span class="text-gray-900 dark:text-gray-100 font-medium">
+                    @if (Trip?.Status == TripStatus.Completed)
+                    {
+                        @Trip?.CompletedBy?.ToString()
+                    }
+                    else
+                    {
+                        @("N/A")
+                    }
+                    </span>
                 </div>
             </div>
         </div>
