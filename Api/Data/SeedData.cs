@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Api.Context;
 using Api.Util;
+using Microsoft.EntityFrameworkCore;
 using Shared.Enums;
 using Shared.Models.BaseEntity;
 using Shared.Models.Drivers;
@@ -24,8 +25,8 @@ public class SeedData
         using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         //db.Database.EnsureDeleted();
         await db.Database.EnsureCreatedAsync();
-       
 
+        await AddMigrations(scopeFactory);
        
         // if (db.Database.EnsureCreated())
         // {
@@ -41,6 +42,18 @@ public class SeedData
         //     var elapsedTime = $"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}.{ts.Milliseconds / 10:00}";
         //     Console.WriteLine($"Data Successfully Imported in {elapsedTime}");
         // }
+    }
+
+    private static async Task AddMigrations(IServiceScopeFactory scopeFactory)
+    {
+        using var scope = scopeFactory.CreateScope();
+        using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        int rowAffected = 0;
+        rowAffected = await db.Database.ExecuteSqlRawAsync(@"ALTER TABLE ""Trips"" ADD COLUMN IF NOT EXISTS ""CreatedById"" uuid NULL;");
+        if (rowAffected > 0)
+        {
+            Console.WriteLine("Migration Applied: Added CreatedById to Trips table");
+        }
     }
 
     public record Drivers(Guid Id, string FirstName, string LastName,string PhoneNo, string LicensePlate);

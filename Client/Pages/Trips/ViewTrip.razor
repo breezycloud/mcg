@@ -47,10 +47,10 @@
                             <span class="font-semibold text-gray-600 dark:text-gray-300 text-sm uppercase tracking-wide">Receiving Depot</span>
                             <span class="text-gray-900 dark:text-gray-100 font-medium">@(Trip?.ReceivingDepot?.Name is null ? "Not assigned" : Trip?.ReceivingDepot?.Name)</span>
                         </div>
-                        @* <div class="flex flex-col">
-                            <span class="font-semibold text-gray-600 dark:text-gray-300 text-sm uppercase tracking-wide">Receiving Depot</span>
-                            <span class="text-gray-900 dark:text-gray-100 font-medium">@(Trip?.ReceivingDepot?.Name is null ? "Not assigned" : Trip?.ReceivingDepot?.Name)</span>
-                        </div> *@
+                        <div class="flex flex-col">
+                            <span class="font-semibold text-gray-600 dark:text-gray-300 text-sm uppercase tracking-wide">Created By</span>
+                            <span class="text-gray-900 dark:text-gray-100 font-medium">@(Trip?.CreatedById is null ? "" : Trip?.CreatedBy?.ToString())</span>
+                        </div>
                     </div>
                 </div>
                 <div class="flex items-center">
