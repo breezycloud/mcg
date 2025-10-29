@@ -231,6 +231,14 @@
 
         try
         {
+            var currentUserId = await localStorage.GetItemAsync<Guid?>("uid");
+            if (currentUserId == null)
+            {
+                ToastService.ShowError("User not authenticated");
+                AppState.IsProcessing = false;            
+                StateHasChanged();
+                return;                
+            }
             foreach (var truck in Trucks.Where(t => t.IsSelected))
             {
                 var trip = new Trip
@@ -240,7 +248,8 @@
                     Date = batchDispatch.DispatchDate!.Value,
                     DriverId = truck.DriverId,
                     Status = TripStatus.Dispatched,
-                    CreatedAt = DateTimeOffset.UtcNow
+                    CreatedAt = DateTimeOffset.UtcNow,
+                    CreatedById = currentUserId.Value
                 };
                 await TripService.AddAsync(trip, AppState.GetCancellationToken());
             }

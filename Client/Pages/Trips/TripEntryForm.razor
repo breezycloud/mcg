@@ -29,9 +29,9 @@
                 <Toast Icon="@alert.Icon" Message="@alert.Message"/>
             }
             <div class="space-y-6">
-
+                
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <!-- Loading Date -->
+                <!-- Loading Date -->
                     <div>
                         <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                             Dispatch Date <span class="text-red-500">*</span>
@@ -47,7 +47,7 @@
                             <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["LoadingDate"]</p>
                         }
                     </div> 
-                     <!-- Waybill -->
+                     @* <!-- Waybill -->
                     <div>
                         <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                             Dispatch No <span class="text-red-500"></span>
@@ -63,10 +63,27 @@
                         {
                             <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["DispatchId"]</p>
                         }
-                    </div>                                       
-                </div>               
+                    </div>                *@
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    @* Product  *@
+                    <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            Product <span class="text-red-500">*</span>
+                        </label>
+                        <InputSelect @bind-Value="SelectedProduct" @bind-Value:after="OnProductChanged"
+                                class="@($"{GetInputClass("Product")} transition duration-200 focus:scale-[1.02]")">
+                            <option value="">-- Select Product --</option>
+                            <option value="PMS">PMS</option>
+                            <option value="AGO">AGO</option>
+                            <option value="ATK">ATK</option>
+                            <option value="LPG">LPG</option>
+                            <option value="CNG">CNG</option>
+                        </InputSelect>
+                        @if (errors.ContainsKey("Product"))
+                        {
+                            <p class="mt-1 text-sm text-red-600">@errors["Product"]</p>
+                        }
+                    </div>
                     <!-- Truck -->
                     <div>
                         <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
@@ -79,7 +96,7 @@
                             <option value="">-- Select Truck --</option>
                             @foreach (var truck in Trucks!)
                             {
-                                <option value="@truck.Id">@truck.LicensePlate</option>
+                                <option value="@truck.Id">@truck.LicensePlate (@truck.Product.ToString())</option>
                             }
                         </InputSelect>
                         @if (errors.ContainsKey("TruckId"))
@@ -104,17 +121,17 @@
                         {
                             <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["DriverId"]</p>
                         }
-                    </div>  
+                    </div>                     
                 </div>
-
-               
-
                 <!-- Loading Point -->
                 <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        Loading Point <span class="text-red-500">*</span>
+                    </label>
                     <StationAutocomplete                             
                             @bind-Value="SelectedStation"
                             StationType="StationType.LoadingDepot"
-                            Label="Select Loading Station"
+                            Label=""
                             Placeholder="Start typing station name..."
                             ShowDetails="true"
                             AllowClear="true" />
@@ -127,12 +144,37 @@
                                 <p><small>@(StringConverter.ToDescription(SelectedStation.Type))</small></p>
                             </div>
                         }
-                        @* @if (errors.ContainsKey("LoadingPointId"))
+                </div>
+
+               
+@*
+                <!-- Loading Point -->
+                <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        Loading Point <span class="text-red-500">*</span>
+                    </label>
+                    <StationAutocomplete                             
+                            @bind-Value="SelectedStation"
+                            StationType="StationType.LoadingDepot"
+                            Label=""
+                            Placeholder="Start typing station name..."
+                            ShowDetails="true"
+                            AllowClear="true" />
+
+                        @if (SelectedStation != null)
+                        {
+                            <div class="mt-4 p-4 bg-green-50 rounded">
+                                <h4 class="font-bold">Selected Station:</h4>
+                                <p>@SelectedStation.Name</p>
+                                <p><small>@(StringConverter.ToDescription(SelectedStation.Type))</small></p>
+                            </div>
+                        }
+                         @if (errors.ContainsKey("LoadingPointId"))
                         {
                             <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["LoadingPointId"]</p>
                         } *@
 
-                    @* <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    @*<label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                         Loading Point <span class="text-red-500">*</span>
                     </label>
                     <InputSelect @bind-Value="tripLoading.LoadingPointId" class="@GetInputClass("LoadingPointId")">
@@ -145,9 +187,11 @@
                     @if (errors.ContainsKey("LoadingPointId"))
                     {
                         <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["LoadingPointId"]</p>
-                    } *@
+                    } 
                 </div>                               
 
+                *@
+            
              <!-- Timestamps -->
             @if (Id.HasValue)
             {
@@ -167,31 +211,29 @@
                 </div>
             }
             
-            <!-- Form Actions -->
-            
-            
-            <div class="flex justify-end gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                <button type="button" @onclick="Cancel"
-                    class="px-5 py-2.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-700 dark:focus:ring-gray-700">
-                    Cancel
-                </button>
-                <button type="submit"
-                    class="px-5 py-2.5 text-sm font-medium text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800 flex items-center justify-center min-w-[120px]"
-                    disabled="@AppState.IsProcessing">
-                    @if (AppState.IsProcessing)
-                    {
-                        <svg class="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                        </svg>
-                        @("Processing...")
-                    }
-                    else
-                    {
-                        @(EditMode ? "Update Trip" : "Add Trip")
-                    }
-                </button>
-            </div>
+                <!-- Form Actions -->                    
+                <div class="flex justify-end gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <button type="button" @onclick="Cancel"
+                        class="px-5 py-2.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-700 dark:focus:ring-gray-700">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                        class="px-5 py-2.5 text-sm font-medium text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800 flex items-center justify-center min-w-[120px]"
+                        disabled="@AppState.IsProcessing">
+                        @if (AppState.IsProcessing)
+                        {
+                            <svg class="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                            </svg>
+                            @("Processing...")
+                        }
+                        else
+                        {
+                            @(EditMode ? "Update Trip" : "Add Trip")
+                        }
+                    </button>
+                </div>
             </div>
         </EditForm>
     }
@@ -212,6 +254,7 @@
     [Parameter] public EventCallback OnSubmit { get; set; }
     [Parameter] public EventCallback OnCancel { get; set; }
 
+    private string? SelectedProduct;
     private ConfirmationModal? ConfirmModal;
     private bool userConfirmed = false;
 
@@ -229,8 +272,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        AppState.IsBusy = true;
-        Trucks = await TruckService.GetTrucksAvailableAsync("All",AppState.GetCancellationToken());        
+        AppState.IsBusy = true;        
         Destionations = await StationService.GetAsync(StationType.DischargeStation.ToString(), AppState.GetCancellationToken());
         Drivers = await DriverService.GetAsync(AppState.GetCancellationToken());
         if (Id.HasValue)
@@ -251,6 +293,31 @@
             StateHasChanged();
         }
     }
+
+
+    private async Task OnProductChanged()
+    {        
+        Trucks = [];
+        if (string.IsNullOrEmpty(SelectedProduct))
+            return;            
+
+        try
+        {
+            Trucks = await TruckService.GetTrucksAvailableAsync(
+                SelectedProduct,                
+                AppState.GetCancellationToken()
+            );
+        }
+        catch
+        {
+            ToastService.ShowError("Failed to load trucks for selected product");
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+
 
 
     private async Task OnTruckChanged()
@@ -359,6 +426,15 @@
             errors["DriverId"] = "Driver is required";
         }
 
+        var currentUserId = await localStorage.GetItemAsync<Guid?>("uid");
+        if (currentUserId == null)
+        {
+            ToastService.ShowError("User not authenticated");
+            AppState.IsProcessing = false;            
+            StateHasChanged();
+            return;                
+        }
+
         if (errors.Any())
         {
             AppState.IsProcessing = false;
@@ -390,6 +466,7 @@
 
                 CurrentTrip = TripService.MapTripLoadingAsync(tripLoading, AppState.GetCancellationToken());
                 CurrentTrip.SetInitialStatus();
+                CurrentTrip.CreatedById = currentUserId.Value;
                 result = await TripService.AddAsync(CurrentTrip, AppState.GetCancellationToken());
             }
             else

@@ -30,6 +30,7 @@ public class Trip
     [Column(TypeName = "jsonb")]
     public CloseInfo CloseInfo { get; set; } = new();
     public TripStatus Status { get; set; }
+    public Guid? CreatedById { get; set; }
     public Guid? ClosedById { get; set; }
     public Guid? CompletedById { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
@@ -48,6 +49,9 @@ public class Trip
 
     [ForeignKey(nameof(ReceivingDepotId))]
     public Station? ReceivingDepot { get; set; }
+
+    [ForeignKey(nameof(CreatedById))]
+    public User? CreatedBy { get; set; }
 
     [ForeignKey(nameof(ClosedById))]
     public User? ClosedBy { get; set; }
