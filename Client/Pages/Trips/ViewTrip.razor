@@ -66,7 +66,7 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div class="flex flex-col">
                     <span class="font-semibold text-gray-600 dark:text-gray-300 text-sm uppercase tracking-wide">Loading Depot Arrival Date</span>
-                    <span class="text-gray-900 dark:text-gray-100 font-medium">@(Trip?.ArrivalInfo.LoadingLocationArrivalDateTime is null ? "Not assigned" : Trip?.ArrivalInfo?.LoadingLocationArrivalDateTime)</span>
+                    <span class="text-gray-900 dark:text-gray-100 font-medium">@(Trip?.ArrivalInfo.LoadingLocationArrivalDateTime is null ? "Not assigned" : Trip?.ArrivalInfo?.LoadingLocationArrivalDateTime?.ToString("dd/MM/yyyy HH:mm:ss"))</span>
                 </div>
                 <div class="flex flex-col">
                     @* <span class="font-semibold text-gray-600 dark:text-gray-300 text-sm uppercase tracking-wide">Waybill No</span>

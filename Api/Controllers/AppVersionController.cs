@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using Shared.Helpers;
-using Microsoft.AspNetCore.Authorization;
 
 [ApiController]
 [Route("api/[controller]")]
