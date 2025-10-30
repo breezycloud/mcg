@@ -139,8 +139,7 @@ public class TripService(IHttpClientFactory _httpClient, IJSRuntime js) : ITripS
     {
         try
         {
-            using var response = await _httpClient.CreateClient("AppUrl").GetAsync($"Trips/{id}", cancellationToken);
-            response.EnsureSuccessStatusCode();
+            using var response = await _httpClient.CreateClient("AppUrl").GetAsync($"Trips/{id}", cancellationToken);                        
             return await response.Content.ReadFromJsonAsync<Trip?>();
         }
         catch (System.Exception)
@@ -191,6 +190,21 @@ public class TripService(IHttpClientFactory _httpClient, IJSRuntime js) : ITripS
             using var response = await _httpClient.CreateClient("AppUrl").GetAsync($"Trips/generate-dispatch?truckId={truckId}&date={date:yyyy-MM-dd}", cancellationToken);
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<string?>();
+        }
+        catch (System.Exception)
+        {
+
+            throw;
+        }
+    }
+
+    public async Task<bool> DispatchExistAsync(Guid truckId, DateOnly date, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var response = await _httpClient.CreateClient("AppUrl").GetAsync($"Trips/dispatch-exist?truckId={truckId}&date={date:yyyy-MM-dd}", cancellationToken);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<bool>();
         }
         catch (System.Exception)
         {

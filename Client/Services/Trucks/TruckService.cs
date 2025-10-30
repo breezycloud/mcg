@@ -93,6 +93,13 @@ public class TruckService(IHttpClientFactory _httpClient) : ITruckService
         }
     }
 
+    public async Task<Truck[]?> GetTrucksAvailableAsync(string product= "", CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.CreateClient("AppUrl").GetAsync($"trucks/available-trucks?product={product}", cancellationToken);        
+        return await response.Content.ReadFromJsonAsync<Truck[]?>();
+    }
+
+
     public async Task<Truck[]?> GetAsync(string status, CancellationToken cancellationToken)
     {
         try

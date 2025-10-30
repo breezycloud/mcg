@@ -10,7 +10,6 @@
     }
     else
     {
-        <!-- Header Section (UNCHANGED) -->
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 mb-8 transition-all duration-300 hover:shadow-xl">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
                 <div class="space-y-6 w-full">
@@ -48,6 +47,10 @@
                             <span class="font-semibold text-gray-600 dark:text-gray-300 text-sm uppercase tracking-wide">Receiving Depot</span>
                             <span class="text-gray-900 dark:text-gray-100 font-medium">@(Trip?.ReceivingDepot?.Name is null ? "Not assigned" : Trip?.ReceivingDepot?.Name)</span>
                         </div>
+                        <div class="flex flex-col">
+                            <span class="font-semibold text-gray-600 dark:text-gray-300 text-sm uppercase tracking-wide">Created By</span>
+                            <span class="text-gray-900 dark:text-gray-100 font-medium">@(Trip?.CreatedById is null ? "" : Trip?.CreatedBy?.ToString())</span>
+                        </div>
                     </div>
                 </div>
                 <div class="flex items-center">
@@ -58,10 +61,17 @@
             </div>
         </div>
 
-        <!-- Loading Info Section (UNCHANGED) -->
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 mb-8 transition-all duration-300 hover:shadow-xl">
             <h3 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 border-b-2 border-blue-200 dark:border-blue-900 pb-3">Loading Info</h3>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div class="flex flex-col">
+                    <span class="font-semibold text-gray-600 dark:text-gray-300 text-sm uppercase tracking-wide">Loading Depot Arrival Date</span>
+                    <span class="text-gray-900 dark:text-gray-100 font-medium">@(Trip?.ArrivalInfo.LoadingLocationArrivalDateTime is null ? "Not assigned" : Trip?.ArrivalInfo?.LoadingLocationArrivalDateTime)</span>
+                </div>
+                <div class="flex flex-col">
+                    @* <span class="font-semibold text-gray-600 dark:text-gray-300 text-sm uppercase tracking-wide">Waybill No</span>
+                    <span class="text-gray-900 dark:text-gray-100 font-medium">@(Trip?.LoadingInfo?.WaybillNo is null ? "Not assigned" : Trip?.LoadingInfo?.WaybillNo)</span> *@
+                </div>
                 <div class="flex flex-col">
                     <span class="font-semibold text-gray-600 dark:text-gray-300 text-sm uppercase tracking-wide">Waybill No</span>
                     <span class="text-gray-900 dark:text-gray-100 font-medium">@(Trip?.LoadingInfo?.WaybillNo is null ? "Not assigned" : Trip?.LoadingInfo?.WaybillNo)</span>
@@ -178,7 +188,16 @@
                 </div>
                 <div class="flex flex-col">
                     <span class="font-semibold text-gray-600 dark:text-gray-300 text-sm uppercase tracking-wide">Completed By</span>
-                    <span class="text-gray-900 dark:text-gray-100 font-medium">@Trip?.CompletedBy?.ToString()</span>
+                    <span class="text-gray-900 dark:text-gray-100 font-medium">
+                    @if (Trip?.Status == TripStatus.Completed)
+                    {
+                        @Trip?.CompletedBy?.ToString()
+                    }
+                    else
+                    {
+                        @("N/A")
+                    }
+                    </span>
                 </div>
             </div>
         </div>

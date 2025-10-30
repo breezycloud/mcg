@@ -5,7 +5,7 @@ using Shared.Helpers;
 namespace Shared.Models.Trips;
 
 public class LoadingInfo
-{
+{        
     public DateTime? LoadingDate { get; set; }
     public string? WaybillNo { get; set; }
     public decimal? Quantity { get; set; }

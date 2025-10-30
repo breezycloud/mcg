@@ -22,13 +22,10 @@ public class CsvExportService : IExportService
         {
             var csvContent = GenerateCsvContent(data);
             var fileBytes = Encoding.UTF8.GetBytes(csvContent);
-
-            // For Blazor Server - you might want to save to a temporary file
-            // or stream directly to the browser
+                        
             // var tempPath = Path.Combine(Path.GetTempPath(), fileName);
             // await File.WriteAllBytesAsync(tempPath, fileBytes);
-
-            // Trigger file download
+            
             await TriggerFileDownload(fileBytes, fileName, "text/csv");
         }
         catch (Exception ex)

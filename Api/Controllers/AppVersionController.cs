@@ -14,8 +14,9 @@ public class AppVersionController : ControllerBase
         #if DEBUG
             AppVersion = 1.1;
         #else
-            AppVersion = 2.8;
+            AppVersion = 3.2;
         #endif
+        
         return Ok(new VersionManifest
         {
             AppVersion = AppVersion, // Update this with each release

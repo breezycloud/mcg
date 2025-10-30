@@ -30,6 +30,7 @@ public class Trip
     [Column(TypeName = "jsonb")]
     public CloseInfo CloseInfo { get; set; } = new();
     public TripStatus Status { get; set; }
+    public Guid? CreatedById { get; set; }
     public Guid? ClosedById { get; set; }
     public Guid? CompletedById { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
@@ -49,6 +50,9 @@ public class Trip
     [ForeignKey(nameof(ReceivingDepotId))]
     public Station? ReceivingDepot { get; set; }
 
+    [ForeignKey(nameof(CreatedById))]
+    public User? CreatedBy { get; set; }
+
     [ForeignKey(nameof(ClosedById))]
     public User? ClosedBy { get; set; }
     [ForeignKey(nameof(CompletedById))]
@@ -59,7 +63,7 @@ public class Trip
 
     public int CalculateTripDuration(DateTimeOffset createdDate, DateTimeOffset? returnDate)
     {
-        var endDate = (returnDate ?? DateTimeOffset.Now).Date;
+        var endDate = returnDate?.Date ?? DateTimeOffset.Now.Date;
         var startDate = createdDate.Date;
         return (endDate - startDate).Days;
     }
@@ -140,7 +144,8 @@ public class Trip
 }
 
 public class ArrivalInfo
-{
+{    
+    public DateTimeOffset? LoadingLocationArrivalDateTime { get; set; }
     public bool ArrivedDepot { get; set; }
     public bool ArrivedAtStation { get; set; }
     public bool InvoiceIssued { get; set; }

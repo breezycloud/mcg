@@ -103,6 +103,27 @@ public class TrucksController : ControllerBase
         }
     }
 
+    [HttpGet("available-trucks")]
+    public async Task<ActionResult<IEnumerable<Truck>?>> GetAvailableTrucksAsync(string product, CancellationToken cancellationToken = default)
+    {
+        // Get trucks with no active trip (assuming "Active" and "Dispatched" are statuses for active trips)
+        var trucksWithActiveTrips = _context.Trips
+            .Where(t => t.Status == TripStatus.Active || t.Status == TripStatus.Dispatched)
+            .Select(t => t.TruckId)
+            .Distinct();
+
+        var truckQuery = _context.Trucks.AsNoTracking().Include(x => x.Driver)
+            .Where(truck => !trucksWithActiveTrips.Contains(truck.Id));
+
+        // Filter by product if provided
+        if (!string.IsNullOrEmpty(product) && product != "All")
+        {
+            truckQuery = truckQuery.Where(truck => truck.Product.ToString()!.Trim() == product.Trim());
+        }
+
+        return await truckQuery.OrderBy(x => x.LicensePlate).ToListAsync(cancellationToken);
+    }
+
     // GET: api/Validate/{type}/value
     [HttpGet("validate")]
     public async Task<ActionResult<bool>> ValidateEntry(string type, string value, CancellationToken cancellationToken = default)
