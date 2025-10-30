@@ -28,6 +28,7 @@ public static class TripMapper
         {
 
             Date = trip.Date,
+            LoadingDepotDate = trip.ArrivalInfo.LoadingLocationArrivalDateTime?.ToString("dd/MM/yyyy HH:mm:ss"),
             DispatchId = trip.DispatchId?.Trim(),
             TruckPlate = trip.Truck?.LicensePlate ?? "N/A",
             Product = trip.Truck?.Product.ToString() ?? "N/A",
