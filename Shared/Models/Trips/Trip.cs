@@ -76,6 +76,8 @@ public class Trip
 
     public string CalculateShortageOverage(decimal? Quantity)
     {
+        if (Quantity is null)
+            return "Nil";
         if (Quantity < 0)
             return "Shortage";
         else if (Quantity > 0)
