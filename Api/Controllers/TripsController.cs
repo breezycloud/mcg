@@ -149,7 +149,7 @@ public class TripsController : ControllerBase
         var csv = new StringBuilder();
         
         csv.AppendLine(
-            "S/N,Dispatch Date,Loading Depot Arrival Date,Loading Date,Truck Number,Product,Trip Status,Loading Point,Waybill Number,Dispatch Quantity,Driver Name,Destination,E-lock Status,Dispatch Type,Arrived Depot,Depot Arrival Date,Depot Name,Invoiced,Invoice Date,Arrived Station,Station Arrival Date,Discharging/Discharged?,Discharged Date,Discharge Location,Discharged Quantity,Unit (SCM/KG/MT/LTR),Return Date,Shortage/Overage?,Shortage/Overage Amount,Remarks,Duration Days,Discharge Summary"
+            "S/N,Dispatch Date,Dispatch ID,Loading Depot Arrival Date,Loading Date,Truck Number,Product,Trip Status,Loading Point,Waybill Number,Dispatch Quantity,Driver Name,Destination,E-lock Status,Dispatch Type,Arrived Depot,Depot Arrival Date,Depot Name,Invoiced,Invoice Date,Arrived Station,Station Arrival Date,Discharging/Discharged?,Discharged Date,Discharge Location,Discharged Quantity,Unit (SCM/KG/MT/LTR),Return Date,Shortage/Overage?,Shortage/Overage Amount,Remarks,Duration Days,Discharge Summary"
         );
 
         int sn = 1;
@@ -159,6 +159,7 @@ public class TripsController : ControllerBase
             {
                 sn++.ToString(),
                 EscapeCsv(s.Date.ToString("dd/MM/yyyy")),
+                EscapeCsv(s.DispatchId),
                 EscapeCsv(s.LoadingDepotDate),
                 EscapeCsv(s.LoadingDate),
                 EscapeCsv(s.TruckPlate),
