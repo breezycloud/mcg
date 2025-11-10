@@ -1,3 +1,5 @@
+@using Shared.Extensions
+@using Shared.Enums
 @inject IDashboardService DashboardService
 @implements IDisposable
 
@@ -71,7 +73,7 @@ else
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="flex items-center">
                                         <div class="flex-shrink-0 h-5 w-5 @GetProductColor(item.Product) rounded-full"></div>
-                                        <div class="ml-2 text-gray-900 dark:text-gray-100">@item.Product</div>
+                                        <div class="ml-2 text-gray-900 dark:text-gray-100">@FormatProduct(item.Product)</div>
                                     </div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-gray-100">@item.TotalTrips</td>
@@ -145,9 +147,12 @@ else
 
     private string GetProductColor(string? product)
     {
-        return product switch
+        if (string.IsNullOrWhiteSpace(product)) return "bg-gray-500";
+        var p = product.Trim();
+        return p switch
         {
-            "CNG" => "bg-blue-500",
+            "CNG" or "CngAbuja" or "CNG-Abuja" => "bg-blue-500",
+            "CngLagos" or "CNG-Lagos" => "bg-indigo-500",
             "PMS" => "bg-yellow-500",
             "ATK" => "bg-red-500",
             "LPG" => "bg-green-500",
@@ -156,13 +161,28 @@ else
         };
     }
 
-    private string GetUnitForProduct(string? ProductFilter)
+    private string GetUnitForProduct(string? product)
     {
-        return ProductFilter switch
+        if (string.IsNullOrWhiteSpace(product)) return "LTR";
+        var p = product.Trim();
+        return p switch
         {
-            "CNG" => "SCM",
+            "CNG" or "CngAbuja" or "CNG-Abuja" or "CngLagos" or "CNG-Lagos" => "SCM",
             "LPG" => "KG",
             _ => "LTR"
+        };
+    }
+
+    private string FormatProduct(string? product)
+    {
+        if (string.IsNullOrWhiteSpace(product)) return "N/A";
+        return product switch
+        {
+            "CNG" or "CngAbuja" => "CNG-Abuja",
+            "CngLagos" => "CNG-Lagos",
+            "CNG-Abuja" => "CNG-Abuja",
+            "CNG-Lagos" => "CNG-Lagos",
+            _ => product
         };
     }
 

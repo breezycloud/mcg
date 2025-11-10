@@ -1,6 +1,7 @@
 @page "/trucks/{Action}/{Id:guid?}"
 @inject ITruckService TruckService
 @inject IDriverService DriverService
+@attribute [Authorize(Roles = "Supervisor, Admin, Master")]
 
 
 <div class="max-w-2xl mx-auto p-4 sm:p-6">
@@ -165,7 +166,7 @@
             <!-- Dates (Display only when editing) -->
             @if (Id.HasValue)
             {                          
-                @if (CurrentTruck?.Product != Product.CNG || CurrentTruck.CalibrationParams!.Count != 3)      
+                @if (CurrentTruck?.Product != Product.CngAbuja && CurrentTruck?.Product != Product.CngLagos || CurrentTruck.CalibrationParams!.Count != 3)      
                 {
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>

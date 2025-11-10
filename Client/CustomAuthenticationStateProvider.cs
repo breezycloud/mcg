@@ -6,6 +6,8 @@ using System.Text.Json;
 using Shared.Models;
 using Blazored.LocalStorage;
 using Shared.Models.Auth;
+using Client.Handlers;
+using Shared.Helpers;
 
 namespace Client
 {
@@ -14,11 +16,13 @@ namespace Client
         private ILocalStorageService _localStorage;
         private HttpClient _httpClient;
         private NavigationManager _navigation;
-        public CustomAuthenticationStateProvider(ILocalStorageService localStorage, HttpClient httpClient, NavigationManager navigation)
+        private readonly AppState _appState;
+        public CustomAuthenticationStateProvider(ILocalStorageService localStorage, HttpClient httpClient, NavigationManager navigation, AppState appState)
         {
             _localStorage = localStorage;
             _httpClient = httpClient;
             _navigation = navigation;
+            _appState = appState;
         }
 
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
@@ -47,7 +51,10 @@ namespace Client
             //    : new ClaimsIdentity(ParseClaimsFromJwt(token), "jwt");
 
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity(claims, "jwt")));
+            var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, "jwt"));
+            var managed = Security.GetManagedProducts(principal);
+            _appState.SetDriverSupervisorContext(principal.IsDriverSupervisor(), managed);
+            return new AuthenticationState(principal);
         }
 
         public async Task SetTokenAsync(LoginResponse response)

@@ -1,4 +1,5 @@
 @using Shared.Enums
+@using Shared.Extensions
 @using global::Client.Handlers
 @inject IJSRuntime js
 <div class="max-w-2xl mx-auto p-4 sm:p-6">
@@ -74,21 +75,21 @@
                     <label for="role" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                         Role <span class="text-red-500">*</span>
                     </label>
-                    <select id="role" @bind="CurrentUser.Role"
-                            class="@GetInputClass("Role")">
+                    <InputSelect id="role" @bind-Value="@CurrentUser.Role"
+                            class="@GetInputClass("Role")" @bind-Value:after="OnRoleChanged">
                         @foreach (UserRole role in Enum.GetValues(typeof(UserRole)))
                         {
                             if (role == UserRole.Master)
                                 continue;
-                            <option value="@role">@role</option>
+                            <option value="@role">@StringConverter.ToDescription(role)</option>
                         }
-                    </select>
+                    </InputSelect>
                 </div>
                 @if (CurrentUser.Role == UserRole.Maintenance)
                 {
                     <div>
                         <label for="maintenanceSite" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                            Maintenance Site
+                            Maintenance Site <span class="text-red-500">*</span>
                         </label>
                         <InputSelect id="maintenanceSite" @bind-Value="CurrentUser.MaintenanceSiteId" class="@GetInputClass("MaintenanceSiteId")">
                             <option value="">Select site</option>
@@ -106,45 +107,34 @@
                         }
                     </div>
                 }
-                @* <div class="flex flex-col justify-center h-full">
-                    <div class="flex flex-row items-center gap-2 px-2 py-3">
-                        <div class="flex items-center">
-                            <input id="isActive" type="checkbox" @bind="CurrentUser.IsActive"
-                                   class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
-                            <label for="isActive" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">
-                                Active User
-                            </label>
-                        </div>
-                        <div class="flex items-center">
-                            <input id="isVerified" type="checkbox" @bind="CurrentUser.IsVerified"
-                                   class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
-                            <label for="isVerified" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">
-                                Verified Account
-                            </label>
-                        </div> 
-                    </div>
-                </div> *@
             </div>
 
-            
-
-            <!-- Password (only for new users) -->
-            @* @if (!EditMode)
+            @* Driver Supervisor Managed Products *@
+            @if (CurrentUser.Role == UserRole.DriverSupervisor)
             {
                 <div>
-                    <label for="password" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                        Password <span class="text-red-500">*</span>
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        Managed Products <span class="text-red-500">*</span>
                     </label>
-                    <input type="password" id="password" @bind="password"
-                           class="@GetInputClass("HashedPassword")"
-                           placeholder="••••••••">
-                    @if (errors.ContainsKey("HashedPassword"))
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                        @foreach (var p in Enum.GetValues<Product>().OrderBy(x => x))
+                        {
+                            <label class="flex items-center space-x-2 px-3 py-2 rounded bg-gray-50 dark:bg-gray-700 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                                <input type="checkbox"
+                                       value="@p"
+                                       checked="@SelectedManagedProducts.Contains(p)"
+                                       @onchange="e => ToggleManagedProduct(p, (bool)e.Value!)"
+                                       class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-600 dark:border-gray-500">
+                                <span class="text-gray-900 dark:text-white">@p.ToDisplay()</span>
+                            </label>
+                        }
+                    </div>
+                    @if (errors.ContainsKey("ManagedProducts"))
                     {
-                        <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["HashedPassword"]</p>
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["ManagedProducts"]</p>
                     }
-                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Minimum 8 characters</p>
                 </div>
-            } *@
+            }
 
             <!-- Form Actions -->
             <div class="flex justify-end pt-6 border-t border-gray-200 dark:border-gray-700 space-x-3">
@@ -186,20 +176,53 @@
     [Parameter]
     public EventCallback OnCancel { get; set; }
 
-    private Dictionary<string, string> errors = new();
-    private string password = string.Empty;
     [Parameter]
     public MaintenanceSite[]? Sites { get; set; } = [];
-    
 
-    private void OnInitialized()
+    private Dictionary<string, string> errors = new();
+    private HashSet<Product> SelectedManagedProducts = new();
+
+    protected override void OnParametersSet()
     {
-        if (CurrentUser.MaintenanceSiteId is not null || !CurrentUser.MaintenanceSiteId.Equals(Guid.Empty))
+        // Initialize managed products selection when editing
+        if (EditMode && CurrentUser.Role == UserRole.DriverSupervisor && CurrentUser.ManagedProducts?.Count > 0)
         {
-            var site = Sites.First(x => x.Id == CurrentUser.MaintenanceSiteId);
-            CurrentUser.MaintenanceSiteId = site.Id;
-            StateHasChanged();
+            SelectedManagedProducts = CurrentUser.ManagedProducts.ToHashSet();
         }
+        else
+        {
+            SelectedManagedProducts.Clear();
+        }
+    }
+
+    private void OnRoleChanged()
+    {
+        // Clear managed products when role changes away from DriverSupervisor
+        if (CurrentUser.Role != UserRole.DriverSupervisor)
+        {
+            SelectedManagedProducts.Clear();
+            CurrentUser.ManagedProducts = new List<Product>();
+            errors.Remove("ManagedProducts");
+        }
+        
+        // Clear maintenance site when role changes away from Maintenance
+        if (CurrentUser.Role != UserRole.Maintenance)
+        {
+            CurrentUser.MaintenanceSiteId = null;
+            errors.Remove("MaintenanceSiteId");
+        }
+    }
+
+    private void ToggleManagedProduct(Product product, bool isChecked)
+    {
+        if (isChecked)
+            SelectedManagedProducts.Add(product);
+        else
+            SelectedManagedProducts.Remove(product);
+        
+        // Clear error when user makes a selection
+        if (SelectedManagedProducts.Any())
+            errors.Remove("ManagedProducts");
     }
     
     private string GetInputClass(string fieldName)
@@ -217,10 +240,6 @@
         
         return baseClass;
     }
-    private async Task HandleSearchEmail(string search)
-    {
-
-    }
 
     private async Task HandleSubmit()
     {
@@ -228,44 +247,49 @@
         
         // Validate required fields
         if (string.IsNullOrWhiteSpace(CurrentUser.FirstName))
-        {
             errors["FirstName"] = "First name is required";
-        }
         
         if (string.IsNullOrWhiteSpace(CurrentUser.LastName))
-        {
             errors["LastName"] = "Last name is required";
-        }
         
         if (string.IsNullOrWhiteSpace(CurrentUser.Email))
-        {
             errors["Email"] = "Email is required";
-        }
         else if (!CurrentUser.Email.Contains("@"))
-        {
             errors["Email"] = "Valid email is required";
-        }
-        
         
         // Validate phone number format if provided
-        if (string.IsNullOrWhiteSpace(CurrentUser.PhoneNo))
-        {
+        if (!string.IsNullOrWhiteSpace(CurrentUser.PhoneNo) && 
+            !System.Text.RegularExpressions.Regex.IsMatch(CurrentUser.PhoneNo, @"^\d{11}$"))
             errors["PhoneNo"] = "Phone number must be exactly 11 digits";
-        }
 
-        if (CurrentUser.Role == UserRole.Maintenance )        
+        // Validate maintenance site for Maintenance role
+        if (CurrentUser.Role == UserRole.Maintenance)
         {
-            if (CurrentUser.MaintenanceSiteId.Equals(Guid.Empty) || CurrentUser.MaintenanceSiteId is null)
+            if (CurrentUser.MaintenanceSiteId == null || CurrentUser.MaintenanceSiteId == Guid.Empty)
                 errors["MaintenanceSiteId"] = "Maintenance Centre is required";
         }
-        Console.WriteLine(errors.Count);
-        await js.InvokeVoidAsync("console.log", errors, CurrentUser);
+
+        // Validate managed products for DriverSupervisor role
+        if (CurrentUser.Role == UserRole.DriverSupervisor)
+        {
+            if (SelectedManagedProducts.Count == 0)
+                errors["ManagedProducts"] = "Select at least one product";
+            else
+                CurrentUser.ManagedProducts = SelectedManagedProducts.OrderBy(p => p).ToList();
+        }
+        else
+        {
+            CurrentUser.ManagedProducts = new List<Product>();
+        }
+
         if (errors.Count == 0)
         {
             CurrentUser.FirstName = StringConverter.ConvertToTitleCase(CurrentUser.FirstName!);
-            CurrentUser.LastName = StringConverter.ConvertToTitleCase(CurrentUser.LastName!);            
+            CurrentUser.LastName = StringConverter.ConvertToTitleCase(CurrentUser.LastName!);
+            
             if (EditMode)
                 CurrentUser.UpdatedAt = DateTimeOffset.UtcNow;
+            
             await OnSubmit.InvokeAsync(CurrentUser);
         }
         else

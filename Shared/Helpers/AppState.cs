@@ -1,9 +1,12 @@
+using System.Collections.Concurrent;
+using Shared.Models.Drivers;
 using Shared.Models.Trips;
+using Shared.Enums;
 
 namespace Shared.Helpers;
 
 
-public class AppState
+public partial class AppState
 {
     public bool IsProcessing { get; set; } = false;
     public bool IsBusy { get; set; }
@@ -23,11 +26,9 @@ public class AppState
     public event EventHandler? FilterChanged;
 
     private bool _filterChanged = false;
-    public bool HasChanged
-    {
+    public bool HasChanged {
         get => _filterChanged;
-        set
-        {
+        set {
             if (_filterChanged != value)
             {
                 _filterChanged = value;
@@ -44,11 +45,9 @@ public class AppState
     public event EventHandler? RefuelProcessed;
 
     private bool _hasProcessed = false;
-    public bool HasProcessed
-    {
+    public bool HasProcessed {
         get => _hasProcessed;
-        set
-        {
+        set {
             if (_hasProcessed != value)
             {
                 _hasProcessed = value;
@@ -70,4 +69,17 @@ public class AppState
     public CancellationToken GetCancellationToken() =>
         new CancellationTokenSource().Token;
 
+
+    public TableState<Trip>? TripStore { get; set; } = new();
+    public TableState<Driver>? DriverStore { get; set; } = new();
+    // Managed products for DriverSupervisor (populated after auth)
+    public List<Product> ManagedProducts { get; private set; } = new();
+
+    public bool IsDriverSupervisor { get; private set; }
+
+    public void SetDriverSupervisorContext(bool isDriverSupervisor, IEnumerable<Product> products)
+    {
+        IsDriverSupervisor = isDriverSupervisor;
+        ManagedProducts = isDriverSupervisor ? products.Distinct().ToList() : new List<Product>();
+    }
 }

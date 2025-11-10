@@ -48,12 +48,38 @@ public class SeedData
     {
         using var scope = scopeFactory.CreateScope();
         using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        int rowAffected = 0;
-        rowAffected = await db.Database.ExecuteSqlRawAsync(@"ALTER TABLE ""Trips"" ADD COLUMN IF NOT EXISTS ""CreatedById"" uuid NULL;");
-        if (rowAffected > 0)
+
+        // Add CreatedById to Trips (existing)
+        _ = await db.Database.ExecuteSqlRawAsync(@"ALTER TABLE ""Trips"" ADD COLUMN IF NOT EXISTS ""CreatedById"" uuid NULL;");
+
+        // NEW: ManagedProducts jsonb on Users with default [] and NOT NULL
+        _ = await db.Database.ExecuteSqlRawAsync(@"
+            ALTER TABLE ""Users"" 
+            ADD COLUMN IF NOT EXISTS ""ManagedProducts"" jsonb;
+        ");
+
+        // Ensure default and not-null
+        _ = await db.Database.ExecuteSqlRawAsync(@"
+            ALTER TABLE ""Users"" 
+            ALTER COLUMN ""ManagedProducts"" SET DEFAULT '[]'::jsonb;
+        ");
+
+        // Backfill nulls to empty array
+        var updated = await db.Database.ExecuteSqlRawAsync(@"
+            UPDATE ""Users"" 
+            SET ""ManagedProducts"" = '[]'::jsonb 
+            WHERE ""ManagedProducts"" IS NULL;
+        ");
+        if (updated > 0)
         {
-            Console.WriteLine("Migration Applied: Added CreatedById to Trips table");
+            Console.WriteLine($@"Migration Applied: Backfilled {updated} Users.ManagedProducts to []");
         }
+
+        // Enforce NOT NULL
+        _ = await db.Database.ExecuteSqlRawAsync(@"
+            ALTER TABLE ""Users""
+            ALTER COLUMN ""ManagedProducts"" SET NOT NULL;
+        ");
     }
 
     public record Drivers(Guid Id, string FirstName, string LastName,string PhoneNo, string LicensePlate);

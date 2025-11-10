@@ -1,11 +1,35 @@
 using System;
 using System.Security.Cryptography;
 using System.Text;
+using System.Security.Claims;
+using Shared.Enums;
 
 namespace Api.Util;
 
-public class Security
+public static class Security
 {
+    public const string ManagedProductsClaim = "managed_products"; // comma-separated product names
+
+    public static bool IsInRole(this ClaimsPrincipal user, UserRole role) =>
+        user.IsInRole(role.ToString());
+
+    public static bool IsDriverSupervisor(this ClaimsPrincipal user) =>
+        user.IsInRole(UserRole.DriverSupervisor);
+
+    public static HashSet<Product> GetManagedProducts(this ClaimsPrincipal user)
+    {
+        var raw = user.FindFirstValue(ManagedProductsClaim);
+        var set = new HashSet<Product>();
+        if (string.IsNullOrWhiteSpace(raw)) return set;
+
+        foreach (var token in raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (Converter.TryParseProduct(token, out var p))
+                set.Add(p);
+        }
+        return set;
+    }
+
     public static string Encrypt(string password)
     {
         using var provider = SHA512.Create();

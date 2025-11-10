@@ -1,12 +1,13 @@
 using Shared.Enums;
 using Shared.Models.Trips;
+using Shared.Extensions;
 
 namespace Shared.Dtos;
 
 
 public static class TripMapper
 {
-    public static TripExportDto ToExportDto(Trip trip)
+    public static TripExportDto ToExportDto(Models.Trips.Trip trip)
     {
         var dischargeSummary = trip.Discharges != null && trip.Discharges.Any()
             ? string.Join(" | ", trip.Discharges.Select(d =>
@@ -30,7 +31,7 @@ public static class TripMapper
             LoadingDepotDate = trip.ArrivalInfo.LoadingLocationArrivalDateTime is null ? "N/A" : trip.ArrivalInfo.LoadingLocationArrivalDateTime.Value.ToString("dd/MM/yyyy HH:mm:ss"),
             DispatchId = trip.DispatchId?.Trim(),
             TruckPlate = trip.Truck?.LicensePlate ?? "N/A",
-            Product = trip.Truck?.Product.ToString() ?? "N/A",
+            Product = trip.Truck?.Product.Value.ToDisplay(),
             Status = tripStatus,
             LoadingPoint = trip.LoadingDepot?.Name ?? "N/A",
             LoadingDate = trip.LoadingInfo.LoadingDate.HasValue ? trip.LoadingInfo.LoadingDate.Value.ToString("dd/MM/yyyy HH:mm:ss") : "N/A",

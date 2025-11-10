@@ -33,10 +33,10 @@ public class UserService(IHttpClientFactory _httpClient) : IUserService
         }
         catch (System.Exception)
         {
-
             throw;
         }
-    }    
+    }
+
     public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -44,6 +44,36 @@ public class UserService(IHttpClientFactory _httpClient) : IUserService
             using var response = await _httpClient.CreateClient("AppUrl").DeleteAsync($"Users/{id}", cancellationToken);
             response.EnsureSuccessStatusCode();
             return response.IsSuccessStatusCode;
+        }
+        catch (System.Exception)
+        {
+            throw;
+        }
+    }
+
+    public async Task SendEmailAsync(string email, string name, int templateId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var response = await _httpClient.CreateClient("AppUrl").PostAsJsonAsync("email/send", new
+            {
+                email = email,
+                name = name,
+                templateId = templateId
+            }, cancellationToken);
+        }
+        catch (System.Exception)
+        {
+
+            throw;
+        }
+    }
+    
+    public async Task SendEmailAsync(EmailRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var response = await _httpClient.CreateClient("AppUrl").PostAsJsonAsync("email/send", request, cancellationToken);
         }
         catch (System.Exception)
         {

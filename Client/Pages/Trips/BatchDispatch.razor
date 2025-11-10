@@ -1,4 +1,6 @@
 @page "/trips/batch-dispatch"
+@using Shared.Enums
+@using Shared.Extensions
 @inject ITripService TripService
 @inject ITruckService TruckService
 @inject IStationService StationService
@@ -58,11 +60,10 @@
                         <InputSelect @bind-Value="SelectedProduct" @bind-Value:after="OnProductChanged"
                                 class="@($"{GetInputClass("Product")} transition duration-200 focus:scale-[1.02]")">
                             <option value="">-- Select Product --</option>
-                            <option value="PMS">PMS</option>
-                            <option value="AGO">AGO</option>
-                            <option value="ATK">ATK</option>
-                            <option value="LPG">LPG</option>
-                            <option value="CNG">CNG</option>
+                            @foreach (var p in GetSelectableProducts())
+                            {
+                                <option value="@p.ToString()">@p.ToDisplay()</option>
+                            }
                         </InputSelect>
                         @if (errors.ContainsKey("Product"))
                         {
@@ -91,7 +92,7 @@
                     }
                     else if (Trucks.Length == 0 && !string.IsNullOrEmpty(SelectedProduct))
                     {
-                        <p class="text-sm text-gray-500 italic animate-fade-in">No trucks available for @SelectedProduct</p>
+                        <p class="text-sm text-gray-500 italic animate-fade-in">No trucks available for @(Enum.TryParse<Product>(SelectedProduct, out var p) ? p.ToDisplay() : SelectedProduct)</p>
                     }
                     else
                     {
@@ -104,7 +105,7 @@
                                         <div class="flex justify-between items-center">
                                             <span class="font-semibold text-gray-900 dark:text-gray-100">@truck.LicensePlate</span>
                                             <span class="@GetProductBadgeClass(truck.Product?.ToString())">
-                                                @truck.Product
+                                                @truck.Product?.ToDisplay()
                                             </span>
                                         </div>
                                         <div class="text-sm text-gray-500 mt-1">
@@ -159,14 +160,41 @@
     private Station? SelectedStation;
     private string? SelectedProduct;
     private bool isLoadingTrucks = false;
+    private IReadOnlyList<Product> selectableProducts = Array.Empty<Product>();
 
-    protected override async Task OnInitializedAsync() => await Task.CompletedTask;
+    protected override async Task OnInitializedAsync()
+    {
+        selectableProducts = BuildSelectableProducts();
+        await Task.CompletedTask;
+    }
+
+    private IReadOnlyList<Product> BuildSelectableProducts()
+    {
+        if (AppState.IsDriverSupervisor && AppState.ManagedProducts.Any())
+            return AppState.ManagedProducts;
+        return Enum.GetValues<Product>();
+    }
+
+    private IEnumerable<Product> GetSelectableProducts() => selectableProducts;
 
     private async Task OnProductChanged()
     {        
         Trucks = [];
+        errors.Remove("Product");
+
         if (string.IsNullOrEmpty(SelectedProduct))
             return;
+
+        // Validate DriverSupervisor can only select their managed products
+        if (AppState.IsDriverSupervisor &&
+            Enum.TryParse<Product>(SelectedProduct, out var selectedProd) &&
+            !AppState.ManagedProducts.Contains(selectedProd))
+        {
+            errors["Product"] = "You are not authorized to dispatch this product.";
+            Trucks = [];
+            StateHasChanged();
+            return;
+        }
 
         isLoadingTrucks = true;
         StateHasChanged();
@@ -197,16 +225,21 @@
             : baseClass + " border-gray-300";
     }
 
-    private string GetProductBadgeClass(string product) =>
-        product switch
+    private string GetProductBadgeClass(string? product)
+    {
+        if (string.IsNullOrWhiteSpace(product)) return "px-2 py-0.5 rounded text-xs font-semibold bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300";
+        
+        return product switch
         {
             "PMS" => "px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
             "AGO" => "px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300",
             "ATK" => "px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
             "LPG" => "px-2 py-0.5 rounded text-xs font-semibold bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300",
-            "CNG" => "px-2 py-0.5 rounded text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300",
+            "CngAbuja" or "CNG-Abuja" => "px-2 py-0.5 rounded text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300",
+            "CngLagos" or "CNG-Lagos" => "px-2 py-0.5 rounded text-xs font-semibold bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-300",
             _ => "px-2 py-0.5 rounded text-xs font-semibold bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300"
         };
+    }
 
     private async Task HandleBatchDispatch()
     {
@@ -217,6 +250,11 @@
             errors["LoadingDepotId"] = "Loading Station is required";
         if (string.IsNullOrEmpty(SelectedProduct))
             errors["Product"] = "Product is required";
+        else if (AppState.IsDriverSupervisor &&
+                 Enum.TryParse<Product>(SelectedProduct, out var prod) &&
+                 !AppState.ManagedProducts.Contains(prod))
+            errors["Product"] = "You are not authorized to dispatch this product";
+        
         if (batchDispatch.DispatchDate == null)
             errors["DispatchDate"] = "Dispatch Date is required";
         if (!Trucks.Any(t => t.IsSelected))

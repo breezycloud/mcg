@@ -165,6 +165,24 @@ public class TripService(IHttpClientFactory _httpClient, IJSRuntime js) : ITripS
         }
     }
 
+    public async ValueTask ExportLoadingInfoCsvAsync(ReportFilter request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var response = await _httpClient.CreateClient("AppUrl").PostAsJsonAsync($"Trips/report-loading-trips", request, cancellationToken);
+            response.EnsureSuccessStatusCode();
+            var content = await response.Content.ReadAsByteArrayAsync(cancellationToken);
+            var fileName = $"{request.StartDate:MMMM-yyyy} Loading Info Trips_{DateTime.Now:yyyyMMddHHmmss}.csv";
+            // In a Blazor WebAssembly app, use JS interop to save the file
+            await js.InvokeVoidAsync("downloadReport", fileName, Convert.ToBase64String(content));
+        }
+        catch (System.Exception)
+        {
+
+            throw;
+        }
+    }
+
     public async ValueTask ExportToCsvAsync(ReportFilter request, CancellationToken cancellationToken)
     {
         try

@@ -3,7 +3,7 @@
 @page "/driver/{Id:guid}"
 @inject IDriverService DriverService
 @inject ITripService TripService
-@attribute [Authorize(Roles = "Supervisor, Admin, Master")]
+@attribute [Authorize(Roles = "Supervisor, Admin, Master, Nrl")]
 
 <div class="max-w-4xl mx-auto p-4 sm:p-6">
     @if (AppState.IsBusy)
@@ -20,13 +20,15 @@
                     <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Complete information for driver @CurrentDriver.FirstName @CurrentDriver.LastName</p>
                 </div>
                 <div class="flex gap-3">
-                    <button @onclick="NavigateToEdit" 
-                            class="px-4 py-2 text-sm font-medium text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800 flex items-center">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                        </svg>
-                        Edit Driver
-                    </button>
+                    <AuthorizeView Roles="Supervisor, Admin, Master, DriverSupervisor" Context="auth">
+                        <button @onclick="NavigateToEdit" 
+                                class="px-4 py-2 text-sm font-medium text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800 flex items-center">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                            </svg>
+                            Edit Driver
+                        </button>
+                    </AuthorizeView>                    
                     <button @onclick="NavigateBack" 
                             class="px-4 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-700 dark:focus:ring-gray-700 flex items-center">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

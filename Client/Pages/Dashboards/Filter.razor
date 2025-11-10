@@ -1,3 +1,6 @@
+@using Shared.Enums
+@using Shared.Extensions
+
 <div class="bg-gray-50 dark:bg-gray-900 flex space-x-2 mb-6">
     <button @onclick="() => SetTimeFilter(TimeFilter.ThisWeek)" 
             class="@GetButtonClass(TimeFilter.ThisWeek) text-xs sm:text-xs px-3 py-1.5 sm:px-2 sm:py-2">
@@ -62,4 +65,6 @@
         currentFilter == filter 
             ? "px-2 py-2 bg-blue-600 text-white rounded-lg"
             : "px-2 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300";
+
+    private ProductFilter SelectedProduct { get; set; } = ProductFilter.All;
 }

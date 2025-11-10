@@ -158,7 +158,7 @@
 
     protected override void OnParametersSet()
     {
-        if (Product != Product.CNG || Product != Product.LPG)
+        if (Product != Product.CngAbuja && Product != Product.CngLagos && Product != Product.LPG)
         {
             currentUllage = currentMetric.Ullage?.Quantity;
             currentLiquidHeight = currentMetric.LiquidHeight?.Quantity;

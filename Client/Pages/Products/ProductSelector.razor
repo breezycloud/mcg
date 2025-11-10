@@ -30,7 +30,8 @@
     {
         return product switch
         {
-            ProductFilter.CNG => "bg-blue-600 text-white hover:bg-blue-700",
+            ProductFilter.CngAbuja => "bg-blue-600 text-white hover:bg-blue-700",
+            ProductFilter.CngLagos => "bg-blue-600 text-white hover:bg-blue-700",
             ProductFilter.PMS => "bg-green-600 text-white hover:bg-green-700",
             ProductFilter.ATK => "bg-yellow-500 text-white hover:bg-yellow-600",
             ProductFilter.LPG => "bg-red-600 text-white hover:bg-red-700",
@@ -43,7 +44,8 @@
     {
         return product switch
         {
-            ProductFilter.CNG => "bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-800 dark:text-blue-200 dark:hover:bg-blue-700",
+            ProductFilter.CngAbuja => "bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-800 dark:text-blue-200 dark:hover:bg-blue-700",
+            ProductFilter.CngLagos => "bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-800 dark:text-blue-200 dark:hover:bg-blue-700",
             ProductFilter.PMS => "bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-800 dark:text-green-200 dark:hover:bg-green-700",
             ProductFilter.ATK => "bg-yellow-100 text-yellow-800 hover:bg-yellow-200 dark:bg-yellow-800 dark:text-yellow-200 dark:hover:bg-yellow-700",
             ProductFilter.LPG => "bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-800 dark:text-red-200 dark:hover:bg-red-700",
@@ -56,7 +58,8 @@
     {
         return product switch
         {
-            ProductFilter.CNG => "Compressed Natural Gas (CNG)",
+            ProductFilter.CngAbuja => "Compressed Natural Gas (CNG) - Abuja",
+            ProductFilter.CngLagos => "Compressed Natural Gas (CNG) - Lagos",
             ProductFilter.PMS => "Premium Motor Spirit (PMS)",
             ProductFilter.ATK => "Automotive Turbine Kerosene (ATK)",
             ProductFilter.LPG => "Liquefied Petroleum Gas (LPG)",

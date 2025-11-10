@@ -60,15 +60,21 @@ public class Auth : ControllerBase
                 else
                     return BadRequest("Invalid shop");
             }
+            if (credential.Role == UserRole.DriverSupervisor)
+            {
+                var products = credential.ManagedProducts;
+                _result.ManagedProducts = products;
+            }
         }                 
 
         
         var claim = new Claim[]
         {
-            new Claim(ClaimTypes.NameIdentifier, credential.Id.ToString()),
-            new Claim(ClaimTypes.Name, credential.ToString()!),
-            new Claim(ClaimTypes.Email, _result.Email!),
-            new Claim(ClaimTypes.Role, _result.Role.ToString())
+            new(ClaimTypes.NameIdentifier, credential.Id.ToString()),
+            new(ClaimTypes.Name, credential.ToString()!),
+            new(ClaimTypes.Email, _result.Email!),
+            new(ClaimTypes.Role, _result.Role.ToString()),
+            new("managed_products", _result.ManagedProducts is not null ? string.Join(",", _result.ManagedProducts.Select(p => p)) : string.Empty)
         };
 
 

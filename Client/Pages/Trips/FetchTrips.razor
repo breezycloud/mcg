@@ -1,7 +1,7 @@
 @page "/trips"
 @inject ITripService TripService
 @inject IDestinationService DestinationService
-@attribute [Authorize(Roles = "Monitoring, Admin, Master, Supervisor")]
+@attribute [Authorize(Roles = "Monitoring, Admin, Master, Supervisor, Nrl, DriverSupervisor")]
 <PageTitle>Trips</PageTitle>
 
 <section class="bg-gray-50 dark:bg-gray-900 rounded-lg">
@@ -25,9 +25,9 @@
                                 id="trip-search" 
                                 class="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                                 placeholder="Search trips..." 
-                                @bind-value="@request.SearchTerm" 
+                                @bind-value="@AppState.TripStore.Request.SearchTerm" 
                                 @bind-value:event="oninput" 
-                                @onkeyup="async () => await HandleSearch(request.SearchTerm!)" />
+                                @onkeyup="async () => await HandleSearch(AppState.TripStore.Request.SearchTerm!)" />
                         </div>
                     </div>
 
@@ -89,7 +89,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                                 </svg>
                             </button>
-                            <div class="@(isActionMenuOpen ? "block" : "hidden") absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg z-10">
+                            <div class="@(isActionMenuOpen ? "block" : "hidden") absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg z-10">
                                 <div class="py-1">
                                     <button 
                                         @onclick="ExportCsv"
@@ -109,10 +109,31 @@
                                             <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                                                 <path clip-rule="evenodd" fill-rule="evenodd" d="M10 2a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V3a1 1 0 011-1z" />
                                             </svg>
-                                            @("Export")
+                                            @("Export Loading Trips")
                                         }
                                     </button>
-                                    <AuthorizeView Roles="Master, Admin, Supervisor">
+                                    <button 
+                                        @onclick="ExportLoadingInfoCsv"
+                                        type="button"
+                                        class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                        disabled="@AppState.IsProcessing">
+                                        @if (AppState.IsProcessing)
+                                        {
+                                            <svg class="animate-spin h-4 w-4 mr-2 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                                            </svg>
+                                            @("Exporting...")
+                                        }
+                                        else
+                                        {
+                                            <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                                <path clip-rule="evenodd" fill-rule="evenodd" d="M10 2a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V3a1 1 0 011-1z" />
+                                            </svg>
+                                            @("Export Loading Info")
+                                        }
+                                    </button>
+                                    <AuthorizeView Roles="Master, Admin, Supervisor, DriverSupervisor" Context="auth">
                                         <Authorized>
                                             <button 
                                                 @onclick="@(() => nav.NavigateTo("/trips/batch-dispatch"))" 
@@ -165,9 +186,9 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @if (response != null && response.Data!.Any())
+                            @if (AppState.TripStore.Response != null && AppState.TripStore.Response.Data!.Any())
                             {
-                                foreach (var trip in response.Data!)
+                                foreach (var trip in AppState.TripStore.Response.Data!)
                                 {
                                     <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
                                         <!-- Trip Date -->
@@ -225,14 +246,16 @@
                                             <button @onclick="() => ViewTrip(trip)"  class="font-medium text-green-600 dark:text-green-500 hover:underline">
                                                     View
                                                 </button>
-                                                @if (trip.Status != TripStatus.Completed)
-                                                {
-                                                    <button 
-                                                        @onclick="() => EditStatus(trip)" 
-                                                        class="font-medium text-blue-600 dark:text-blue-400 hover:underline">
-                                                        Update
-                                                    </button>
-                                                }                                                
+                                                <AuthorizeView Roles="Monitoring, Admin, Master, Supervisor, DriverSupervisor">
+                                                    @if (trip.Status != TripStatus.Completed)
+                                                    {
+                                                        <button 
+                                                            @onclick="() => EditStatus(trip)" 
+                                                            class="font-medium text-blue-600 dark:text-blue-400 hover:underline">
+                                                            Update
+                                                        </button>
+                                                    }                                        
+                                                </AuthorizeView>        
                                             </div>
                                         </td>
                                     </tr>
@@ -242,7 +265,7 @@
                             {
                                 <tr>
                                     <td colspan="8" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
-                                        @if (AppState.IsBusy)
+                                        @if (AppState.TripStore.IsLoading)
                                         {
                                             <div class="flex justify-center items-center">
                                                 <svg class="animate-spin h-5 w-5 text-blue-500 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -272,11 +295,11 @@
                 <!-- Pagination -->
                 <div class="p-4 border-t border-gray-200 dark:border-gray-700">
                     <Pagination             
-                        CurrentPage="request.Page + 1"
-                        PageSize="request.PageSize"
-                        TotalItems="response?.Total ?? 0"
+                        CurrentPage="AppState.TripStore.Request.Page + 1"
+                        PageSize="AppState.TripStore.Request.PageSize"
+                        TotalItems="AppState.TripStore.Response?.Total ?? 0"
                         OnPageChanged="async (page) => { 
-                            request.Page = page - 1; 
+                            AppState.TripStore.Request.Page = page - 1; 
                             await LoadTrips(); 
                             StateHasChanged(); 
                         }" />
@@ -373,23 +396,38 @@
         StateHasChanged();
     }
 
+    private async Task ExportLoadingInfoCsv()
+    {
+        AppState.IsProcessing = true;
+        try
+        {
+            await TripService.ExportLoadingInfoCsvAsync(reportFilter, AppState.GetCancellationToken());
+        }
+        catch
+        {
+            ToastService.ShowError("failed to export report");
+        }
+        AppState.IsProcessing = false;
+        StateHasChanged();
+    }
+
 
     private async Task HandleSearch(string search)
     {
         if (string.IsNullOrWhiteSpace(search))
         {
-            request.SearchTerm = string.Empty;
+            AppState.TripStore.Request.SearchTerm = string.Empty;
         }
         else
-            request.SearchTerm = search;
-        request.Page = 0; // Reset to first page when searching
+            AppState.TripStore.Request.SearchTerm = search;
+        AppState.TripStore.Request.Page = 0; // Reset to first page when searching
         await LoadTrips();
     }
 
     private async Task Reload()
     {        
-        request.Page = 0; // Reset to first page when searching
-        request.Date = reportFilter.StartDate;
+        AppState.TripStore.Request.Page = 0; // Reset to first page when searching
+        AppState.TripStore.Request.Date = reportFilter.StartDate;
         await LoadTrips();
     }
 
@@ -401,29 +439,30 @@
         if (Enum.TryParse<TripStatus>(e.Value?.ToString(), out var selected))
         {
             Status = selected;
-            request.Status = Status.ToString();
+            AppState.TripStore.Request.Status = Status.ToString();
         }
         else
         {
             request.Status = null;
         }                
-        request.Page = 0;
-        AppState.IsBusy = true;
+        AppState.TripStore.Request.Page = 0;
+        AppState.TripStore.IsLoading = true;
         await Task.Yield();
         await LoadTrips();
-        AppState.IsBusy = false;
+        AppState.TripStore.IsLoading = false;
     }
     
     private async Task LoadTrips()
     {
-        AppState.IsBusy = true;
+        AppState.TripStore.IsLoading = true;
         try 
         {
-            response = await TripService.GetPagedAsync(request, AppState.GetCancellationToken());
+            response = await TripService.GetPagedAsync(AppState.TripStore.Request, AppState.GetCancellationToken());
+            AppState.TripStore.Response = response;
         }
         finally
         {
-            AppState.IsBusy = false;
+            AppState.TripStore.IsLoading = false;
         }
         StateHasChanged();
     }
@@ -432,18 +471,19 @@
     {
         response = null;
         if (Enum.TryParse<Product>(e.Value?.ToString(), out var selected))
-        {
-            request.Product = selected.ToString();
+        {            
+            AppState.TripStore.Request.Product = selected.ToString();
+            
         }
         else
         {
-            request.Product = null;
+            AppState.TripStore.Request.Product = null;
         }
-        request.Page = 0;
-        AppState.IsBusy = true;
+        AppState.TripStore.Request.Page = 0;
+        AppState.TripStore.IsLoading = true;
         await Task.Yield();
         await LoadTrips();
-        AppState.IsBusy = false;
+        AppState.TripStore.IsLoading = false;
     }
 
     private void AddTrip()

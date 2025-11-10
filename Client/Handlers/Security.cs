@@ -1,10 +1,12 @@
 using System;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using Shared.Enums;
 
 namespace Client.Handlers;
 
-class Security
+public static class Security
 {
     public static string Encrypt(string password)
     {
@@ -26,4 +28,21 @@ class Security
         }
         return new string(res);
     }
+
+    public static IReadOnlyList<Product> GetManagedProducts(ClaimsPrincipal user)
+    {
+        var claim = user.Claims.FirstOrDefault(c => c.Type == "managed_products")?.Value;
+        if (string.IsNullOrWhiteSpace(claim)) return Array.Empty<Product>();
+
+        var list = new List<Product>();
+        foreach (var token in claim.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (Enum.TryParse<Product>(token, true, out var p))
+                list.Add(p);
+        }
+        return list;
+    }
+
+    public static bool IsDriverSupervisor(this ClaimsPrincipal user) =>
+        user.IsInRole(UserRole.DriverSupervisor.ToString());
 }

@@ -8,7 +8,9 @@ public enum UserRole
     Supervisor, // Driver data, Truck Data
     Maintenance, // Service Request
     Monitoring, // Trip Data, Service Request
-    Management // Dashboard only
+    Management, // Dashboard only
+    Nrl,
+    DriverSupervisor
 }
 
 

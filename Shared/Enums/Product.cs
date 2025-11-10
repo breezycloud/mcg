@@ -3,19 +3,21 @@ namespace Shared.Enums;
 
 public enum Product
 {
-    CNG,
+    CngAbuja,
     PMS,
     ATK,
     LPG,
-    AGO
+    AGO,
+    CngLagos
 }
 
 public enum ProductFilter
 {
     All,
-    CNG,
+    CngAbuja,
     PMS,
     ATK,
     LPG,
-    AGO
+    AGO,
+    CngLagos,
 }

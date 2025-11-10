@@ -26,7 +26,7 @@
                             @bind-value="@request.SearchTerm" @bind-value:event="oninput" @onkeyup="async () => await HandleSearch(request.SearchTerm!)" />
                     </div>
                 </div>
-                <AuthorizeView Roles = "Admin, Master, Supervisor">
+                <AuthorizeView Roles="Supervisor, Admin, Master" Context="auth">
                     <Authorized>
                         <div class="flex md:justify-end">
                             <button 

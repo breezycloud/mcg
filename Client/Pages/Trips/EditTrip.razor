@@ -1,5 +1,5 @@
 @page "/edit-trip/{id:guid}"
-@attribute [Authorize]
+@attribute [Authorize (Roles = "Admin, Master, Monitoring, Supervisor, DriverSupervisor")]
 @inject ITripService TripService
 @inject IStationService StationService
 @inject IDischargeService DischargeService
@@ -204,7 +204,7 @@
                                 <FileListView Files="Trip.LoadingInfo.Files" ShowDelete="@(Trip.LoadingInfo.Files.Any())" OnDelete="@OnDelete" />
                             </div>
                         }
-                        @if (Trip.Truck?.Product != Product.CNG || Trip.LoadingInfo.Metrics.Count != 3)
+                        @if (Trip.Truck?.Product != Product.CngAbuja && Trip.Truck?.Product != Product.CngLagos || Trip.LoadingInfo.Metrics.Count != 3)
                         {                    
                             <MetricsEditor
                                 Product="@Trip.Truck!.Product!.Value"
@@ -365,7 +365,7 @@
                                 Add Discharge
                             </button>
                         }
-                        @if (Trip?.Truck?.Product != Product.CNG || Trip.Metrics?.Count != 3)
+                        @if (Trip?.Truck?.Product != Product.CngAbuja && Trip?.Truck?.Product != Product.CngLagos || Trip.Metrics?.Count != 3)
                         {                    
                             <MetricsEditor
                                 Product="@Trip!.Truck!.Product!.Value"

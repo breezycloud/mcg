@@ -2,10 +2,11 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Reflection;
 using System.Text;
+using Shared.Enums;
 
 namespace Client.Handlers;
 
-class StringConverter
+public static class StringConverter
 {
     public static string ConvertToTitleCase(string value)
     {
@@ -33,6 +34,7 @@ class StringConverter
 
         return Convert.ToBase64String(bytes);
     }
+
     private static readonly Dictionary<Enum, string> _descriptionCache = new();
 
     public static string ToDescription(Enum value)
@@ -46,4 +48,15 @@ class StringConverter
         _descriptionCache[value] = desc;
         return desc;
     }
+
+    public static string ToDescription(UserRole role) => role switch
+    {
+        UserRole.Admin => "Admin",
+        UserRole.Master => "Master",
+        UserRole.Monitoring => "Monitoring",
+        UserRole.Supervisor => "Supervisor",
+        UserRole.Nrl => "NRL",
+        UserRole.DriverSupervisor => "Driver Supervisor",
+        _ => role.ToString()
+    };
 }

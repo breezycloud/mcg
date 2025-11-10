@@ -68,7 +68,7 @@
                                     <td class="px-6 py-4">@user.LastName</td>
                                     <td class="px-6 py-4">@user.Email</td>
                                     <td class="px-6 py-4">@user.PhoneNo</td>
-                                    <td class="px-6 py-4">@user.Role</td>
+                                    <td class="px-6 py-4">@StringConverter.ToDescription(user.Role)</td>
                                     <td class="px-6 py-4">
                                         @(user.IsActive ? "Yes" : "No")
                                     </td>
@@ -245,6 +245,12 @@
             if (!EditMode)
             {
                 result = await UserService.AddAsync(user, AppState.GetCancellationToken());
+                if (result)
+                {
+                    var emailRequest = new EmailRequest { Email = user.Email!, Name = user.LastName!, templateId = 1};
+                    await UserService.SendEmailAsync(emailRequest, AppState.GetCancellationToken());
+                }
+                
             }
             else
             {
