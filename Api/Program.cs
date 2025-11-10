@@ -22,7 +22,7 @@ using Shared.Models.MessageBroker;
 
 var builder = WebApplication.CreateBuilder(args);
 
-brevo_csharp.Client.Configuration.Default.ApiKey.Add("api-key", builder.Configuration["Brevo:ApiKey"]!);
+brevo_csharp.Client.Configuration.Default.ApiKey.Add("api-key", builder.Configuration["Brevo:SecretKey"]!);
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.Configure<MessageBrokerSetting>(builder.Configuration?.GetSection("RabbitMQ"));
