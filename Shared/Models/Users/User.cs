@@ -40,3 +40,9 @@ public class EmailRequest
     public string Name { get; set; }
     public int templateId { get; set; }
 }
+
+
+public sealed class BrevoSettings
+{
+    public required string? Key { get; set; } = "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";
+}

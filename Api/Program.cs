@@ -22,12 +22,8 @@ using Shared.Models.MessageBroker;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var dictionary = new Dictionary<string, string>
-{
-    { "Tarkace", "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" }
-};
 
-brevo_csharp.Client.Configuration.Default.ApiKey.Add("api-key", dictionary["Tarkace"]);
+brevo_csharp.Client.Configuration.Default.ApiKey.Add("api-key", new BrevoSettings().Key);
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.Configure<MessageBrokerSetting>(builder.Configuration?.GetSection("RabbitMQ"));
