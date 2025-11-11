@@ -37,8 +37,6 @@ public class User
 public class EmailRequest
 {
     public string Email { get; set; }
-    [Column("LastName")]
-    [JsonPropertyName("LastName")]
     public string Name { get; set; }
     public int templateId { get; set; }
 }

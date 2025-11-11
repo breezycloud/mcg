@@ -9,7 +9,7 @@ namespace Api.Controllers;
 // API /Controllers/EmailController.cs
 [ApiController]
 [Route("api/[controller]")]
-public class EmailController : ControllerBase
+public class EmailController() : ControllerBase
 {
     [HttpPost("send")]
     public async Task<IActionResult> SendEmail([FromBody] EmailRequest request)

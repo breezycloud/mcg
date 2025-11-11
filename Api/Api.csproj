@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
@@ -6,12 +6,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <PreserveCompilationContext>true</PreserveCompilationContext>
     <PreserveCompilationReferences>true</PreserveCompilationReferences>
+    <UserSecretsId>ba065915-76b8-4f72-b82b-b79dbfa5bffc</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Data\trucks.json"/>
-    <EmbeddedResource Include="Data\drivers.json"/>
-    <EmbeddedResource Include="Data\stations.json"/>
+    <EmbeddedResource Include="Data\trucks.json" />
+    <EmbeddedResource Include="Data\drivers.json" />
+    <EmbeddedResource Include="Data\stations.json" />
   </ItemGroup>
 
    <ItemGroup>

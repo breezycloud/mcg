@@ -133,14 +133,14 @@ else
             return;
         }
 
-        // Get unique months (format)
+        // Get unique months (format) in ASCENDING order (oldest first)
         var months = Data
-                                    .Select(d => new { d.Format, d.Month, d.Year })
-                                    .Distinct()
-                                    .OrderByDescending(x => x.Year)
-                                    .ThenByDescending(x => x.Month)
-                                    .Select(x => x.Format)
-                                    .ToList();
+                        .Select(d => new { d.Format, d.Month, d.Year })
+                        .Distinct()
+                        .OrderBy(x => x.Year)        // Changed from OrderByDescending
+                        .ThenBy(x => x.Month)        // Changed from ThenByDescending
+                        .Select(x => x.Format)
+                        .ToList();
 
 
         // Get unique products
