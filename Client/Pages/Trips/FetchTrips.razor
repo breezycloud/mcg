@@ -95,7 +95,7 @@
                                         @onclick="ExportCsv"
                                         type="button"
                                         class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                        disabled="@AppState.IsProcessing">
+                                        disabled="@(AppState.IsExporting || AppState.IsProcessing)">
                                         @if (AppState.IsProcessing)
                                         {
                                             <svg class="animate-spin h-4 w-4 mr-2 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -116,8 +116,8 @@
                                         @onclick="ExportLoadingInfoCsv"
                                         type="button"
                                         class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                        disabled="@AppState.IsProcessing">
-                                        @if (AppState.IsProcessing)
+                                        disabled="@(AppState.IsExporting || AppState.IsProcessing)">
+                                        @if (AppState.IsExporting)
                                         {
                                             <svg class="animate-spin h-4 w-4 mr-2 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -398,7 +398,7 @@
 
     private async Task ExportLoadingInfoCsv()
     {
-        AppState.IsProcessing = true;
+        AppState.IsExporting = true;
         try
         {
             await TripService.ExportLoadingInfoCsvAsync(reportFilter, AppState.GetCancellationToken());
@@ -407,7 +407,7 @@
         {
             ToastService.ShowError("failed to export report");
         }
-        AppState.IsProcessing = false;
+        AppState.IsExporting = false;
         StateHasChanged();
     }
 

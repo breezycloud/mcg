@@ -9,6 +9,7 @@ namespace Shared.Helpers;
 public partial class AppState
 {
     public bool IsProcessing { get; set; } = false;
+    public bool IsExporting { get; set; } = false;
     public bool IsBusy { get; set; }
     public bool ShowUpdateDialog { get; set; } = false;
     public Trip? Trip { get; set; }
