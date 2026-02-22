@@ -12,9 +12,10 @@ public interface IAuditLogService
                  object oldValues = null, object newValues = null,
                  string ipAddress = null, string additionalInfo = null);
     
-    Task<GridDataResponse<AuditLog>> GetPagedAsync(int page, int pageSize, 
-                                            string searchTerm = null, 
-                                            DateTime? fromDate = null, 
+    Task<GridDataResponse<AuditLog>> GetPagedAsync(int page, int pageSize,
+                                            string searchTerm = null,
+                                            DateTime? fromDate = null,
                                             DateTime? toDate = null,
-                                            string entityType = null);
+                                            string entityType = null,
+                                            string action = null);
 }
