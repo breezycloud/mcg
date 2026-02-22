@@ -150,6 +150,12 @@
                     <span class="text-gray-900 dark:text-gray-100 font-medium">@Trip?.LoadingInfo?.Remark</span>
                 </div>
             </div>
+            @if (Trip?.LoadingInfo?.Files != null && Trip.LoadingInfo.Files.Any())
+            {
+                <div class="mt-6">
+                    <FileListView Files="Trip.LoadingInfo.Files" ShowDelete="false" />
+                </div>
+            }
         </div>
 
         <!-- Arrival Info Section (UNCHANGED) -->
@@ -234,11 +240,15 @@
                 </div>
                 <div class="flex flex-col">
                     <span class="font-semibold text-gray-600 dark:text-gray-300 text-sm uppercase tracking-wide">Supervisor Signature</span>
+                    @if (Trip?.Status == TripStatus.Completed && Trip?.CompletedBy != null)
+                    {
+                        <span class="text-gray-900 dark:text-gray-100 font-medium">@Trip.CompletedBy.ToString()</span>
+                    }
                     @if (!string.IsNullOrEmpty(Trip?.CloseInfo?.SupervisorSignaturePath))
                     {
                         <a href="@Trip.CloseInfo.SupervisorSignaturePath" target="_blank" class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors duration-200 underline" aria-label="View supervisor signature">View Signature</a>
                     }
-                    else
+                    @if ((Trip?.Status != TripStatus.Completed || Trip?.CompletedBy == null) && string.IsNullOrEmpty(Trip?.CloseInfo?.SupervisorSignaturePath))
                     {
                         <span class="text-gray-900 dark:text-gray-100 font-medium">N/A</span>
                     }

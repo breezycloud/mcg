@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -13,6 +14,7 @@ namespace Api.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
+[Authorize]
 public class AuditsController : ControllerBase
 {
     private readonly AppDbContext _context;
@@ -22,7 +24,7 @@ public class AuditsController : ControllerBase
         _context = context;
     }
 
-     // POST: api/Paged
+    // POST: api/Audits/paged
     [HttpPost("paged")]
     public async Task<ActionResult<GridDataResponse<AuditLog>?>> GetPagedDatAsync(GridDataRequest request, CancellationToken cancellationToken = default)
     {
@@ -30,31 +32,41 @@ public class AuditsController : ControllerBase
         try
         {
             var query = _context.AuditLogs.AsQueryable();
-            
-            // if (!string.IsNullOrEmpty(request.SearchTerm))
-            // {
-            //     string pattern = $"%{request.SearchTerm}%";
-            //     query = query.Include(x => x.Station).Where(x => EF.Functions.ILike(x.Station.Name, pattern) || EF.Functions.ILike(x.Station.Address!.Location, pattern)
-            //     || EF.Functions.ILike(x.Station.Address!.State, pattern));
-            // }
 
-            response.Total = await query.CountAsync();
-            response.Data = [];
-            var pagedQuery = query.OrderByDescending(x => x.Timestamp).Skip(request.Paging).Take(request.PageSize).AsAsyncEnumerable();
-
-            await foreach (var item in pagedQuery)
+            if (!string.IsNullOrWhiteSpace(request.SearchTerm))
             {
-                response.Data.Add(item);
+                string term = request.SearchTerm.ToLower();
+                query = query.Where(x =>
+                    (x.UserName != null && x.UserName.ToLower().Contains(term)) ||
+                    (x.EntityType != null && x.EntityType.ToLower().Contains(term)) ||
+                    (x.EntityId != null && x.EntityId.ToLower().Contains(term)) ||
+                    (x.AffectedFields != null && x.AffectedFields.ToLower().Contains(term)) ||
+                    (x.IpAddress != null && x.IpAddress.Contains(term)));
             }
 
+            if (!string.IsNullOrWhiteSpace(request.EntityType))
+                query = query.Where(x => x.EntityType == request.EntityType);
+
+            if (!string.IsNullOrWhiteSpace(request.Action))
+                query = query.Where(x => x.Action == request.Action);
+
+            if (request.FromDate.HasValue)
+                query = query.Where(x => x.Timestamp >= request.FromDate.Value);
+
+            if (request.ToDate.HasValue)
+                query = query.Where(x => x.Timestamp <= request.ToDate.Value.AddDays(1));
+
+            response.Total = await query.CountAsync(cancellationToken);
+            response.Data = await query
+                .OrderByDescending(x => x.Timestamp)
+                .Skip(request.Paging)
+                .Take(request.PageSize)
+                .ToListAsync(cancellationToken);
 
             return response;
-
-            
         }
         catch (System.Exception)
         {
-
             throw;
         }
     }

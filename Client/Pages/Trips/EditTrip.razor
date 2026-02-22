@@ -723,15 +723,15 @@
                 ToastService.ShowWarning("Please enter discharge information");
                 await _js.InvokeVoidAsync("alert", errors);
                 return;
-            }                        
-            else
-            {
-                Trip!.ClosedById = uid;
             }
             if (Trip!.Status == TripStatus.Closed)
             {
-                Trip!.CompletedById = uid;
+                Trip!.ClosedById = uid;
                 Trip!.CloseInfo.CloseDateTime = DateTime.UtcNow;
+            }
+            if (Trip!.Status == TripStatus.Completed)
+            {
+                Trip!.CompletedById = uid;
             }
         }        
         if (errors.Any())

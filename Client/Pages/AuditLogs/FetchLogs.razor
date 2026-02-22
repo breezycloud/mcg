@@ -1,171 +1,332 @@
 @page "/audit-logs"
 @attribute [Authorize]
 @inject IAuditLogService AuditLogService
+@using System.Text.Json
 
 <div class="p-4 sm:p-6">
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+
+    <!-- Header -->
+    <div class="mb-6">
         <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Audit Logs</h2>
-        <div class="flex space-x-2 mt-4 md:mt-0">
-            <button @onclick="ExportToCsv" 
-                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-4 focus:ring-gray-200 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600 dark:focus:ring-gray-700">
-                Export to CSV
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">All entity changes are captured automatically. Click a row to inspect old and new values.</p>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white shadow rounded-lg p-4 mb-4 dark:bg-gray-800">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+            <div class="xl:col-span-2">
+                <label class="block mb-1 text-xs font-medium text-gray-700 dark:text-gray-300">Search</label>
+                <input type="text" @bind="searchTerm"
+                       placeholder="User, entity ID, IP, changed fields..."
+                       class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+            </div>
+            <div>
+                <label class="block mb-1 text-xs font-medium text-gray-700 dark:text-gray-300">Entity Type</label>
+                <select @bind="entityTypeFilter"
+                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="">All Types</option>
+                    <option value="Trip">Trip</option>
+                    <option value="Driver">Driver</option>
+                    <option value="User">User</option>
+                    <option value="Discharge">Discharge</option>
+                    <option value="Station">Station</option>
+                    <option value="Checkpoint">Checkpoint</option>
+                </select>
+            </div>
+            <div>
+                <label class="block mb-1 text-xs font-medium text-gray-700 dark:text-gray-300">Action</label>
+                <select @bind="actionFilter"
+                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="">All Actions</option>
+                    <option value="Create">Create</option>
+                    <option value="Update">Update</option>
+                    <option value="Delete">Delete</option>
+                </select>
+            </div>
+            <div>
+                <label class="block mb-1 text-xs font-medium text-gray-700 dark:text-gray-300">From Date</label>
+                <input type="date" @bind="fromDate"
+                       class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+            </div>
+            <div>
+                <label class="block mb-1 text-xs font-medium text-gray-700 dark:text-gray-300">To Date</label>
+                <input type="date" @bind="toDate"
+                       class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+            </div>
+        </div>
+        <div class="flex gap-2 mt-3">
+            <button @onclick="ApplyFilters"
+                    class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 dark:bg-blue-500 dark:hover:bg-blue-600">
+                Apply Filters
+            </button>
+            <button @onclick="ResetFilters"
+                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600">
+                Reset
             </button>
         </div>
     </div>
 
-    <!-- Filters -->
-    <div class="bg-white shadow rounded-lg p-4 mb-6 dark:bg-gray-800">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Search</label>
-                <input type="text" @bind="searchTerm" @oninput="async () => await LoadLogs()"
-                       class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                       placeholder="Search logs...">
-            </div>
-            <div>
-                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Entity Type</label>
-                @* @onchange="async () => await LoadLogs()" *@
-                <select @bind="entityType" 
-                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
-                    <option value="">All Types</option>
-                    <option value="User">Users</option>
-                    <option value="Trip">Trips</option>
-                    <option value="Driver">Drivers</option>
-                </select>
-            </div>
-            <div>
-                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">From Date</label>
-                <input type="date" @bind="fromDate" 
-                       class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
-                       @* @onchange="async () => await LoadLogs()" *@
-            </div>
-            <div>
-                @* @onchange="async () => await LoadLogs()" *@
-                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">To Date</label>
-                <input type="date" @bind="toDate" 
-                       class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
-            </div>
-        </div>
-    </div>
-
-    <!-- Logs Table -->
+    <!-- Table -->
     <div class="bg-white shadow rounded-lg overflow-hidden dark:bg-gray-800">
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-                    <tr>
-                        <th scope="col" class="px-6 py-3">Timestamp</th>
-                        <th scope="col" class="px-6 py-3">User</th>
-                        <th scope="col" class="px-6 py-3">Action</th>
-                        <th scope="col" class="px-6 py-3">Entity</th>
-                        <th scope="col" class="px-6 py-3">Details</th>
-                        <th scope="col" class="px-6 py-3">IP Address</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (logs?.Data?.Any() ?? false)
-                    {
-                        foreach (var log in logs.Data)
+        @if (isLoading)
+        {
+            <div class="flex items-center justify-center py-16">
+                <div class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                <span class="ml-3 text-gray-500 dark:text-gray-400">Loading audit logs...</span>
+            </div>
+        }
+        else
+        {
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                        <tr>
+                            <th class="px-4 py-3 w-36">Timestamp</th>
+                            <th class="px-4 py-3">User</th>
+                            <th class="px-4 py-3 w-24">Action</th>
+                            <th class="px-4 py-3">Entity</th>
+                            <th class="px-4 py-3">Changed Fields</th>
+                            <th class="px-4 py-3 w-32">IP Address</th>
+                            <th class="px-4 py-3 w-8"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (logs?.Data?.Any() ?? false)
                         {
-                            <tr class="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    @log.Timestamp.ToString("g")
-                                </td>
-                                <td class="px-6 py-4">
-                                    <div class="font-medium text-gray-900 dark:text-white">@log.UserName</div>
-                                    <div class="text-xs text-gray-500">@log.UserId</div>
-                                </td>
-                                <td class="px-6 py-4">
-                                    <span class="@GetActionBadgeClass(log.Action) text-xs font-medium px-2.5 py-0.5 rounded-full">
-                                        @log.Action
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4">
-                                    <div class="font-medium">@log.EntityType</div>
-                                    @if (!string.IsNullOrEmpty(log.EntityId))
-                                    {
-                                        <div class="text-xs text-gray-500">ID: @log.EntityId</div>
-                                    }
-                                </td>
-                                <td class="px-6 py-4">
-                                    @if (!string.IsNullOrEmpty(log.AffectedFields))
-                                    {
-                                        <div class="text-sm">Changed: @log.AffectedFields</div>
-                                    }
-                                    @if (!string.IsNullOrEmpty(log.AdditionalInfo))
-                                    {
-                                        <div class="text-xs text-gray-500">@log.AdditionalInfo</div>
-                                    }
-                                </td>
-                                <td class="px-6 py-4">
-                                    @log.IpAddress
+                            @foreach (var log in logs.Data)
+                            {
+                                bool isExpanded = expandedRows.Contains(log.Id);
+                                bool hasValues = !string.IsNullOrEmpty(log.OldValues) || !string.IsNullOrEmpty(log.NewValues);
+
+                                <!-- Main row -->
+                                <tr class="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600/40 @(hasValues ? "cursor-pointer" : "")"
+                                    @onclick="() => { if (hasValues) ToggleExpand(log.Id); }">
+                                    <td class="px-4 py-3 whitespace-nowrap text-xs">
+                                        <div class="text-gray-800 dark:text-gray-200">@log.Timestamp.ToLocalTime().ToString("MMM dd, yyyy")</div>
+                                        <div class="text-gray-400">@log.Timestamp.ToLocalTime().ToString("HH:mm:ss")</div>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <div class="font-medium text-gray-900 dark:text-white text-sm">@log.UserName</div>
+                                        @if (log.UserId != Guid.Empty)
+                                        {
+                                            <div class="text-xs text-gray-400 font-mono">@log.UserId.ToString()[..8]&hellip;</div>
+                                        }
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <span class="@GetActionBadgeClass(log.Action) text-xs font-semibold px-2.5 py-1 rounded-full">
+                                            @log.Action
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <div class="font-medium text-gray-900 dark:text-white text-sm">@log.EntityType</div>
+                                        @if (!string.IsNullOrEmpty(log.EntityId))
+                                        {
+                                            <div class="text-xs text-gray-400 font-mono" title="@log.EntityId">
+                                                @(log.EntityId.Length > 14 ? log.EntityId[..14] + "…" : log.EntityId)
+                                            </div>
+                                        }
+                                    </td>
+                                    <td class="px-4 py-3 max-w-xs">
+                                        @if (!string.IsNullOrEmpty(log.AffectedFields))
+                                        {
+                                            <div class="flex flex-wrap gap-1">
+                                                @foreach (var field in log.AffectedFields.Split(',', StringSplitOptions.TrimEntries))
+                                                {
+                                                    <span class="text-xs px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded font-mono">@field</span>
+                                                }
+                                            </div>
+                                        }
+                                        else if (log.Action == "Create")
+                                        {
+                                            <span class="text-xs text-green-600 dark:text-green-400 italic">New record</span>
+                                        }
+                                        else if (log.Action == "Delete")
+                                        {
+                                            <span class="text-xs text-red-600 dark:text-red-400 italic">Record removed</span>
+                                        }
+                                    </td>
+                                    <td class="px-4 py-3 text-xs font-mono text-gray-500">
+                                        @log.IpAddress
+                                    </td>
+                                    <td class="px-4 py-3 text-right">
+                                        @if (hasValues)
+                                        {
+                                            <svg class="w-4 h-4 text-gray-400 transition-transform duration-200 @(isExpanded ? "rotate-180" : "")"
+                                                 fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                            </svg>
+                                        }
+                                    </td>
+                                </tr>
+
+                                <!-- Expanded detail row -->
+                                @if (isExpanded)
+                                {
+                                    <tr class="bg-gray-50 dark:bg-gray-700/30 border-b dark:border-gray-700">
+                                        <td colspan="7" class="px-6 py-4">
+                                            <div class="grid @(log.Action == "Update" && !string.IsNullOrEmpty(log.OldValues) && !string.IsNullOrEmpty(log.NewValues) ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1") gap-4">
+
+                                                @if (!string.IsNullOrEmpty(log.OldValues))
+                                                {
+                                                    <div>
+                                                        <h4 class="text-xs font-semibold uppercase tracking-wide mb-2 @(log.Action == "Delete" ? "text-red-600 dark:text-red-400" : "text-orange-600 dark:text-orange-400")">
+                                                            @(log.Action == "Delete" ? "Deleted Values" : "Before")
+                                                        </h4>
+                                                        <div class="space-y-1.5 rounded-lg border border-gray-200 dark:border-gray-600 p-3 bg-white dark:bg-gray-800">
+                                                            @foreach (var kv in ParseJsonDict(log.OldValues))
+                                                            {
+                                                                bool changed = log.Action == "Update" && IsFieldChanged(log, kv.Key);
+                                                                <div class="flex gap-3 text-xs rounded px-1.5 py-0.5 @(changed ? "bg-red-50 dark:bg-red-900/20" : "")">
+                                                                    <span class="font-mono text-gray-400 dark:text-gray-500 w-36 shrink-0 truncate" title="@kv.Key">@kv.Key</span>
+                                                                    <span class="text-gray-800 dark:text-gray-200 break-all @(changed ? "line-through text-red-600 dark:text-red-400" : "")">@FormatValue(kv.Value)</span>
+                                                                </div>
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                }
+
+                                                @if (!string.IsNullOrEmpty(log.NewValues))
+                                                {
+                                                    <div>
+                                                        <h4 class="text-xs font-semibold uppercase tracking-wide mb-2 @(log.Action == "Create" ? "text-green-600 dark:text-green-400" : "text-blue-600 dark:text-blue-400")">
+                                                            @(log.Action == "Create" ? "Created Values" : "After")
+                                                        </h4>
+                                                        <div class="space-y-1.5 rounded-lg border border-gray-200 dark:border-gray-600 p-3 bg-white dark:bg-gray-800">
+                                                            @foreach (var kv in ParseJsonDict(log.NewValues))
+                                                            {
+                                                                bool changed = log.Action == "Update" && IsFieldChanged(log, kv.Key);
+                                                                <div class="flex gap-3 text-xs rounded px-1.5 py-0.5 @(changed ? "bg-green-50 dark:bg-green-900/20" : "")">
+                                                                    <span class="font-mono text-gray-400 dark:text-gray-500 w-36 shrink-0 truncate" title="@kv.Key">@kv.Key</span>
+                                                                    <span class="text-gray-800 dark:text-gray-200 break-all @(changed ? "font-semibold text-green-700 dark:text-green-400" : "")">@FormatValue(kv.Value)</span>
+                                                                </div>
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                }
+
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="7" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                                    <svg class="mx-auto h-10 w-10 mb-3 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    No audit logs found
                                 </td>
                             </tr>
                         }
-                    }
-                    else
-                    {
-                        <tr>
-                            <td colspan="6" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
-                                No audit logs found
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
+                    </tbody>
+                </table>
+            </div>
 
-        <!-- Pagination -->
-        <div class="p-4 border-t border-gray-200 dark:border-gray-700">
-            @* <Pagination CurrentPage="logs.CurrentPage"
-                       PageSize="logs.PageSize"
-                       TotalItems="logs.TotalItems"
-                       OnPageChanged="async (page) => { currentPage = page; await LoadLogs(); }" /> *@
-        </div>
+            @if ((logs?.Total ?? 0) > 0)
+            {
+                <Pagination CurrentPage="currentPage"
+                            PageSize="pageSize"
+                            TotalItems="logs!.Total"
+                            OnPageChanged="async page => { currentPage = page; await LoadLogs(); }" />
+            }
+        }
     </div>
 </div>
 
 @code {
     private GridDataResponse<AuditLog> logs = new();
     private int currentPage = 1;
-    private int pageSize = 10;
+    private int pageSize = 25;
     private string searchTerm = string.Empty;
-    private string entityType = string.Empty;
-    private DateTime? fromDate = null;
-    private DateTime? toDate = null;
+    private string entityTypeFilter = string.Empty;
+    private string actionFilter = string.Empty;
+    private DateTime? fromDate;
+    private DateTime? toDate;
+    private bool isLoading;
+    private HashSet<Guid> expandedRows = [];
 
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadLogs();
-    }
+    protected override async Task OnInitializedAsync() => await LoadLogs();
 
     private async Task LoadLogs()
     {
-        logs = await AuditLogService.GetPagedAsync(
-            currentPage, 
-            pageSize, 
-            searchTerm, 
-            fromDate, 
-            toDate,
-            entityType);
-    }
-
-    private string GetActionBadgeClass(string action)
-    {
-        return action switch
+        isLoading = true;
+        StateHasChanged();
+        try
         {
-            "Create" => "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
-            "Update" => "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
-            "Delete" => "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
-            "Login" => "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300",
-            "Logout" => "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
-            _ => "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
-        };
+            logs = await AuditLogService.GetPagedAsync(
+                currentPage - 1, pageSize,
+                string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm,
+                fromDate, toDate,
+                string.IsNullOrWhiteSpace(entityTypeFilter) ? null : entityTypeFilter,
+                string.IsNullOrWhiteSpace(actionFilter) ? null : actionFilter);
+        }
+        finally
+        {
+            isLoading = false;
+        }
     }
 
-    private async Task ExportToCsv()
+    private async Task ApplyFilters()
     {
-        // Implementation for CSV export
-        // Would typically call an API endpoint that returns CSV data
+        currentPage = 1;
+        expandedRows.Clear();
+        await LoadLogs();
     }
+
+    private async Task ResetFilters()
+    {
+        searchTerm = string.Empty;
+        entityTypeFilter = string.Empty;
+        actionFilter = string.Empty;
+        fromDate = null;
+        toDate = null;
+        currentPage = 1;
+        expandedRows.Clear();
+        await LoadLogs();
+    }
+
+    private void ToggleExpand(Guid id)
+    {
+        if (!expandedRows.Remove(id))
+            expandedRows.Add(id);
+    }
+
+    private string GetActionBadgeClass(string? action) => action switch
+    {
+        "Create" => "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
+        "Update" => "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
+        "Delete" => "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
+        _ => "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
+    };
+
+    private Dictionary<string, JsonElement> ParseJsonDict(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return [];
+        try
+        {
+            return JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json) ?? [];
+        }
+        catch { return []; }
+    }
+
+    private bool IsFieldChanged(AuditLog log, string fieldName)
+    {
+        if (string.IsNullOrEmpty(log.AffectedFields)) return false;
+        return log.AffectedFields.Split(',', StringSplitOptions.TrimEntries)
+            .Any(f => string.Equals(f, fieldName, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private string FormatValue(JsonElement el) => el.ValueKind switch
+    {
+        JsonValueKind.Null or JsonValueKind.Undefined => "—",
+        JsonValueKind.True => "true",
+        JsonValueKind.False => "false",
+        JsonValueKind.String => el.GetString() ?? "—",
+        JsonValueKind.Number => el.GetRawText(),
+        JsonValueKind.Object or JsonValueKind.Array => el.GetRawText(),
+        _ => el.ToString()
+    };
 }

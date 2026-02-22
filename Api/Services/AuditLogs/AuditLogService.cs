@@ -47,11 +47,12 @@ public class AuditLogService : IAuditLogService
         await _context.SaveChangesAsync();
     }
 
-    public async Task<GridDataResponse<AuditLog>> GetPagedAsync(int page, int pageSize, 
-                                                        string searchTerm = null, 
-                                                        DateTime? fromDate = null, 
+    public async Task<GridDataResponse<AuditLog>> GetPagedAsync(int page, int pageSize,
+                                                        string searchTerm = null,
+                                                        DateTime? fromDate = null,
                                                         DateTime? toDate = null,
-                                                        string entityType = null)
+                                                        string entityType = null,
+                                                        string action = null)
     {
         var query = _context.AuditLogs.AsQueryable();
 

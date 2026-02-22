@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Api.Context;
 using Shared.Models.Services;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Shared.Helpers;
 
 namespace Api.Controllers;
@@ -22,15 +23,17 @@ public class FilesaveController : ControllerBase
     private readonly long _maxFileSize;
     private ILogger<FilesaveController> _logger;
 
-    public FilesaveController(IConfiguration config, ILogger<FilesaveController> logger)
+    public FilesaveController(IConfiguration config, IHostEnvironment env, ILogger<FilesaveController> logger)
     {
         _logger = logger;
-        _uploadPath = config["FileStorage:UploadPath"]!;
+        var rawPath = config["FileStorage:UploadPath"]!;
+        _uploadPath = Path.IsPathRooted(rawPath)
+            ? rawPath
+            : Path.Combine(env.ContentRootPath, rawPath);
         _publicUrl = config["FileStorage:PublicUrl"]!;
         _allowedExtensions = config.GetSection("AllowedExtensions").Get<string[]>()!;
         _maxFileSize = config.GetValue<long>("MaxFileSizeBytes");
 
-        // Ensure upload directory exists
         Directory.CreateDirectory(_uploadPath);
     }
 

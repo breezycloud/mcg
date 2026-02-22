@@ -117,6 +117,13 @@
                 <p class="text-sm text-gray-700 dark:text-gray-300">@Data.Notes</p>
             </div>
         }
+
+        @if (Data.Files != null && Data.Files.Any())
+        {
+            <div class="mt-4">
+                <FileListView Files="Data.Files" ShowDelete="false" />
+            </div>
+        }
     }
 </div>
 

@@ -29,7 +29,13 @@
             {
                 @foreach (var discharge in Trip!.Discharges.OrderBy(d => d.DischargeStartTime))
                 {
-                    <DischargeCard Data="discharge" OnDelete="DeleteDischarge" OnEdit="EditDischarge"/>
+                    <DischargeCard Data="discharge"
+                                   OnDelete="DeleteDischarge"
+                                   OnEdit="EditDischarge"
+                                   ShowUpload="true"
+                                   ShowFileDelete="true"
+                                   OnFilesUploaded="@(files => SaveDischargeFiles(discharge, files))"
+                                   OnFileDelete="@(file => RemoveDischargeFile(discharge, file))" />
                 }
             }
         </div>
@@ -76,5 +82,31 @@
     private void EditDischarge(Discharge discharge)
     {
         OnEdit.InvokeAsync(discharge);
+    }
+
+    private async Task SaveDischargeFiles(Discharge discharge, List<UploadResult> files)
+    {
+        try
+        {
+            await DischargeService.UpdateAsync(discharge, AppState.GetCancellationToken());
+            ToastService.ShowSuccess($"{files.Count} file(s) saved to discharge.");
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Failed to save files: {ex.Message}");
+        }
+    }
+
+    private async Task RemoveDischargeFile(Discharge discharge, UploadResult file)
+    {
+        try
+        {
+            await DischargeService.UpdateAsync(discharge, AppState.GetCancellationToken());
+            ToastService.ShowSuccess("File removed.");
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Failed to remove file: {ex.Message}");
+        }
     }
 }

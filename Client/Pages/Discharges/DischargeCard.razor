@@ -77,6 +77,18 @@
             <p class="text-sm text-gray-700 dark:text-gray-300">@Data.Notes</p>
         </div>
     }
+    @if (ShowUpload)
+    {
+        <div class="mt-4">
+            <FileUploadView OnFilesUploaded="HandleFilesUploaded" />
+        </div>
+    }
+    @if (Data.Files != null && Data.Files.Any())
+    {
+        <div class="mt-4">
+            <FileListView Files="Data.Files" ShowDelete="@ShowFileDelete" OnDelete="HandleFileDelete" />
+        </div>
+    }
 </div>
 
 <!-- Delete Confirmation Modal (unchanged) -->
@@ -114,6 +126,10 @@
     [Parameter] public Discharge Data { get; set; } = new();
     [Parameter] public EventCallback<Discharge> OnEdit { get; set; }
     [Parameter] public EventCallback<Guid> OnDelete { get; set; }
+    [Parameter] public bool ShowUpload { get; set; } = false;
+    [Parameter] public bool ShowFileDelete { get; set; } = false;
+    [Parameter] public EventCallback<List<UploadResult>> OnFilesUploaded { get; set; }
+    [Parameter] public EventCallback<UploadResult> OnFileDelete { get; set; }
 
     private bool showDeleteModal = false;
 
@@ -124,5 +140,19 @@
     {
         showDeleteModal = false;
         await OnDelete.InvokeAsync(id);
+    }
+
+    private async Task HandleFilesUploaded(List<UploadResult> files)
+    {
+        Data.Files.AddRange(files);
+        await OnFilesUploaded.InvokeAsync(files);
+        StateHasChanged();
+    }
+
+    private async Task HandleFileDelete(UploadResult file)
+    {
+        Data.Files.Remove(file);
+        await OnFileDelete.InvokeAsync(file);
+        StateHasChanged();
     }
 }
