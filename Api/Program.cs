@@ -1,7 +1,9 @@
 using System.Configuration;
 using System.Text;
+using System.Threading.RateLimiting;
 using Api.Context;
 using Api.Data;
+using Api.Filters;
 using Api.Logging;
 using Api.Services.Dashboards;
 using Api.Services.Messages;
@@ -44,6 +46,35 @@ builder.Services.AddControllers(options =>
     options.ModelBinderProviders.Insert(0, new MultiDateFormatBinderProvider());
 }).AddNewtonsoftJson(x => x.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore);
 builder.Services.AddRazorPages();
+
+// Rate limiter — fixed window, 20 req/min, partitioned per client IP
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddPolicy("DispatchCheckPolicy", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 20,
+                Window = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0 // Reject immediately — no queuing
+            }
+        )
+    );
+
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        context.HttpContext.Response.Headers["Retry-After"] = "60";
+        await context.HttpContext.Response.WriteAsJsonAsync(
+            new { error = "Too many requests. Please retry after 60 seconds." },
+            cancellationToken);
+    };
+});
+
+// API key filter — must be registered for [ServiceFilter] DI injection
+builder.Services.AddScoped<ApiKeyAuthFilter>();
 
 string? ConnectionString = string.Empty;
 
@@ -162,6 +193,9 @@ app.UseHttpsRedirection();
 app.MapStaticAssets();
 
 app.UseRouting();
+
+// Rate limiter must be after UseRouting (needs route metadata) and before UseAuthentication
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();

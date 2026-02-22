@@ -1,0 +1,74 @@
+services:
+
+  # ── PostgreSQL ────────────────────────────────────────────────────────────────
+  db:
+    image: postgres:16.4-alpine
+    environment:
+      POSTGRES_DB: mcg_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: nerdyamin
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d mcg_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ── RabbitMQ ──────────────────────────────────────────────────────────────────
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: mcc_admin
+      RABBITMQ_DEFAULT_PASS: Mccmis25
+    ports:
+      - "5672:5672"
+      - "15672:15672"   # Management UI → http://localhost:15672
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+
+  # ── API ───────────────────────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5294:5294"    # HTTP  (matches launchSettings.json http profile)
+      - "7229:7229"    # HTTPS (matches launchSettings.json https profile)
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: "https://+:7229;http://+:5294"
+      # Dev certificate mounted from host — generated with:
+      #   dotnet dev-certs https -ep "$env:USERPROFILE\.aspnet\https\aspnetapp.pfx" -p mcg_dev_cert_2026
+      #   dotnet dev-certs https --trust
+      ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
+      ASPNETCORE_Kestrel__Certificates__Default__Password: mcg_dev_cert_2026
+      # Override the Production connection string to point at the db container
+      ConnectionStrings__Production: "Host=db;port=5432;Username=postgres;Password=nerdyamin;Database=mcg_db"
+      # Override RabbitMQ host to point at the rabbitmq container
+      RabbitMQ__HostName: rabbitmq
+      RabbitMQ__UserName: mcc_admin
+      RabbitMQ__Password: Mccmis25
+      # File storage inside the container
+      FileStorage__UploadPath: /var/www/uploads
+      FileStorage__PublicUrl: /uploads
+    volumes:
+      - uploads_data:/var/www/uploads
+      - ${USERPROFILE}/.aspnet/https:/https:ro   # dev cert mounted read-only
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  uploads_data:
