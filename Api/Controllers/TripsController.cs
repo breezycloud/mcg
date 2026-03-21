@@ -514,9 +514,8 @@ public class TripsController : ControllerBase
         {
             return BadRequest("Invalid dispatch ID format.");
         }        
-        id = id.Trim();
         var dispatch = await _context.Trips
-            .Where(t => t.DispatchId == id)
+            .Where(t => t.DispatchId.Trim() == id.Trim())
             .Select(t => new DispatchDetail(
                 t.LoadingDepot != null ? t.LoadingDepot.Name : "N/A",
                 t.ArrivalInfo != null ? t.ArrivalInfo.Destination! : "N/A",
