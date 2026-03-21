@@ -11,7 +11,6 @@ public class Constants(NavigationManager nav)
     public string BaseAddress()
     {
         var host = new Uri(_nav.BaseUri).Host;
-        Console.WriteLine("Host: {0}", host);
         if (host.StartsWith("staging"))
         {
             return "https://staging.atlanticlogistics-atv.com.ng/api/";
@@ -22,7 +21,7 @@ public class Constants(NavigationManager nav)
         }
         else
         {
-            return "https://localhost:7229/api/";
+            return "https://staging.atlanticlogistics-atv.com.ng/api/";
         }
     }
 }

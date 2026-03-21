@@ -507,6 +507,31 @@ public class TripsController : ControllerBase
         return CreatedAtAction("GetTrip", new { id = trip.Id }, trip);
     }
 
+    [HttpGet("get-dispatch")]
+    public async Task<ActionResult<DispatchDetail>> GetDispatchDetail(string id, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrEmpty(id))
+        {
+            return BadRequest("Invalid dispatch ID format.");
+        }        
+        var dispatch = await _context.Trips
+            .Where(t => t.DispatchId == id)
+            .Select(t => new DispatchDetail(
+                t.LoadingDepot != null ? t.LoadingDepot.Name : "N/A",
+                t.ReceivingDepot != null ? t.ReceivingDepot.Name : "N/A",
+                t.Truck != null ? t.Truck.TruckNo : "N/A",
+                t.Truck != null ? t.Truck.LicensePlate : "N/A"
+            ))
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (dispatch == null)
+        {
+            return NotFound("Dispatch not found");
+        }
+
+        return Ok(dispatch);
+    }
+
     // DELETE: api/Trips/5
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteTrip(Guid id)
