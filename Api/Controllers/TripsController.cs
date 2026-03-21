@@ -518,7 +518,7 @@ public class TripsController : ControllerBase
             .Where(t => t.DispatchId == id)
             .Select(t => new DispatchDetail(
                 t.LoadingDepot != null ? t.LoadingDepot.Name : "N/A",
-                t.ReceivingDepot != null ? t.ReceivingDepot.Name : "N/A",
+                t.ArrivalInfo != null ? t.ArrivalInfo.Destination! : "N/A",
                 t.Truck != null ? t.Truck.TruckNo : "N/A",
                 t.Truck != null ? t.Truck.LicensePlate : "N/A"
             ))
