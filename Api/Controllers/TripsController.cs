@@ -515,6 +515,7 @@ public class TripsController : ControllerBase
             return BadRequest("Invalid dispatch ID format.");
         }        
         var dispatch = await _context.Trips
+            .AsNoTracking()
             .Where(t => t.DispatchId.Trim() == id.Trim())
             .Select(t => new DispatchDetail(
                 t.LoadingDepot != null ? t.LoadingDepot.Name : "N/A",
