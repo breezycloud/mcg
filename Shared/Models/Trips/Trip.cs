@@ -183,4 +183,4 @@ public class TripReconciliation
 }
 
 
-public record DispatchDetail(string Origin, string Destination, string TruckNo, string LicensePlate);
+public record DispatchDetail(string Origin, string Destination, string LoadingDate, string TruckNo, string LicensePlate);

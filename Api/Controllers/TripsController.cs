@@ -520,6 +520,7 @@ public class TripsController : ControllerBase
             .Select(t => new DispatchDetail(
                 t.LoadingDepot != null ? t.LoadingDepot.Name : "N/A",
                 t.LoadingInfo.Destination != null ? t.LoadingInfo.Destination! : "N/A",
+                t.LoadingInfo.LoadingDate.HasValue ? t.LoadingInfo.LoadingDate.Value.ToString("dd/MM/yyyy") : "N/A",
                 t.Truck != null ? t.Truck.TruckNo : "N/A",
                 t.Truck != null ? t.Truck.LicensePlate : "N/A"
             ))
