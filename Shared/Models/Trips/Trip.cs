@@ -181,3 +181,5 @@ public class TripReconciliation
 
     public bool IsWithinTolerance => Math.Abs(Variance) <= AllowedVariance;
 }
+
+public record DispatchDetail(string Origin, string Destination, string LoadingDate, string TruckNo, string LicensePlate);
