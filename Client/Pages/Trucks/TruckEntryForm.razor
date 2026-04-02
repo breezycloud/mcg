@@ -148,13 +148,15 @@
                     <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                         Driver 
                     </label>
-                    <InputSelect @bind-Value="CurrentTruck.DriverId" id="driverId" class="@GetInputClass("DriverId")">
-                        <option value="">-- Select Driver --</option>
-                        @foreach (var driver in Drivers!)
-                        {
-                            <option value="@driver.Id">@driver.ToString()</option>
-                        }
-                    </InputSelect>
+                    <Autocomplete TItem="Driver"
+                        SearchFunc="SearchDrivers"
+                        SelectedChanged="OnDriverSelected"
+                        Placeholder="Search driver by name or phone..."
+                        InitialText="@selectedDriverName">
+                        <OptionTemplate Context="driver">
+                            <span>@driver.FirstName @driver.LastName (@driver.PhoneNo)</span>
+                        </OptionTemplate>
+                    </Autocomplete>
                     @if (errors.ContainsKey("DriverId"))
                     {
                         <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["DriverId"]</p>
@@ -384,7 +386,7 @@
 
     private Dictionary<string, string> errors = new();
 
-    private Driver[]? Drivers = [];
+    private string? selectedDriverName;
     private CalibrationParam currentCalibration = new();
     private bool showModal = false;
     private bool isEditing = false;
@@ -392,15 +394,13 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Load driver
-        AppState.IsBusy = true;
-        await Task.Delay(500);
-        Drivers = await DriverService.GetAsync(AppState.GetCancellationToken());
+        AppState.IsBusy = true;        
         if (Id.HasValue)        
         {
             CurrentTruck = await TruckService.GetAsync(Id!.Value, AppState.GetCancellationToken()) ?? new();
             EditMode = true;
             Product = CurrentTruck.Product!.Value;
+            selectedDriverName = CurrentTruck.Driver?.ToString();
         }
         AppState.IsBusy = false;
     }
@@ -657,6 +657,24 @@
         {
             return Enum.GetValues(typeof(Compartment)).Cast<Compartment>().ToList();
         }
+    }
+
+    private async Task<List<Driver>> SearchDrivers(string query, int page, CancellationToken ct)
+    {
+        var request = new GridDataRequest
+        {
+            SearchTerm = query,
+            Page = page,
+            PageSize = 10
+        };
+        var response = await DriverService.GetPagedAsync(request, ct);
+        return response?.Data ?? [];
+    }
+
+    private void OnDriverSelected(Driver? driver)
+    {
+        CurrentTruck.DriverId = driver?.Id;
+        errors.Remove("DriverId");
     }
 
     private async Task NotifyParent()
