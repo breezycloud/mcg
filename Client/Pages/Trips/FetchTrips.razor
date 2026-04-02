@@ -192,9 +192,14 @@
                                 {
                                     <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
                                         <!-- Trip Date -->
-                                        <td class="px-4 py-4 text-sm text-gray-900 dark:text-white">
-                                            @trip.Date.ToString("MMM dd, yyyy")
-                                        </td>
+                                        <td class="px-4 py-4 text-sm text-gray-700 dark:text-gray-300">
+                                            <div>
+                                                <span class="font-semibold">Dispatch:</span> @trip.Date.ToString("MMM dd, yyyy")
+                                            </div>
+                                            <div>
+                                                <span class="font-semibold">Loading:</span> @trip.LoadingInfo.LoadingDate?.ToString("MMM dd, yyyy")
+                                            </div>
+                                        </td>                                        
                                         <!-- Dispatch Number & Waybill -->
                                         <td class="px-4 py-4 text-sm text-gray-700 dark:text-gray-300">
                                             <div>

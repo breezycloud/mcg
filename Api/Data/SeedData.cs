@@ -24,9 +24,14 @@ public class SeedData
         using var scope = scopeFactory.CreateScope();
         using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         //db.Database.EnsureDeleted();
-        await db.Database.EnsureCreatedAsync();
+        var created = await db.Database.EnsureCreatedAsync();
 
         await AddMigrations(scopeFactory);
+
+        if (created)
+        {
+            AddUsers(db);
+        }
        
         // if (db.Database.EnsureCreated())
         // {

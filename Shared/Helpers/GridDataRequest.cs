@@ -18,5 +18,9 @@ namespace Shared.Helpers
         public int Page { get; set; }
         public int PageSize { get; set; } = 10;
         public string? Product { get; set; }
+        public string? EntityType { get; set; }
+        public string? Action { get; set; }
+        public DateTime? FromDate { get; set; }
+        public DateTime? ToDate { get; set; }
     }
 }
