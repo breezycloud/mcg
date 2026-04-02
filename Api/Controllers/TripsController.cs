@@ -455,6 +455,33 @@ public class TripsController : ControllerBase
         return trips;
     }
 
+    [HttpGet("get-dispatch")]
+    public async Task<ActionResult<DispatchDetail>> GetDispatchDetail(string id, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrEmpty(id))
+        {
+            return BadRequest("Invalid dispatch ID format.");
+        }        
+        var dispatch = await _context.Trips
+            .AsNoTracking()
+            .Where(t => t.DispatchId.Trim() == id.Trim())
+            .Select(t => new DispatchDetail(
+                t.LoadingDepot != null ? t.LoadingDepot.Name : "N/A",
+                t.LoadingInfo.Destination != null ? t.LoadingInfo.Destination! : "N/A",
+                t.LoadingInfo.LoadingDate.HasValue ? t.LoadingInfo.LoadingDate.Value.ToString("dd/MM/yyyy") : "N/A",
+                t.Truck != null ? t.Truck.TruckNo : "N/A",
+                t.Truck != null ? t.Truck.LicensePlate : "N/A"
+            ))
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (dispatch == null)
+        {
+            return NotFound("Dispatch not found");
+        }
+
+        return Ok(dispatch);
+    }
+
     // PUT: api/Trips/5
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     [HttpPut("{id}")]
@@ -505,6 +532,33 @@ public class TripsController : ControllerBase
         await _context.SaveChangesAsync();
 
         return CreatedAtAction("GetTrip", new { id = trip.Id }, trip);
+    }
+
+    [HttpGet("get-dispatch")]
+    public async Task<ActionResult<DispatchDetail>> GetDispatchDetail(string id, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrEmpty(id))
+        {
+            return BadRequest("Invalid dispatch ID format.");
+        }        
+        var dispatch = await _context.Trips
+            .AsNoTracking()
+            .Where(t => t.DispatchId.Trim() == id.Trim())
+            .Select(t => new DispatchDetail(
+                t.LoadingDepot != null ? t.LoadingDepot.Name : "N/A",
+                t.LoadingInfo.Destination != null ? t.LoadingInfo.Destination! : "N/A",
+                t.LoadingInfo.LoadingDate.HasValue ? t.LoadingInfo.LoadingDate.Value.ToString("dd/MM/yyyy") : "N/A",
+                t.Truck != null ? t.Truck.TruckNo : "N/A",
+                t.Truck != null ? t.Truck.LicensePlate : "N/A"
+            ))
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (dispatch == null)
+        {
+            return NotFound("Dispatch not found");
+        }
+
+        return Ok(dispatch);
     }
 
     // DELETE: api/Trips/5
