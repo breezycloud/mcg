@@ -99,6 +99,15 @@
     [Parameter] public string Placeholder { get; set; } = "";
     [Parameter] public EventCallback<TItem> SelectedChanged { get; set; }
     [Parameter] public RenderFragment<TItem> OptionTemplate { get; set; } = default!;
+    [Parameter] public string? InitialText { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (!string.IsNullOrEmpty(InitialText))
+        {
+            _searchText = InitialText;
+        }
+    }
 
     private string _searchText = "";
     private string SearchText
@@ -198,11 +207,12 @@
         await SelectedChanged.InvokeAsync(item);
     }
 
-    private void ClearInput()
+    private async Task ClearInput()
     {
-        SearchText = "";
+        _searchText = "";
         FilteredItems.Clear();
         showList = false;
+        await SelectedChanged.InvokeAsync(default);
     }
 
     private void OnKeyDown(KeyboardEventArgs e)
