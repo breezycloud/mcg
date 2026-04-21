@@ -542,8 +542,6 @@ public class TripsController : ControllerBase
         return Ok(dispatch);
     }
 
-<<<<<<< Updated upstream
-=======
     [HttpPost("lpg-trips")]
     public async Task<ActionResult<IEnumerable<LpgTripDetail>>> GetLpgTrips([FromBody] ReportFilter request, CancellationToken cancellationToken)
     {
@@ -610,7 +608,6 @@ public class TripsController : ControllerBase
         return CreatedAtAction("GetTrip", new { id = trip.Id }, trip);
     }
 
->>>>>>> Stashed changes
     // DELETE: api/Trips/5
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteTrip(Guid id)
