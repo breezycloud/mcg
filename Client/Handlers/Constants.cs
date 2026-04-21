@@ -21,7 +21,7 @@ public class Constants(NavigationManager nav)
         }
         else
         {
-            return "https://staging.atlanticlogistics-atv.com.ng/api/";
+            return "https://localhost:7229/api/";
         }
     }
 }

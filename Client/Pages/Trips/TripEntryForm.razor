@@ -92,13 +92,17 @@
                         <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                             Driver <span class="text-red-500">*</span>
                         </label>
-                        <InputSelect @bind-Value="tripLoading.DriverId" id="driverId" class="@GetInputClass("DriverId")">
-                            <option value="">-- Select Driver --</option>
-                            @foreach (var driver in Drivers!)
-                            {
-                                <option value="@driver.Id">@driver.ToString()</option>
-                            }
-                        </InputSelect>
+                        <div @key="driverAutocompleteKey">
+                            <Autocomplete TItem="Driver"
+                                SearchFunc="SearchDrivers"
+                                SelectedChanged="OnDriverSelected"
+                                Placeholder="Search driver by name or phone..."
+                                InitialText="@selectedDriverName">
+                                <OptionTemplate Context="driver">
+                                    <span>@driver.FirstName @driver.LastName (@driver.PhoneNo)</span>
+                                </OptionTemplate>
+                            </Autocomplete>
+                        </div>
                         @if (errors.ContainsKey("DriverId"))
                         {
                             <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["DriverId"]</p>
@@ -205,9 +209,8 @@
     private Dictionary<string, string> errors = new();
 
     private Truck[]? Trucks = [];
-    private Driver[]? Drivers = [];
-    private Station[]? Depots = [];
-    private Station[]? Destionations = [];
+    private string? selectedDriverName;
+    private int driverAutocompleteKey;
 
     private Station? SelectedStation;
 
@@ -215,12 +218,39 @@
     {
         AppState.IsBusy = true;
         selectableProducts = BuildSelectableProducts();
-        Destionations = await StationService.GetAsync(StationType.DischargeStation.ToString(), AppState.GetCancellationToken());
-        Drivers = await DriverService.GetAsync(AppState.GetCancellationToken());
         if (Id.HasValue)
         {
             CurrentTrip = await TripService.GetAsync(Id.Value, AppState.GetCancellationToken()) ?? new();
             EditMode = true;
+            tripLoading = new TripLoadingDto
+            {
+                LoadingDate = CurrentTrip.Date,
+                DriverId = CurrentTrip.DriverId,
+                TruckId = CurrentTrip.TruckId,
+                LoadingPointId = CurrentTrip.LoadingDepotId,
+                LicensePlate = CurrentTrip.Truck?.LicensePlate,
+                DispatchId = CurrentTrip.DispatchId,
+                Destination = CurrentTrip.LoadingInfo?.Destination
+            };
+            SelectedProduct = CurrentTrip.Truck?.Product?.ToString();
+            SelectedStation = CurrentTrip.LoadingDepot;
+            selectedDriverName = CurrentTrip.Driver is null
+                ? string.Empty
+                : $"{CurrentTrip.Driver.FirstName} {CurrentTrip.Driver.LastName} ({CurrentTrip.Driver.PhoneNo})";
+            driverAutocompleteKey++;
+
+            if (!string.IsNullOrWhiteSpace(SelectedProduct))
+            {
+                Trucks = await TruckService.GetTrucksAvailableAsync(
+                    SelectedProduct,
+                    AppState.GetCancellationToken()
+                ) ?? [];
+
+                if (CurrentTrip.Truck is not null && !Trucks.Any(x => x.Id == CurrentTrip.TruckId))
+                {
+                    Trucks = [CurrentTrip.Truck, ..Trucks];
+                }
+            }
         }                                
         AppState.IsBusy = false;
     }
@@ -281,8 +311,34 @@
             if (truck.DriverId is not null)
             {
                 tripLoading.DriverId = truck.DriverId;
+                selectedDriverName = truck.Driver is null
+                    ? string.Empty
+                    : $"{truck.Driver.FirstName} {truck.Driver.LastName} ({truck.Driver.PhoneNo})";
+                driverAutocompleteKey++;
             }
         }
+    }
+
+    private async Task<List<Driver>> SearchDrivers(string query, int page, CancellationToken ct)
+    {
+        var request = new GridDataRequest
+        {
+            SearchTerm = query,
+            Page = page,
+            PageSize = 10
+        };
+
+        var response = await DriverService.GetPagedAsync(request, ct);
+        return response?.Data ?? [];
+    }
+
+    private void OnDriverSelected(Driver? driver)
+    {
+        tripLoading!.DriverId = driver?.Id;
+        selectedDriverName = driver is null
+            ? string.Empty
+            : $"{driver.FirstName} {driver.LastName} ({driver.PhoneNo})";
+        errors.Remove("DriverId");
     }
 
     private async Task OnDateChanged()

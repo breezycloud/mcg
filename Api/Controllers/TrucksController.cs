@@ -32,7 +32,11 @@ public class TrucksController : ControllerBase
         GridDataResponse<Truck> response = new();
         try
         {
-            var query = _context.Trucks.AsNoTracking().Include(x => x.Driver).AsQueryable();
+            var query = _context.Trucks
+                .AsNoTracking()
+                .Include(x => x.Driver)
+                .Include(x => x.ServiceRequests)
+                .AsQueryable();
             
             if (!string.IsNullOrEmpty(request.SearchTerm))
             {
@@ -73,16 +77,7 @@ public class TrucksController : ControllerBase
         GridDataResponse<Truck> response = new();
         try
         {
-            IQueryable<Truck> truckQuery;
-
-            // Get trucks with no active trip (assuming "Active" is the status for active trips)
-            var trucksWithActiveTrips = _context.Trips
-                .Where(t => t.Status == TripStatus.Active)
-                .Select(t => t.TruckId)
-                .Distinct();
-
-            truckQuery = _context.Trucks
-                .Where(truck => !trucksWithActiveTrips.Contains(truck.Id));
+            IQueryable<Truck> truckQuery = GetDispatchEligibleTrucksQuery();
 
             // // Optionally filter by state if provided
             // if (!string.IsNullOrEmpty(state))
@@ -112,14 +107,7 @@ public class TrucksController : ControllerBase
     [HttpGet("available-trucks")]
     public async Task<ActionResult<IEnumerable<Truck>?>> GetAvailableTrucksAsync(string product, CancellationToken cancellationToken = default)
     {
-        // Get trucks with no active trip (assuming "Active" and "Dispatched" are statuses for active trips)
-        var trucksWithActiveTrips = _context.Trips
-            .Where(t => t.Status == TripStatus.Active || t.Status == TripStatus.Dispatched)
-            .Select(t => t.TruckId)
-            .Distinct();
-
-        var truckQuery = _context.Trucks.AsNoTracking().Include(x => x.Driver)
-            .Where(truck => !trucksWithActiveTrips.Contains(truck.Id));
+        var truckQuery = GetDispatchEligibleTrucksQuery();
 
         // Filter by product if provided
         if (!string.IsNullOrEmpty(product) && product != "All")
@@ -175,6 +163,7 @@ public class TrucksController : ControllerBase
     {
         var truck = await _context.Trucks.AsNoTracking()
                                          .Include(x => x.Driver)
+                                         .Include(x => x.ServiceRequests)
                                          .Include(x => x.Trips)
                                          .AsSplitQuery()
                                          .FirstOrDefaultAsync(x => x.Id == id);
@@ -274,6 +263,29 @@ public class TrucksController : ControllerBase
         await _context.SaveChangesAsync();
 
         return NoContent();
+    }
+
+    private IQueryable<Truck> GetDispatchEligibleTrucksQuery()
+    {
+        var trucksWithUnavailableTrips = _context.Trips
+            .Where(t => t.Status == TripStatus.Active || t.Status == TripStatus.Dispatched)
+            .Select(t => t.TruckId)
+            .Distinct();
+
+        var trucksUnderMaintenance = _context.ServiceRequest
+            .Where(request => request.TruckId.HasValue
+                && (request.Status == RequestStatus.Pending
+                    || request.Status == RequestStatus.InProgress
+                    || request.Status == RequestStatus.Escalated))
+            .Select(request => request.TruckId!.Value)
+            .Distinct();
+
+        return _context.Trucks
+            .AsNoTracking()
+            .Include(x => x.Driver)
+            .Where(truck => truck.IsActive)
+            .Where(truck => !trucksWithUnavailableTrips.Contains(truck.Id))
+            .Where(truck => !trucksUnderMaintenance.Contains(truck.Id));
     }
 
     private bool TruckExists(Guid id)

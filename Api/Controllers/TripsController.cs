@@ -659,7 +659,7 @@ public class TripsController : ControllerBase
 
         if (trip.Date.Date < minimumDispatchDate)
         {
-            return $"Dispatch date cannot be earlier than {minimumDispatchDate:MMM dd, yyyy}. Only Admin and Master users can back-date dispatches.";
+            return $"Dispatch date cannot be earlier than {minimumDispatchDate:MMM dd, yyyy}. Only Admin users can back-date dispatches.";
         }
 
         return null;

@@ -78,6 +78,8 @@
                             <th scope="col" class="px-6 py-3">Engine No</th>
                             <th scope="col" class="px-6 py-3">Product</th>
                             <th scope="col" class="px-6 py-3">Driver</th>
+                            <th scope="col" class="px-6 py-3">Deployment</th>
+                            <th scope="col" class="px-6 py-3">Maintenance</th>
                             <th scope="col" class="px-6 py-3">Created</th>
                             @* <th scope="col" class="px-6 py-3">Updated</th> *@
                             <th scope="col" class="px-6 py-3 text-right">Actions</th>
@@ -111,6 +113,16 @@
                                             </span>
                                         }
                                     </td>
+                                    <td class="px-6 py-4">
+                                        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium @GetDeploymentBadgeClass(truck)">
+                                            @(truck.IsActive ? "Deployed" : "Undeployed")
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium @GetMaintenanceBadgeClass(truck)">
+                                            @(IsUnderMaintenance(truck) ? "Under Maintenance" : "Clear")
+                                        </span>
+                                    </td>
                                     <td class="px-6 py-4">@truck.CreatedAt.ToString("MMM dd, yyyy")</td>
                                     @* <td class="px-6 py-4">@(truck.UpdatedAt?.ToString("MMM dd, yyyy") ?? "Never")</td> *@
                                     <td class="px-6 py-4 text-right">
@@ -138,7 +150,7 @@
                         else
                         {
                             <tr>
-                                <td colspan="10" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                                <td colspan="12" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
                                     @if (AppState.IsBusy)
                                     {
                                         <div class="flex justify-center items-center">
@@ -382,5 +394,27 @@
     {
         await TruckService.DeleteAsync(id, AppState.GetCancellationToken());
         response = await TruckService.GetPagedAsync(request, AppState.GetCancellationToken());
+    }
+
+    private static bool IsUnderMaintenance(Truck truck)
+    {
+        return truck.ServiceRequests.Any(request =>
+            request.Status == RequestStatus.Pending ||
+            request.Status == RequestStatus.InProgress ||
+            request.Status == RequestStatus.Escalated);
+    }
+
+    private static string GetDeploymentBadgeClass(Truck truck)
+    {
+        return truck.IsActive
+            ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+            : "bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-300";
+    }
+
+    private static string GetMaintenanceBadgeClass(Truck truck)
+    {
+        return IsUnderMaintenance(truck)
+            ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
+            : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300";
     }
 } 
