@@ -1,6 +1,5 @@
 using System.Text;
 using System.Text.Json;
-using System.Collections.Generic;
 using FluentEmail.Core;
 using Microsoft.Extensions.Options;
 using PuppeteerSharp;
@@ -55,13 +54,7 @@ public class EmailConsumerService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var queueArgs = new Dictionary<string, object>
-        {
-            { "x-message-ttl", 86400000 },
-            { "x-dead-letter-exchange", "email_dead_letter_exchange" },
-            { "x-dead-letter-routing-key", "email.send" }
-        };
-        _channel.QueueDeclare("email_queue", durable: true, exclusive: false, autoDelete: false, arguments: queueArgs);
+        _channel.QueueDeclare("email_queue", durable: true, exclusive: false, autoDelete: false);
 
         var consumer = new EventingBasicConsumer(_channel);
         consumer.Received += async (model, ea) =>

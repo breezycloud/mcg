@@ -1,6 +1,5 @@
 using System.Text;
 using System.Text.Json;
-using System.Collections.Generic;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 using Shared.Models.MessageBroker;
@@ -28,13 +27,7 @@ public class EmailPublisherService : IDisposable
 
         // Declare exchange and queue
         _channel.ExchangeDeclare(ExchangeName, ExchangeType.Direct, durable: true);
-        var queueArgs = new Dictionary<string, object>
-        {
-            { "x-message-ttl", 86400000 },
-            { "x-dead-letter-exchange", "email_dead_letter_exchange" },
-            { "x-dead-letter-routing-key", "email.send" }
-        };
-        _channel.QueueDeclare(QueueName, durable: true, exclusive: false, autoDelete: false, arguments: queueArgs);
+        _channel.QueueDeclare(QueueName, durable: true, exclusive: false, autoDelete: false);
         _channel.QueueBind(QueueName, ExchangeName, "email");
     }
 
