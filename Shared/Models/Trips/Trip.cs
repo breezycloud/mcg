@@ -182,10 +182,6 @@ public class TripReconciliation
     public bool IsWithinTolerance => Math.Abs(Variance) <= AllowedVariance;
 }
 
-<<<<<<< Updated upstream
-
-public record DispatchDetail(string Origin, string Destination, string LoadingDate, string TruckNo, string LicensePlate);
-=======
 public record DispatchDetail(string Origin, string Destination, string LoadingDate, string TruckNo, string LicensePlate);
 
 public record LpgTripDetail(
@@ -199,4 +195,3 @@ public record LpgTripDetail(
     decimal? TyreWeight,
     decimal? Net
 );
->>>>>>> Stashed changes
