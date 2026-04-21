@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using Shared.Dtos;
 using Shared.Helpers;
 using Shared.Models.Trucks;
 
@@ -21,6 +22,22 @@ public class TruckService(IHttpClientFactory _httpClient) : ITruckService
             throw;
         }
     }
+
+    public async Task<bool> AssignDriverAsync(TruckDriverAssignmentDto model, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var response = await _httpClient.CreateClient("AppUrl").PutAsJsonAsync($"Trucks/{model.TruckId}/driver", model, cancellationToken);
+            response.EnsureSuccessStatusCode();
+            return response.IsSuccessStatusCode;
+        }
+        catch (System.Exception)
+        {
+
+            throw;
+        }
+    }
+
     public async Task<bool> UpdateAsync(Truck model, CancellationToken cancellationToken)
     {
         try

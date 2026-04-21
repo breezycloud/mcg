@@ -6,9 +6,11 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Api.Context;
+using Api.Util;
 using Shared.Models.Trips;
 using Shared.Helpers;
 using Shared.Dtos;
+using Shared.Enums;
 using System.Text;
 
 namespace Api.Controllers;
@@ -458,18 +460,24 @@ public class TripsController : ControllerBase
     // PUT: api/Trips/5
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     [HttpPut("{id}")]
-    public async Task<IActionResult> PutTrip(Guid id, Trip trip)
+    public async Task<IActionResult> PutTrip(Guid id, Trip trip, CancellationToken cancellationToken)
     {
         if (id != trip.Id)
         {
             return BadRequest();
         }
 
+        var dispatchValidationError = await ValidateDispatchDateAsync(trip, cancellationToken);
+        if (dispatchValidationError is not null)
+        {
+            return BadRequest(dispatchValidationError);
+        }
+
         _context.Entry(trip).State = EntityState.Modified;
 
         try
         {
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(cancellationToken);
         }
         catch (DbUpdateConcurrencyException)
         {
@@ -534,6 +542,75 @@ public class TripsController : ControllerBase
         return Ok(dispatch);
     }
 
+<<<<<<< Updated upstream
+=======
+    [HttpPost("lpg-trips")]
+    public async Task<ActionResult<IEnumerable<LpgTripDetail>>> GetLpgTrips([FromBody] ReportFilter request, CancellationToken cancellationToken)
+    {
+        var query = _context.Trips
+            .AsNoTracking()
+            .Include(x => x.LoadingDepot)
+            .Include(x => x.Truck)
+            .Where(t => t.Truck != null && t.Truck.Product == Shared.Enums.Product.LPG
+                && t.Date.Month == request.StartDate.Month
+                && t.Date.Year == request.StartDate.Year);
+
+        if (request.EndDate.HasValue)
+        {
+            var endDateTime = request.EndDate.Value.ToDateTime(TimeOnly.MaxValue);
+            query = query.Where(t => t.Date <= endDateTime);
+        }
+
+        var trips = await query.OrderByDescending(t => t.LoadingInfo.LoadingDate).ToListAsync(cancellationToken);
+
+        var result = trips.Select(t =>
+        {
+            var gross = t.LoadingInfo?.Metrics?.Sum(m => m.GrossWeight ?? 0);
+            var tare = t.LoadingInfo?.Metrics?.Sum(m => m.TareWeight ?? 0);
+            return new LpgTripDetail(
+                t.DispatchId ?? "N/A",
+                t.LoadingInfo?.LoadingDate.HasValue == true ? t.LoadingInfo.LoadingDate.Value.ToString("dd/MM/yyyy") : "N/A",
+                t.LoadingDepot?.Name ?? "N/A",
+                t.LoadingInfo?.Destination ?? "N/A",
+                t.Truck?.TruckNo ?? "N/A",
+                t.LoadingInfo?.WaybillNo ?? "N/A",
+                gross,
+                tare,
+                gross - tare
+            );
+        });
+
+        return Ok(result);
+    }
+
+    // POST: api/Trips
+    // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+    [HttpPost]
+    public async Task<ActionResult<Trip>> PostTrip(Trip trip, CancellationToken cancellationToken)
+    {
+        var dispatchValidationError = await ValidateDispatchDateAsync(trip, cancellationToken);
+        if (dispatchValidationError is not null)
+        {
+            return BadRequest(dispatchValidationError);
+        }
+
+        var dispatchResult = await GenerateDispatchId(trip.TruckId, trip.Date.ToString("yyyy-MM-dd"), cancellationToken);
+        if (dispatchResult.Result is OkObjectResult okResult && okResult.Value is string dispatchId)
+        {
+            Console.WriteLine($"Generated DispatchId: {dispatchId}");
+            trip.DispatchId = dispatchId.Trim();
+        }
+        else
+        {
+            return BadRequest("Failed to generate DispatchId.");
+        }
+        _context.Trips.Add(trip);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return CreatedAtAction("GetTrip", new { id = trip.Id }, trip);
+    }
+
+>>>>>>> Stashed changes
     // DELETE: api/Trips/5
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteTrip(Guid id)
@@ -553,5 +630,41 @@ public class TripsController : ControllerBase
     private bool TripExists(Guid id)
     {
         return _context.Trips.Any(e => e.Id == id);
-    }    
+    }
+
+    private async Task<string?> ValidateDispatchDateAsync(Trip trip, CancellationToken cancellationToken)
+    {
+        if (User.IsInRole(UserRole.Admin) || User.IsInRole(UserRole.Master))
+        {
+            return null;
+        }
+
+        var latestTrip = await _context.Trips
+            .AsNoTracking()
+            .Where(x => x.TruckId == trip.TruckId && x.Id != trip.Id)
+            .OrderByDescending(x => x.Date)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (latestTrip is null)
+        {
+            return null;
+        }
+
+        var minimumDispatchDate = latestTrip.Date.Date;
+        if (latestTrip.CloseInfo.ReturnDateTime.HasValue)
+        {
+            var returnDate = latestTrip.CloseInfo.ReturnDateTime.Value.Date;
+            if (returnDate > minimumDispatchDate)
+            {
+                minimumDispatchDate = returnDate;
+            }
+        }
+
+        if (trip.Date.Date < minimumDispatchDate)
+        {
+            return $"Dispatch date cannot be earlier than {minimumDispatchDate:MMM dd, yyyy}. Only Admin and Master users can back-date dispatches.";
+        }
+
+        return null;
+    }
 }

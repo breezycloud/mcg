@@ -50,7 +50,7 @@ string? ConnectionString = string.Empty;
 #if DEBUG
     ConnectionString = builder.Configuration?.GetConnectionString("Local");
 #else
-    ConnectionString = builder.Configuration?.GetConnectionString("Production");    
+    ConnectionString = builder.Configuration?.GetConnectionString("Production");
 #endif
 
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
@@ -85,8 +85,7 @@ builder.Services.AddSignalR(options => {
 });
 builder.Services.AddResponseCompression(opts =>
 {
-    opts.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
-        new[] { "application/octet-stream" });
+    opts.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(["application/octet-stream"]);
 });
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddHttpClient();

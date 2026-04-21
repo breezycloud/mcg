@@ -2,10 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Api.Context;
+using Shared.Dtos;
 using Shared.Models.Trucks;
 using Shared.Helpers;
 using Shared.Enums;
@@ -30,18 +32,22 @@ public class TrucksController : ControllerBase
         GridDataResponse<Truck> response = new();
         try
         {
-            var query = _context.Trucks.AsQueryable();
+            var query = _context.Trucks.AsNoTracking().Include(x => x.Driver).AsQueryable();
             
             if (!string.IsNullOrEmpty(request.SearchTerm))
             {
                 string pattern = $"%{request.SearchTerm}%";
-                query = query.Where(x => EF.Functions.ILike(x.TruckNo, pattern) || EF.Functions.ILike(x.Manufacturer!, pattern)
-                || EF.Functions.ILike(x.VIN!, pattern));
+                query = query.Where(x => EF.Functions.ILike(x.Driver.FirstName, pattern) || EF.Functions.ILike(x.Driver.LastName, pattern) || EF.Functions.ILike(x.TruckNo, pattern) || EF.Functions.ILike(x.Manufacturer!, pattern) || EF.Functions.ILike(x.VIN!, pattern));
             }
 
-            response.Total = await query.CountAsync();
+            if (request.UnassignedOnly)
+            {
+                query = query.Where(x => x.DriverId == null);
+            }
+
+            response.Total = await query.CountAsync(cancellationToken);
             response.Data = [];
-            var pagedQuery = query.OrderByDescending(x => x.CreatedAt).ThenByDescending(x => x.UpdatedAt).Skip(request.Paging).Take(request.PageSize).AsAsyncEnumerable();
+            var pagedQuery = query.OrderByDescending(x => x.CreatedAt).ThenByDescending(x => x.UpdatedAt).Skip(request.Paging).Take(request.PageSize).AsAsyncEnumerable().WithCancellation(cancellationToken);
 
             await foreach (var item in pagedQuery)
             {
@@ -209,6 +215,37 @@ public class TrucksController : ControllerBase
             }
         }
 
+        return NoContent();
+    }
+
+    [Authorize(Roles = "Supervisor, Admin, Master, DriverSupervisor")]
+    [HttpPut("{id}/driver")]
+    public async Task<IActionResult> AssignDriver(Guid id, TruckDriverAssignmentDto model, CancellationToken cancellationToken)
+    {
+        if (id != model.TruckId)
+        {
+            return BadRequest("Truck mismatch.");
+        }
+
+        var truck = await _context.Trucks.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (truck is null)
+        {
+            return NotFound();
+        }
+
+        if (model.DriverId.HasValue)
+        {
+            var driverExists = await _context.Drivers.AnyAsync(x => x.Id == model.DriverId.Value, cancellationToken);
+            if (!driverExists)
+            {
+                return BadRequest("Selected driver was not found.");
+            }
+        }
+
+        truck.DriverId = model.DriverId;
+        truck.UpdatedAt = DateTimeOffset.UtcNow;
+
+        await _context.SaveChangesAsync(cancellationToken);
         return NoContent();
     }
 
