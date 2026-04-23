@@ -1,38 +1,44 @@
-#See https://aka.ms/containerfastmode to understand how Visual Studio uses this Dockerfile to build your images for faster debugging.
-
+# ─── Stage 1: Build ────────────────────────────────────────────────────────────
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
-EXPOSE 80
-EXPOSE 443
-# FROM emscripten/emsdk:3.1.26
-# soft link
-RUN ln -s /lib/x86_64-linux-gnu/libdl-2.24.so /lib/x86_64-linux-gnu/libdl.so
-
-# install System.Drawing native dependencies
-RUN apt-get update \
-    && apt-get install -y --allow-unauthenticated \
-   		libgdiplus \
-#         libc6-dev \
-#         libgdiplus \
-#         libx11-dev \
-     && rm -rf /var/lib/apt/lists/*
-
-# Install Python3
-RUN apt-get update
-RUN apt-get install -y python3
-
 WORKDIR /src
+
+# Install build-time system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgdiplus \
+    python3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Blazor WebAssembly tooling (needed for Client project)
 RUN dotnet workload install wasm-tools
-COPY . .
+
+# Copy solution + project files first so dependency restore is cached
+# as a separate layer — only re-runs when .csproj / .sln files change
+COPY ["mcg.sln", "."]
 COPY ["Api/Api.csproj", "Api/"]
 COPY ["Client/Client.csproj", "Client/"]
 COPY ["Shared/Shared.csproj", "Shared/"]
 RUN dotnet restore
-COPY . .
-FROM build AS publish
-RUN dotnet publish "/src/Api" -c Release -o /app/publish --no-restore
 
-#final build
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
+# Copy all source and publish
+COPY . .
+RUN dotnet publish "Api/Api.csproj" -c Release -o /app/publish --no-restore
+
+
+# ─── Stage 2: Runtime ──────────────────────────────────────────────────────────
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
 WORKDIR /app
-COPY --from=publish /app/publish .
-CMD ASPNETCORE_URLS=http://*:$PORT dotnet Api.dll
+
+# Runtime dependencies:
+#   libgdiplus → System.Drawing native support
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgdiplus \
+    && rm -rf /var/lib/apt/lists/*
+
+# Directory for uploaded files (mirrors appsettings FileStorage:UploadPath)
+RUN mkdir -p /var/www/uploads && chmod 755 /var/www/uploads
+
+COPY --from=build /app/publish .
+
+EXPOSE 5294 7229
+
+CMD ["dotnet", "Api.dll"]

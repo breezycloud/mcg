@@ -10,7 +10,6 @@ public enum Product
     AGO,
     CngLagos
 }
-
 public enum ProductFilter
 {
     All,

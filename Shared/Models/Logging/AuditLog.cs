@@ -8,29 +8,29 @@ public class AuditLog
     public Guid Id { get; set; }
     
     [Required]
-    public string Action { get; set; } // "Created", "Updated", "Deleted", etc.
-    
+    public string Action { get; set; } = string.Empty;
+
     [Required]
-    public string EntityType { get; set; } // "User", "Trip", "Driver", etc.
-    
-    public string EntityId { get; set; } // ID of the affected entity
-    
+    public string EntityType { get; set; } = string.Empty;
+
+    public string? EntityId { get; set; }
+
     [Required]
-    public Guid UserId { get; set; } // Who performed the action
-    
-    public string UserName { get; set; }
-    
-    public string OldValues { get; set; } // JSON serialized previous state
-    
-    public string NewValues { get; set; } // JSON serialized new state
-    
-    public string AffectedFields { get; set; } // Comma-separated list of changed fields
-    
+    public Guid UserId { get; set; }
+
+    public string? UserName { get; set; }
+
+    public string? OldValues { get; set; }
+
+    public string? NewValues { get; set; }
+
+    public string? AffectedFields { get; set; }
+
     public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.UtcNow;
-    
-    public string IpAddress { get; set; }
-    
-    public string AdditionalInfo { get; set; }
+
+    public string? IpAddress { get; set; }
+
+    public string? AdditionalInfo { get; set; }
 }
 
 public enum AuditAction
