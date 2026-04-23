@@ -26,9 +26,7 @@ public class Driver
     public List<UploadResult> Files { get; set; } = [];
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? UpdatedAt { get; set; }
-
     public virtual ICollection<Trip>? Trips { get; set; } = [];
-
     public override string ToString()
     {
         return $"{FirstName} {LastName}";

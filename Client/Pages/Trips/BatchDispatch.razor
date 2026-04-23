@@ -204,7 +204,7 @@
             Trucks = await TruckService.GetTrucksAvailableAsync(
                 SelectedProduct,                
                 AppState.GetCancellationToken()
-            );
+            ) ?? [];
         }
         catch
         {
@@ -295,9 +295,9 @@
             ToastService.ShowSuccess("Trucks dispatched successfully", 5);
             nav.NavigateTo("/trips");
         }
-        catch
+        catch (Exception ex)
         {
-            ToastService.ShowError("Failed to dispatch trucks");
+            ToastService.ShowError(ex.Message);
         }
         finally
         {

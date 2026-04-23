@@ -183,3 +183,15 @@ public class TripReconciliation
 }
 
 public record DispatchDetail(string Origin, string Destination, string LoadingDate, string TruckNo, string LicensePlate);
+
+public record LpgTripDetail(
+    string DispatchId,
+    string LoadingDate,
+    string LoadingDepot,
+    string LoadingLocation,
+    string TruckNo,
+    string WaybillNo,
+    decimal? Gross,
+    decimal? TyreWeight,
+    decimal? Net
+);

@@ -49,7 +49,10 @@ public class TripService(IHttpClientFactory _httpClient, IJSRuntime js) : ITripS
         try
         {
             using var response = await _httpClient.CreateClient("AppUrl").PostAsJsonAsync("Trips", model, cancellationToken);
-            response.EnsureSuccessStatusCode();
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new InvalidOperationException(await ReadErrorMessageAsync(response, cancellationToken));
+            }
             return response.IsSuccessStatusCode;
         }
         catch (System.Exception)
@@ -110,7 +113,10 @@ public class TripService(IHttpClientFactory _httpClient, IJSRuntime js) : ITripS
         try
         {
             using var response = await _httpClient.CreateClient("AppUrl").PutAsJsonAsync($"Trips/{model.Id}", model, cancellationToken);
-            response.EnsureSuccessStatusCode();
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new InvalidOperationException(await ReadErrorMessageAsync(response, cancellationToken));
+            }
             return response.IsSuccessStatusCode;
         }
         catch (System.Exception)
@@ -229,5 +235,16 @@ public class TripService(IHttpClientFactory _httpClient, IJSRuntime js) : ITripS
 
             throw;
         }
+    }
+
+    private static async Task<string> ReadErrorMessageAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        var content = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            return "Operation failed.";
+        }
+
+        return content.Trim().Trim('"');
     }
 }

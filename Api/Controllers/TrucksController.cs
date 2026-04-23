@@ -2,10 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Api.Context;
+using Shared.Dtos;
 using Shared.Models.Trucks;
 using Shared.Helpers;
 using Shared.Enums;
@@ -30,18 +32,26 @@ public class TrucksController : ControllerBase
         GridDataResponse<Truck> response = new();
         try
         {
-            var query = _context.Trucks.AsQueryable();
+            var query = _context.Trucks
+                .AsNoTracking()
+                .Include(x => x.Driver)
+                .Include(x => x.ServiceRequests)
+                .AsQueryable();
             
             if (!string.IsNullOrEmpty(request.SearchTerm))
             {
                 string pattern = $"%{request.SearchTerm}%";
-                query = query.Where(x => EF.Functions.ILike(x.TruckNo, pattern) || EF.Functions.ILike(x.Manufacturer!, pattern)
-                || EF.Functions.ILike(x.VIN!, pattern));
+                query = query.Where(x => EF.Functions.ILike(x.Driver.FirstName, pattern) || EF.Functions.ILike(x.Driver.LastName, pattern) || EF.Functions.ILike(x.TruckNo, pattern) || EF.Functions.ILike(x.Manufacturer!, pattern) || EF.Functions.ILike(x.VIN!, pattern));
             }
 
-            response.Total = await query.CountAsync();
+            if (request.UnassignedOnly)
+            {
+                query = query.Where(x => x.DriverId == null);
+            }
+
+            response.Total = await query.CountAsync(cancellationToken);
             response.Data = [];
-            var pagedQuery = query.OrderByDescending(x => x.CreatedAt).ThenByDescending(x => x.UpdatedAt).Skip(request.Paging).Take(request.PageSize).AsAsyncEnumerable();
+            var pagedQuery = query.OrderByDescending(x => x.CreatedAt).ThenByDescending(x => x.UpdatedAt).Skip(request.Paging).Take(request.PageSize).AsAsyncEnumerable().WithCancellation(cancellationToken);
 
             await foreach (var item in pagedQuery)
             {
@@ -67,16 +77,7 @@ public class TrucksController : ControllerBase
         GridDataResponse<Truck> response = new();
         try
         {
-            IQueryable<Truck> truckQuery;
-
-            // Get trucks with no active trip (assuming "Active" is the status for active trips)
-            var trucksWithActiveTrips = _context.Trips
-                .Where(t => t.Status == TripStatus.Active)
-                .Select(t => t.TruckId)
-                .Distinct();
-
-            truckQuery = _context.Trucks
-                .Where(truck => !trucksWithActiveTrips.Contains(truck.Id));
+            IQueryable<Truck> truckQuery = GetDispatchEligibleTrucksQuery();
 
             // // Optionally filter by state if provided
             // if (!string.IsNullOrEmpty(state))
@@ -106,14 +107,7 @@ public class TrucksController : ControllerBase
     [HttpGet("available-trucks")]
     public async Task<ActionResult<IEnumerable<Truck>?>> GetAvailableTrucksAsync(string product, CancellationToken cancellationToken = default)
     {
-        // Get trucks with no active trip (assuming "Active" and "Dispatched" are statuses for active trips)
-        var trucksWithActiveTrips = _context.Trips
-            .Where(t => t.Status == TripStatus.Active || t.Status == TripStatus.Dispatched)
-            .Select(t => t.TruckId)
-            .Distinct();
-
-        var truckQuery = _context.Trucks.AsNoTracking().Include(x => x.Driver)
-            .Where(truck => !trucksWithActiveTrips.Contains(truck.Id));
+        var truckQuery = GetDispatchEligibleTrucksQuery();
 
         // Filter by product if provided
         if (!string.IsNullOrEmpty(product) && product != "All")
@@ -169,6 +163,7 @@ public class TrucksController : ControllerBase
     {
         var truck = await _context.Trucks.AsNoTracking()
                                          .Include(x => x.Driver)
+                                         .Include(x => x.ServiceRequests)
                                          .Include(x => x.Trips)
                                          .AsSplitQuery()
                                          .FirstOrDefaultAsync(x => x.Id == id);
@@ -212,6 +207,37 @@ public class TrucksController : ControllerBase
         return NoContent();
     }
 
+    [Authorize(Roles = "Supervisor, Admin, Master, DriverSupervisor")]
+    [HttpPut("{id}/driver")]
+    public async Task<IActionResult> AssignDriver(Guid id, TruckDriverAssignmentDto model, CancellationToken cancellationToken)
+    {
+        if (id != model.TruckId)
+        {
+            return BadRequest("Truck mismatch.");
+        }
+
+        var truck = await _context.Trucks.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (truck is null)
+        {
+            return NotFound();
+        }
+
+        if (model.DriverId.HasValue)
+        {
+            var driverExists = await _context.Drivers.AnyAsync(x => x.Id == model.DriverId.Value, cancellationToken);
+            if (!driverExists)
+            {
+                return BadRequest("Selected driver was not found.");
+            }
+        }
+
+        truck.DriverId = model.DriverId;
+        truck.UpdatedAt = DateTimeOffset.UtcNow;
+
+        await _context.SaveChangesAsync(cancellationToken);
+        return NoContent();
+    }
+
     // POST: api/Trucks
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     [HttpPost]
@@ -237,6 +263,29 @@ public class TrucksController : ControllerBase
         await _context.SaveChangesAsync();
 
         return NoContent();
+    }
+
+    private IQueryable<Truck> GetDispatchEligibleTrucksQuery()
+    {
+        var trucksWithUnavailableTrips = _context.Trips
+            .Where(t => t.Status == TripStatus.Active || t.Status == TripStatus.Dispatched)
+            .Select(t => t.TruckId)
+            .Distinct();
+
+        var trucksUnderMaintenance = _context.ServiceRequest
+            .Where(request => request.TruckId.HasValue
+                && (request.Status == RequestStatus.Pending
+                    || request.Status == RequestStatus.InProgress
+                    || request.Status == RequestStatus.Escalated))
+            .Select(request => request.TruckId!.Value)
+            .Distinct();
+
+        return _context.Trucks
+            .AsNoTracking()
+            .Include(x => x.Driver)
+            .Where(truck => truck.IsActive)
+            .Where(truck => !trucksWithUnavailableTrips.Contains(truck.Id))
+            .Where(truck => !trucksUnderMaintenance.Contains(truck.Id));
     }
 
     private bool TruckExists(Guid id)
