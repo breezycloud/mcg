@@ -523,24 +523,24 @@ public class TripsController : ControllerBase
 
     // POST: api/Trips
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-    [HttpPost]
-    public async Task<ActionResult<Trip>> PostTrip(Trip trip)
-    {
-        var dispatchResult = await GenerateDispatchId(trip.TruckId, trip.Date.ToString("yyyy-MM-dd"), CancellationToken.None);
-        if (dispatchResult.Result is OkObjectResult okResult && okResult.Value is string dispatchId)
-        {
-            Console.WriteLine($"Generated DispatchId: {dispatchId}");
-            trip.DispatchId = dispatchId.Trim();
-        }
-        else
-        {
-            return BadRequest("Failed to generate DispatchId.");
-        }
-        _context.Trips.Add(trip);
-        await _context.SaveChangesAsync();
+    // [HttpPost]
+    // public async Task<ActionResult<Trip>> PostTrip(Trip trip)
+    // {
+    //     var dispatchResult = await GenerateDispatchId(trip.TruckId, trip.Date.ToString("yyyy-MM-dd"), CancellationToken.None);
+    //     if (dispatchResult.Result is OkObjectResult okResult && okResult.Value is string dispatchId)
+    //     {
+    //         Console.WriteLine($"Generated DispatchId: {dispatchId}");
+    //         trip.DispatchId = dispatchId.Trim();
+    //     }
+    //     else
+    //     {
+    //         return BadRequest("Failed to generate DispatchId.");
+    //     }
+    //     _context.Trips.Add(trip);
+    //     await _context.SaveChangesAsync();
 
-        return CreatedAtAction("GetTrip", new { id = trip.Id }, trip);
-    }
+    //     return CreatedAtAction("GetTrip", new { id = trip.Id }, trip);
+    // }
 
     [HttpGet("get-dispatch")]
     public async Task<ActionResult<DispatchDetail>> GetDispatchDetail(string id, CancellationToken cancellationToken)

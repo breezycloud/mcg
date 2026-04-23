@@ -147,9 +147,6 @@ public class EmailConsumerService : BackgroundService
         return attachment;
     }
 
-
-
-
     public override void Dispose()
     {
         _channel?.Dispose();
