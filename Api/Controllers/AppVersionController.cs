@@ -13,7 +13,7 @@ public class AppVersionController : ControllerBase
         #if DEBUG
             AppVersion = 1.1;
         #else
-            AppVersion = 3.6;
+            AppVersion = 3.7;
         #endif
         
         return Ok(new VersionManifest
@@ -21,7 +21,7 @@ public class AppVersionController : ControllerBase
             AppVersion = AppVersion, // Update this with each release
             ForceUpdate = true,    // Set to true when critical updates are available
             ReleaseDate = DateTime.Now,
-            ReleaseNotes = "added autocomplete picker in truck and driver selection."
+            ReleaseNotes = "update and bug fixes"
         });
     }
 }
