@@ -1,6 +1,6 @@
 @inject IStationService StationService
 <div @ref="containerRef" class="relative w-full" @onfocusout="OnFocusOut">
-    <label class="block text-sm font-medium text-gray-700 mb-1">@Label</label>
+    <label class="block text-sm font-medium text-gray-700 mb-1">@Label @if (IsRequired) { <span class="text-red-500"> * </span> }</label>
     <div class="relative">
         <input 
             @ref="inputRef"
@@ -16,6 +16,7 @@
             aria-autocomplete="list"
             aria-controls="station-list"
             aria-expanded="@IsOpen"
+            required="@IsRequired"
             aria-activedescendant="station-option-@highlightedIndex"
         />
 
@@ -91,6 +92,7 @@
     [Parameter] public string Placeholder { get; set; } = "Search for a station...";
     [Parameter] public bool ShowDetails { get; set; } = true;
     [Parameter] public bool AllowClear { get; set; } = true;
+    [Parameter] public bool IsRequired { get; set; } = false;
 
 
     private ElementReference containerRef;

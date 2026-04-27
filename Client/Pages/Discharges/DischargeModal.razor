@@ -80,7 +80,8 @@
                                 Label="Select Discharge Station"
                                 Placeholder="Start typing station name..."
                                 ShowDetails="true"
-                                AllowClear="true" />
+                                AllowClear="true" 
+                                IsRequired="true"/>
                             @if (errors.ContainsKey("StationId"))
                             {
                                 <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["StationId"]</p>
@@ -232,6 +233,11 @@
             Data.InvoicedStationId = SelectedInvoicedStation.Id;
             Data.InvoicedStation = SelectedInvoicedStation;
         } *@
+
+        if (SelectedStation is null || SelectedStation.Id == Guid.Empty)
+        {
+            errors["StationId"] = "Discharge station is required.";
+        }
     
         if (SelectedStation != null)
         {
