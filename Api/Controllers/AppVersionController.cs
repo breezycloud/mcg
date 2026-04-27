@@ -13,7 +13,7 @@ public class AppVersionController : ControllerBase
         #if DEBUG
             AppVersion = 1.1;
         #else
-            AppVersion = 3.8;
+            AppVersion = 3.9;
         #endif
         
         return Ok(new VersionManifest
@@ -21,7 +21,7 @@ public class AppVersionController : ControllerBase
             AppVersion = AppVersion, // Update this with each release
             ForceUpdate = true,    // Set to true when critical updates are available
             ReleaseDate = DateTime.Now,
-            ReleaseNotes = "fixed file upload and bug fixes"
+            ReleaseNotes = "bug fixes"
         });
     }
 }
