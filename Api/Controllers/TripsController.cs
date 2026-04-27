@@ -467,12 +467,6 @@ public class TripsController : ControllerBase
             return BadRequest();
         }
 
-        var dispatchValidationError = await ValidateDispatchDateAsync(trip, cancellationToken);
-        if (dispatchValidationError is not null)
-        {
-            return BadRequest(dispatchValidationError);
-        }
-
         _context.Entry(trip).State = EntityState.Modified;
 
         try
@@ -502,13 +496,7 @@ public class TripsController : ControllerBase
         if (id != trip.Id)
         {
             return BadRequest();
-        }
-
-        // var dispatchValidationError = await ValidateDispatchDateAsync(trip, cancellationToken);
-        // if (dispatchValidationError is not null)
-        // {
-        //     return BadRequest(dispatchValidationError);
-        // }
+        }        
 
         _context.Entry(trip).State = EntityState.Modified;
 
