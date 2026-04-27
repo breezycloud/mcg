@@ -106,7 +106,25 @@ public class TripService(IHttpClientFactory _httpClient, IJSRuntime js) : ITripS
         }
     }
     
+    public async Task<bool> UploadAsync(Trip model, CancellationToken cancellationToken)
+    {
+        // update-no-restriction
+        try
+        {
+            using var response = await _httpClient.CreateClient("AppUrl").PutAsJsonAsync($"Trips/update-no-restriction/{model.Id}", model, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new InvalidOperationException(await ReadErrorMessageAsync(response, cancellationToken));
+            }
+            return response.IsSuccessStatusCode;
+        }
+        catch (System.Exception)
+        {
 
+            throw;
+        }
+        
+    }
     public async Task<bool> UpdateAsync(Trip model, CancellationToken cancellationToken)
     {
         model.UpdateStatusWithLoadingInfo();

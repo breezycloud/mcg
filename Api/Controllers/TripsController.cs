@@ -455,7 +455,7 @@ public class TripsController : ControllerBase
                                        .ToListAsync(cancellationToken);
 
         return trips;
-    }
+    }    
 
     // PUT: api/Trips/5
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
@@ -472,6 +472,43 @@ public class TripsController : ControllerBase
         {
             return BadRequest(dispatchValidationError);
         }
+
+        _context.Entry(trip).State = EntityState.Modified;
+
+        try
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            if (!TripExists(id))
+            {
+                return NotFound();
+            }
+            else
+            {
+                throw;
+            }
+        }
+
+        return NoContent();
+    }
+
+    // PUT: api/Trips/5
+    // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+    [HttpPut("update-no-restriction/{id}")]
+    public async Task<IActionResult> PutTripNoRestriction(Guid id, Trip trip, CancellationToken cancellationToken)
+    {
+        if (id != trip.Id)
+        {
+            return BadRequest();
+        }
+
+        // var dispatchValidationError = await ValidateDispatchDateAsync(trip, cancellationToken);
+        // if (dispatchValidationError is not null)
+        // {
+        //     return BadRequest(dispatchValidationError);
+        // }
 
         _context.Entry(trip).State = EntityState.Modified;
 

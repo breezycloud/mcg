@@ -1013,7 +1013,7 @@
     private async Task OnUploadCompleted(List<UploadResult> files)
     {
         Trip!.LoadingInfo.Files.AddRange(files);
-        var response = await TripService.UpdateAsync(Trip, AppState.GetCancellationToken());
+        var response = await TripService.UploadAsync(Trip, AppState.GetCancellationToken());
         if (response)
             ToastService.ShowSuccess("File(s) uploaded successfully");
         else
@@ -1027,7 +1027,7 @@
             return;
 
         Trip!.LoadingInfo.Files.Remove(file);
-        var response = await TripService.UpdateAsync(Trip, AppState.GetCancellationToken());
+        var response = await TripService.UploadAsync(Trip, AppState.GetCancellationToken());
         if (response)
             ToastService.ShowSuccess("File(s) uploaded successfully");
         else

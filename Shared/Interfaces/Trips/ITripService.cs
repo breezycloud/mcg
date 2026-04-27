@@ -12,6 +12,7 @@ public interface ITripService
     Task<List<Trip>> GetTripsByTruckAsync(Guid truckId, int year, CancellationToken cancellationToken = default);
     Trip MapTripLoadingAsync(TripLoadingDto model, CancellationToken cancellationToken);
     Task<bool> UpdateAsync(Trip model, CancellationToken cancellationToken);
+    Task<bool> UploadAsync(Trip model, CancellationToken cancellationToken);
     Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken);
     Task<Trip?> GetAsync(Guid id, CancellationToken cancellationToken);
     ValueTask ExportToCsvAsync(ReportFilter request, CancellationToken cancellationToken);
