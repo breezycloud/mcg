@@ -30,6 +30,7 @@ else
                     SeriesType="SeriesType.Bar"
                     XValue="e => e.Key"
                     YValue="e => e.Value"
+                    YAggregate="@(e => e.Sum(e => e.Value))"
                     ShowDataLabels="true" />
             }            
         </ApexChart>
@@ -98,7 +99,17 @@ else
                 {
                     Horizontal = false,
                     ColumnWidth = "55%",
-                    BorderRadius = 10
+                    BorderRadius = 10,
+                    DataLabels = new PlotOptionsBarDataLabels
+                    {
+                        Total = new BarTotalDataLabels
+                        {
+                            Style = new BarDataLabelsStyle
+                            {
+                                FontWeight = "800"
+                            }
+                        }
+                    }
                 }
             },
             Fill = new Fill { Opacity = 1 },
