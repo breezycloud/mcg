@@ -21,7 +21,7 @@ else
                 Height="350">
 
 
-             @foreach (var item in Series)
+            @foreach (var item in Series)
             {
                 <ApexPointSeries
                     TItem="DistributionData"
@@ -31,14 +31,7 @@ else
                     XValue="e => e.Key"
                     YValue="e => e.Value"
                     ShowDataLabels="true" />
-            }
-            @* <ApexPointSeries TItem="TripMonthlyProductSummary"
-                    Items="Data"
-                    SeriesType="SeriesType.Bar"
-                    Name="Monthly Trips"
-                    XValue="@(e => e.Product)"
-                    YValue="@(e => e.TotalTrips)"
-                    ShowDataLabels="true" /> *@
+            }            
         </ApexChart>
     </div>
 }
@@ -121,7 +114,6 @@ else
         };
 
         chart = new();
-        chart.Options = chartOptions;
 
     }
 
@@ -150,14 +142,20 @@ else
                            .ToList();        
 
         // Group data by product
-        Series = products.Select(product => new ProductMonthlyTripDistribution
+        Series = products.Select(product =>
         {
-            Label = product,
-            Data = months.Select(month => new DistributionData
+            var label = string.IsNullOrWhiteSpace(product) ? "Unknown" : product;
+            var points = months.Select(month => new DistributionData
             {
                 Key = month,
                 Value = Data.FirstOrDefault(d => d.Product == product && d.Format == month)?.TotalTrips ?? 0
-            }).ToArray()
+            }).ToArray();
+
+            return new ProductMonthlyTripDistribution
+            {
+                Label = $"{label} ({points.Sum(p => p.Value)})",
+                Data = points
+            };
         }).ToArray();
 
         // Set x-axis categories
