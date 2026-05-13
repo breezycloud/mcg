@@ -21,7 +21,7 @@ public class AppVersionController : ControllerBase
             AppVersion = AppVersion, // Update this with each release
             ForceUpdate = true,    // Set to true when critical updates are available
             ReleaseDate = DateTime.Now,
-            ReleaseNotes = "Added support for Premium Automotive Oil (PAO) and various UI improvements."
+            ReleaseNotes = "Added support for Base Oil (PAO) and various UI improvements."
         });
     }
 }
