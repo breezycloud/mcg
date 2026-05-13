@@ -8,7 +8,8 @@ public enum Product
     ATK,
     LPG,
     AGO,
-    CngLagos
+    CngLagos,
+    PAO
 }
 public enum ProductFilter
 {
@@ -19,4 +20,5 @@ public enum ProductFilter
     LPG,
     AGO,
     CngLagos,
+    PAO
 }
