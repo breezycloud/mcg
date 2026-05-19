@@ -13,7 +13,7 @@ public class AppVersionController : ControllerBase
         #if DEBUG
             AppVersion = 1.1;
         #else
-            AppVersion = 4.0;
+            AppVersion = 4.4;
         #endif
         
         return Ok(new VersionManifest
@@ -21,7 +21,7 @@ public class AppVersionController : ControllerBase
             AppVersion = AppVersion, // Update this with each release
             ForceUpdate = true,    // Set to true when critical updates are available
             ReleaseDate = DateTime.Now,
-            ReleaseNotes = "bug fixes"
+            ReleaseNotes = "Added support for Base Oil (PAO) and various UI improvements."
         });
     }
 }

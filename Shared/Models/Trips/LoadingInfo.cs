@@ -14,6 +14,7 @@ public class LoadingInfo
     [Column(TypeName = "jsonb")]
     public List<UploadResult> Files { get; set; } = [];    
     public DispatchType DispatchType { get; set; }
+    public DestinationMode DestinationMode { get; set; } = DestinationMode.Single;
     public ElockStatus ElockStatus { get; set; }
     public string? Destination { get; set; }
     public string? Remark { get; set; }

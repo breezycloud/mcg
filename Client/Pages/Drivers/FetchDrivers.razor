@@ -101,7 +101,7 @@
                                                 class="font-medium text-green-600 dark:text-green-500 hover:underline">
                                                 View
                                             </button>
-                                            <AuthorizeView Roles="Supervisor, Admin, Master">
+                                            <AuthorizeView Roles="Supervisor, DriverSupervisor, Admin, Master">
                                                 <Authorized>
                                                     <button 
                                                         @onclick="() => EditDriver(driver.Id)" 

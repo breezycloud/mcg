@@ -9,6 +9,7 @@
 @using Client.Pages.Incidents
 @using Client.Pages.RefuelInfos
 @using Shared.Models.Incidents
+@using Shared.Enums
 
 <div class="max-w-4xl mx-auto px-2 lg:px-2">
     @if (AppState.IsBusy)
@@ -174,7 +175,30 @@
                                     <option value="@DispatchType.Depot">Depot</option>
                                 </select>
                             </div>
-                            <StateSelector IsRequired="true" Destination="@Trip.LoadingInfo.Destination" OnLocationChanged="@DestinationChanged" FieldName="Destination" Errors="errors" GetInputClass="GetInputClass" />
+                            <div>
+                                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Destination Mode</label>
+                                <div class="flex items-center gap-4">
+                                    <label class="inline-flex items-center">
+                                        <input id="dest-mode-single" type="radio" name="destMode" 
+                                            checked="@(Trip.LoadingInfo.DestinationMode == DestinationMode.Single)"
+                                            @onclick="() => SetDestinationMode(DestinationMode.Single)"
+                                            class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500" />
+                                        <span class="ms-2">Option A (Single)</span>
+                                    </label>
+                                    <label class="inline-flex items-center">
+                                        <input id="dest-mode-multi" type="radio" name="destMode" 
+                                            checked="@(Trip.LoadingInfo.DestinationMode == DestinationMode.Multi)"
+                                            @onclick="() => SetDestinationMode(DestinationMode.Multi)"
+                                            class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500" />
+                                        <span class="ms-2">Option B (Multi)</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            @if (Trip.LoadingInfo.DestinationMode == DestinationMode.Single)
+                            {
+                                <StateSelector IsRequired="true" Destination="@Trip.LoadingInfo.Destination" OnLocationChanged="@DestinationChanged" FieldName="Destination" Errors="errors" GetInputClass="GetInputClass" />
+                            }
                             @if(Trip.LoadingInfo.DispatchType == DispatchType.Depot)
                             {
                                 <div>
@@ -407,7 +431,7 @@
                     else if (activeTab == 5)
                     {
                         <FetchTripIncidents Trip="Trip" Id="Trip.Id"/>
-                    }         
+                    }
                     else    
                     {
                         <div class="space-y-6">
@@ -520,7 +544,8 @@
 
     <DischargeModal Data="@currentDischarge"
         IsVisible="@showDischargeModal"
-        Destination="@(Trip?.LoadingInfo.DispatchType == DispatchType.Depot ? Trip?.ArrivalInfo.Destination  : Trip?.LoadingInfo.Destination)"
+    Destination="@(Trip?.LoadingInfo.DispatchType == DispatchType.Depot ? Trip?.ArrivalInfo.Destination  : Trip?.LoadingInfo.Destination)"
+    DestinationMode="@(Trip?.LoadingInfo?.DestinationMode ?? DestinationMode.Single)"
         EditMode="false"        
         InitialQuantity="@InitialQuantity"
         OnClose="@CloseDischargeModal"
@@ -636,6 +661,13 @@
     private void DestinationChanged(string location)
     {
         Trip!.LoadingInfo.Destination = location;
+        StateHasChanged();
+    }
+
+    private void SetDestinationMode(DestinationMode mode)
+    {
+        if (Trip is null) return;
+        Trip.LoadingInfo.DestinationMode = mode;
         StateHasChanged();
     }
 

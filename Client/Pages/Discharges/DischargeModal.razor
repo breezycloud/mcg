@@ -1,4 +1,5 @@
 @inject IStationService StationService
+@using Shared.Enums
 
 <div id="Discharge-modal" tabindex="-1" aria-hidden="@(!IsVisible)" 
      class="@(IsVisible ? "flex" : "hidden") fixed top-0 left-0 right-0 z-50 w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full justify-center items-center bg-opacity-50">
@@ -54,39 +55,54 @@
                             }
                         </div>
 
-                        @* <div>
-                            <label for="invoiced-station" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                                Invoiced Station <span class="text-red-500">*</span>
-                            </label>
-                            <StationAutocomplete 
-                                @bind-Value="SelectedInvoicedStation"
-                                Destionation="@Destination"
-                                StationType="StationType.DischargeStation"
-                                Label="Select Invoiced Station *"
-                                Placeholder="Start typing invoiced station..."
-                                ShowDetails="true"
-                                AllowClear="true" />
-                            @if (errors.ContainsKey("InvoicedStationId"))
-                            {
-                                <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["InvoicedStationId"]</p>
-                            }
-                        </div> *@
-                        
-                        <div>
-                            <StationAutocomplete 
-                                @bind-Value="SelectedStation"
-                                Destionation="@Destination"
-                                StationType="StationType.DischargeStation"
-                                Label="Select Discharge Station"
-                                Placeholder="Start typing station name..."
-                                ShowDetails="true"
-                                AllowClear="true" 
-                                IsRequired="true"/>
-                            @if (errors.ContainsKey("StationId"))
-                            {
-                                <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["StationId"]</p>
-                            }
-                        </div>
+                        @if (DestinationMode == DestinationMode.Single)
+                        {
+                            <div>
+                                <StationAutocomplete 
+                                    @bind-Value="SelectedStation"
+                                    Destionation="@Destination"
+                                    StationType="StationType.DischargeStation"
+                                    Label="Select Discharge Station"
+                                    Placeholder="Start typing station name..."
+                                    ShowDetails="true"
+                                    AllowClear="true" 
+                                    IsRequired="true"/>
+                                @if (errors.ContainsKey("StationId"))
+                                {
+                                    <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["StationId"]</p>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div>
+                                <StateSelector 
+                                    IsRequired="true" 
+                                    Destination="@SelectedDestination" 
+                                    OnLocationChanged="@OnDestinationChanged" 
+                                    FieldName="Destination" 
+                                    Errors="errors" 
+                                    GetInputClass="GetInputClass" />
+                                @if (!string.IsNullOrWhiteSpace(SelectedDestination))
+                                {
+                                    <div class="mt-3">
+                                        <StationAutocomplete 
+                                            @bind-Value="SelectedStation"
+                                            Destionation="@SelectedDestination"
+                                            StationType="StationType.DischargeStation"
+                                            Label="Select Discharge Station"
+                                            Placeholder="Start typing station name..."
+                                            ShowDetails="true"
+                                            AllowClear="true" 
+                                            IsRequired="true"/>
+                                        @if (errors.ContainsKey("StationId"))
+                                        {
+                                            <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["StationId"]</p>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
 
                         <!-- Discharge Start Time -->
                         <div>
@@ -165,6 +181,7 @@
     [Parameter] public bool IsVisible { get; set; } = false;
     [Parameter] public decimal InitialQuantity { get; set; }
     [Parameter] public string? Destination { get; set; }
+    [Parameter] public DestinationMode DestinationMode { get; set; } = DestinationMode.Single;
     [Parameter] public bool EditMode { get; set; } = false;
     [Parameter] public Discharge Data { get; set; } = new();
     
@@ -174,6 +191,7 @@
     private Dictionary<string, string> errors = new();
     private bool IsLoading = false;
     private Station? SelectedStation;
+    private string? SelectedDestination;
     
     // Siding Calculation Properties
     private bool IsSiding => Data.TruckArrival != default && Data.DischargeStartTime != default && 
@@ -183,7 +201,8 @@
 
     protected override async Task OnInitializedAsync()
     {        
-        if (string.IsNullOrEmpty(Destination))
+        // Only block when Single mode and no destination is available
+        if (DestinationMode == DestinationMode.Single && string.IsNullOrEmpty(Destination))
         {
             ToastService.ShowInfo("Trip has not reached discharge destination");
             CloseCheckpointModal();
@@ -202,6 +221,14 @@
         {
             SelectedStation = Data.Station;
         }
+        SelectedDestination = Destination;
+    }
+
+    private void OnDestinationChanged(string location)
+    {
+        SelectedDestination = location;
+        SelectedStation = null;
+        StateHasChanged();
     }
 
     private string GetInputClass(string fieldName)

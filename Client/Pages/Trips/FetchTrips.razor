@@ -1,4 +1,5 @@
 @page "/trips"
+@using Shared.Enums
 @inject ITripService TripService
 @inject IDestinationService DestinationService
 @attribute [Authorize(Roles = "Monitoring, Admin, Master, Supervisor, Nrl, DriverSupervisor")]
@@ -232,7 +233,14 @@
                                         </td>
                                         <!-- Destination -->
                                         <td class="px-4 py-4 text-sm text-gray-700 dark:text-gray-300">
-                                            <div>@trip.LoadingInfo?.Destination</div>
+                                            @if (trip.LoadingInfo?.DestinationMode == DestinationMode.Multi)
+                                            {
+                                                <div>Multi</div>
+                                            }
+                                            else
+                                            {
+                                                <div>@trip.LoadingInfo?.Destination</div>
+                                            }
                                         </td>
                                         <!-- Status -->
                                         <td class="px-4 py-4">

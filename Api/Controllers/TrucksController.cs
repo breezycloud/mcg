@@ -41,7 +41,7 @@ public class TrucksController : ControllerBase
             if (!string.IsNullOrEmpty(request.SearchTerm))
             {
                 string pattern = $"%{request.SearchTerm}%";
-                query = query.Where(x => EF.Functions.ILike(x.Driver.FirstName, pattern) || EF.Functions.ILike(x.Driver.LastName, pattern) || EF.Functions.ILike(x.TruckNo, pattern) || EF.Functions.ILike(x.Manufacturer!, pattern) || EF.Functions.ILike(x.VIN!, pattern));
+                query = query.Where(x => EF.Functions.ILike(x.Driver.FirstName, pattern) || EF.Functions.ILike(x.Driver.LastName, pattern) || EF.Functions.ILike(x.TruckNo, pattern) || EF.Functions.ILike(x.Manufacturer!, pattern) || EF.Functions.ILike(x.VIN!, pattern) || EF.Functions.ILike(x.LicensePlate!, pattern) || EF.Functions.ILike(x.EngineNo!, pattern));
             }
 
             if (request.UnassignedOnly)
