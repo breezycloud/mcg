@@ -103,10 +103,17 @@
     private Station[]? allStations { get; set; } = [];
     private List<Station> filteredStations { get; set; } = new();
     private int highlightedIndex = -1;
+    private StationType? previousStationType;
+    private string? previousDestination;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnParametersSetAsync()
     {
-        await LoadStationsAsync();
+        if (previousStationType != StationType || previousDestination != Destionation)
+        {
+            previousStationType = StationType;
+            previousDestination = Destionation;
+            await LoadStationsAsync();
+        }
     }
 
     private async Task LoadStationsAsync()
