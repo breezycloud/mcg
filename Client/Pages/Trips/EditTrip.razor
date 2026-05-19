@@ -183,14 +183,14 @@
                                             checked="@(Trip.LoadingInfo.DestinationMode == DestinationMode.Single)"
                                             @onclick="() => SetDestinationMode(DestinationMode.Single)"
                                             class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500" />
-                                        <span class="ms-2">Option A (Single)</span>
+                                        <span class="ms-2">Single</span>
                                     </label>
                                     <label class="inline-flex items-center">
                                         <input id="dest-mode-multi" type="radio" name="destMode" 
                                             checked="@(Trip.LoadingInfo.DestinationMode == DestinationMode.Multi)"
                                             @onclick="() => SetDestinationMode(DestinationMode.Multi)"
                                             class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500" />
-                                        <span class="ms-2">Option B (Multi)</span>
+                                        <span class="ms-2">Multi</span>
                                     </label>
                                 </div>
                             </div>

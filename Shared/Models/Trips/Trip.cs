@@ -18,7 +18,7 @@ public class Trip
     public DateTimeOffset Date { get; set; }
     public Guid? DriverId { get; set; }
     public Guid TruckId { get; set; }
-    public string? DispatchId { get; set; }
+    public string? DispatchId { get; set; } 
     public Guid? LoadingDepotId { get; set; }
     public Guid? ReceivingDepotId { get; set; }
     [Column(TypeName = "jsonb")]
