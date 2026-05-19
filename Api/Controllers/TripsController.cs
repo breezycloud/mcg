@@ -467,6 +467,10 @@ public class TripsController : ControllerBase
             return BadRequest();
         }
 
+        var loadingValidation = ValidateLoadingInfo(trip);
+        if (loadingValidation is not null)
+            return BadRequest(loadingValidation);
+
         _context.Entry(trip).State = EntityState.Modified;
 
         try
@@ -497,6 +501,10 @@ public class TripsController : ControllerBase
         {
             return BadRequest();
         }        
+
+        var loadingValidation = ValidateLoadingInfo(trip);
+        if (loadingValidation is not null)
+            return BadRequest(loadingValidation);
 
         _context.Entry(trip).State = EntityState.Modified;
 
@@ -644,10 +652,13 @@ public class TripsController : ControllerBase
             return BadRequest(dispatchValidationError);
         }
 
+        var loadingValidation = ValidateLoadingInfo(trip);
+        if (loadingValidation is not null)
+            return BadRequest(loadingValidation);
+
         var dispatchResult = await GenerateDispatchId(trip.TruckId, trip.Date.ToString("yyyy-MM-dd"), cancellationToken);
         if (dispatchResult.Result is OkObjectResult okResult && okResult.Value is string dispatchId)
-        {
-            Console.WriteLine($"Generated DispatchId: {dispatchId}");
+        {            
             trip.DispatchId = dispatchId.Trim();
         }
         else
@@ -679,6 +690,17 @@ public class TripsController : ControllerBase
     private bool TripExists(Guid id)
     {
         return _context.Trips.Any(e => e.Id == id);
+    }
+
+    private string? ValidateLoadingInfo(Trip trip)
+    {
+        if (trip?.LoadingInfo is null)
+            return null;
+
+        if (trip.LoadingInfo.DestinationMode == DestinationMode.Single && string.IsNullOrWhiteSpace(trip.LoadingInfo.Destination))
+            return "Destination is required when DestinationMode is Single.";
+
+        return null;
     }
 
     private async Task<string?> ValidateDispatchDateAsync(Trip trip, CancellationToken cancellationToken)

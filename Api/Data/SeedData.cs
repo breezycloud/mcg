@@ -139,8 +139,7 @@ public class SeedData
             await foreach (var truck in JsonSerializer.DeserializeAsyncEnumerable<Truck>(stream, options: null, cancellationToken: new CancellationTokenSource().Token))
             {
                 if (truck != null)
-                {
-                    Console.WriteLine("{0} {1} {2}", truck.TruckNo, truck.VIN, truck.EngineNo);
+                {                    
                     if (!KDrivers.Any(x => x.LicensePlate == truck.LicensePlate))
                     {
                         truck.DriverId = null;

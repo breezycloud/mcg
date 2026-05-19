@@ -39,7 +39,7 @@ public static class TripMapper
             DispatchType = string.IsNullOrEmpty(trip.LoadingInfo.DispatchType.ToString()) ? "N/A" : trip.LoadingInfo.DispatchType.ToString(),
             DispatchQuantity = trip.LoadingInfo?.Quantity ?? 0,
             DriverName = trip.Driver?.ToString() ?? "N/A",
-            Dest = trip.LoadingInfo?.Destination ?? "N/A",
+            Dest = trip.LoadingInfo?.DestinationMode == DestinationMode.Multi ? "Multi" : (trip.LoadingInfo?.Destination ?? "N/A"),
             ElockStatus = string.IsNullOrEmpty(trip.LoadingInfo?.ElockStatus.ToString()) ? "N/A" : trip.LoadingInfo?.ElockStatus.ToString(),
             ArrivedDepot = trip.ArrivalInfo.ArrivedDepot ? "Yes" : "No",
             DepotArrival = trip.ArrivalInfo.DepotArrivalDateTime.HasValue ? trip.ArrivalInfo.DepotArrivalDateTime.Value.ToString("dd/MM/yyyy HH:mm:ss") : "N/A",

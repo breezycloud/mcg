@@ -55,9 +55,23 @@
                             }
                         </div>
 
-                        @if (DestinationMode == DestinationMode.Single)
-                        {
-                            <div>
+                        <!-- Discharge Start Time -->
+                        <div>
+                            <label for="discharge-start-time" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                Discharge Start Time <span class="text-red-500">*</span>
+                            </label>
+                            <input type="datetime-local" id="discharge-start-time" @bind="Data.DischargeStartTime"
+                                class="@GetInputClass(nameof(Data.DischargeStartTime))">
+                            @if (errors.ContainsKey("DischargeStartTime"))
+                            {
+                                <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["DischargeStartTime"]</p>
+                            }
+                        </div>
+
+                        <!-- Destination / Station pickers -->
+                        <div>
+                            @if (DestinationMode == DestinationMode.Single)
+                            {
                                 <StationAutocomplete 
                                     @bind-Value="SelectedStation"
                                     Destionation="@Destination"
@@ -71,11 +85,9 @@
                                 {
                                     <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["StationId"]</p>
                                 }
-                            </div>
-                        }
-                        else
-                        {
-                            <div>
+                            }
+                            else
+                            {
                                 <StateSelector 
                                     IsRequired="true" 
                                     Destination="@SelectedDestination" 
@@ -101,19 +113,6 @@
                                         }
                                     </div>
                                 }
-                            </div>
-                        }
-
-                        <!-- Discharge Start Time -->
-                        <div>
-                            <label for="discharge-start-time" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                                Discharge Start Time <span class="text-red-500">*</span>
-                            </label>
-                            <input type="datetime-local" id="discharge-start-time" @bind="Data.DischargeStartTime"
-                                class="@GetInputClass(nameof(Data.DischargeStartTime))">
-                            @if (errors.ContainsKey("DischargeStartTime"))
-                            {
-                                <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["DischargeStartTime"]</p>
                             }
                         </div>
 
@@ -131,7 +130,7 @@
                                 <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["QuantityDischarged"]</p>
                             }
                         </div>                       
-                        
+
                         <!-- Final Discharge Checkbox -->
                         <div class="flex items-center space-x-2">
                             <input type="checkbox" id="is-final-discharge" @bind="Data.IsFinalDischarge"
@@ -139,7 +138,7 @@
                             <label for="is-final-discharge" class="text-sm font-medium text-gray-900 dark:text-white">
                                 Final Discharge
                             </label>
-                        </div>                        
+                        </div>
                     </div>
 
                     <div>
@@ -251,15 +250,11 @@
     {        
         errors.Clear();
 
-        @* if (SelectedInvoicedStation is null)
+        // When in Multi destination mode, require the user to pick a destination first
+        if (DestinationMode == DestinationMode.Multi && string.IsNullOrWhiteSpace(SelectedDestination))
         {
-            errors["InvoicedStationId"] = "Invoiced station is required.";
+            errors["Destination"] = "Destination is required.";
         }
-        else
-        {
-            Data.InvoicedStationId = SelectedInvoicedStation.Id;
-            Data.InvoicedStation = SelectedInvoicedStation;
-        } *@
 
         if (SelectedStation is null || SelectedStation.Id == Guid.Empty)
         {

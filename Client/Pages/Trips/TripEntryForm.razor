@@ -137,6 +137,37 @@
                         }
                 </div>
             
+                <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Destination Mode</label>
+                    <div class="flex items-center gap-4">
+                        <label class="inline-flex items-center">
+                            <input id="dest-mode-single-add" type="radio" name="destModeAdd" 
+                                checked="@(tripLoading?.DestinationMode == DestinationMode.Single)"
+                                @onclick="() => SetAddTripDestinationMode(DestinationMode.Single)"
+                                class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500" />
+                            <span class="ms-2">Single</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input id="dest-mode-multi-add" type="radio" name="destModeAdd" 
+                                checked="@(tripLoading?.DestinationMode == DestinationMode.Multi)"
+                                @onclick="() => SetAddTripDestinationMode(DestinationMode.Multi)"
+                                class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500" />
+                            <span class="ms-2">Multi</span>
+                        </label>
+                    </div>
+                </div>
+
+                @if (tripLoading?.DestinationMode == DestinationMode.Single)
+                {
+                    <div class="mt-4">
+                        <StateSelector IsRequired="true" Destination="@tripLoading.Destination" OnLocationChanged="@LocationChanged" FieldName="Destination" Errors="errors" GetInputClass="GetInputClass" />
+                        @if (errors.ContainsKey("Destination"))
+                        {
+                            <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["Destination"]</p>
+                        }
+                    </div>
+                }
+
              <!-- Timestamps -->
             @if (Id.HasValue)
             {
@@ -187,6 +218,7 @@
                    Title="Trip Exists"
                    Message="A trip for this truck and date already exists. Do you want to continue?"
                    OnClose="OnConfirmModalClose" />
+    <ConfirmationModal @ref="ModeChangeConfirmModal" Title="@modeChangeTitleAdd" Message="@modeChangeMessageAdd" OnClose="OnModeChangeConfirmedAdd" />
 </div>
 
 @code {
@@ -230,7 +262,8 @@
                 LoadingPointId = CurrentTrip.LoadingDepotId,
                 LicensePlate = CurrentTrip.Truck?.LicensePlate,
                 DispatchId = CurrentTrip.DispatchId,
-                Destination = CurrentTrip.LoadingInfo?.Destination
+                Destination = CurrentTrip.LoadingInfo?.Destination,
+                DestinationMode = CurrentTrip.LoadingInfo?.DestinationMode ?? DestinationMode.Single
             };
             SelectedProduct = CurrentTrip.Truck?.Product?.ToString();
             SelectedStation = CurrentTrip.LoadingDepot;
@@ -352,6 +385,43 @@
         StateHasChanged();
     }
 
+    private ConfirmationModal? ModeChangeConfirmModal;
+    private TaskCompletionSource<bool>? modeChangeTcsAdd;
+    private string modeChangeTitleAdd = "Confirm mode change";
+    private string modeChangeMessageAdd = string.Empty;
+
+    private async Task SetAddTripDestinationMode(DestinationMode mode)
+    {
+        if (tripLoading is null) return;
+        var previous = tripLoading.DestinationMode;
+        if (previous == mode) return;
+
+        if (previous == DestinationMode.Single && mode == DestinationMode.Multi && !string.IsNullOrWhiteSpace(tripLoading.Destination))
+        {
+            modeChangeTitleAdd = "Switch to Multi?";
+            modeChangeMessageAdd = "Switching to Multi will clear the current Destination. Do you want to continue?";
+            modeChangeTcsAdd = new TaskCompletionSource<bool>();
+            ModeChangeConfirmModal?.Show();
+            var confirmed = await modeChangeTcsAdd.Task;
+            modeChangeTcsAdd = null;
+            if (!confirmed)
+            {
+                return;
+            }
+            tripLoading.Destination = null;
+            ToastService.ShowInfo("Cleared destination.");
+        }
+
+        tripLoading.DestinationMode = mode;
+        StateHasChanged();
+    }
+
+    private async Task OnModeChangeConfirmedAdd(bool confirmed)
+    {
+        modeChangeTcsAdd?.TrySetResult(confirmed);
+        await Task.CompletedTask;
+    }
+
     private void OnStationSelected(Station station)
     {
         SelectedStation = station;
@@ -411,7 +481,7 @@
         if (tripLoading!.LoadingPointId.Equals(Guid.Empty))
             errors["LoadingPointId"] = "Loading Point is required";
         
-        if (string.IsNullOrWhiteSpace(tripLoading.Destination))
+        if (tripLoading.DestinationMode == DestinationMode.Single && string.IsNullOrWhiteSpace(tripLoading.Destination))
             errors["Destination"] = "Destination is required";
         
         if (tripLoading!.DriverId.Equals(Guid.Empty) || tripLoading!.DriverId is null)

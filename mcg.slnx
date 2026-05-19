@@ -1,4 +1,8 @@
 <Solution>
+  <Folder Name="/tools/" />
+  <Folder Name="/tools/validate-loadinginfo/">
+    <Project Path="tools/validate-loadinginfo/ValidateLoadingInfo.csproj" />
+  </Folder>
   <Project Path="Api/Api.csproj" />
   <Project Path="Client/Client.csproj" />
   <Project Path="Shared/Shared.csproj" />

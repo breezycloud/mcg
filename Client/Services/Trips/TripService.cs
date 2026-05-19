@@ -3,6 +3,7 @@ using Microsoft.JSInterop;
 using Shared.Dtos;
 using Shared.Helpers;
 using Shared.Models.Trips;
+using Shared.Enums;
 
 namespace Shared.Interfaces.Trips;
 
@@ -18,9 +19,20 @@ public class TripService(IHttpClientFactory _httpClient, IJSRuntime js) : ITripS
             Date = model.LoadingDate!.Value,
             DriverId = model.DriverId,
             TruckId = model.TruckId,
-            DispatchId = model.DispatchId,     
-            LoadingDepotId = model.LoadingPointId,       
+            DispatchId = model.DispatchId,
+            LoadingDepotId = model.LoadingPointId,
             Status = Enums.TripStatus.Active,
+            LoadingInfo = new LoadingInfo
+            {
+                LoadingDate = model.LoadingDate?.UtcDateTime,
+                WaybillNo = model.WaybillNumber,
+                Destination = model.Destination,
+                DestinationMode = model.DestinationMode,
+                Quantity = model.DispatchQuantity,
+                Files = new List<UploadResult>(),
+                Metrics = new List<Metrics>(),
+                DispatchType = DispatchType.Direct
+            }
         };
     }
     // public Trip MapTripDischargeAsync(TripDischargingDto model, CancellationToken cancellationToken)
