@@ -673,7 +673,11 @@ public class TripsController : ControllerBase
             return BadRequest(dispatchValidationError);
         }
 
-        var loadingValidation = ValidateLoadingInfo(trip);
+        // When creating a trip we do not require the Destination field to be populated.
+        // Preserve stricter validation for updates (Put). This keeps creation flexible
+        // while ensuring existing update flows still validate the presence of Destination
+        // when DestinationMode is Single.
+        var loadingValidation = ValidateLoadingInfo(trip, requireDestination: false);
         if (loadingValidation is not null)
             return BadRequest(loadingValidation);
         const int maxAttempts = 3;
@@ -739,10 +743,17 @@ public class TripsController : ControllerBase
 
     private string? ValidateLoadingInfo(Trip trip)
     {
+        // Keep the original single-parameter method for backward compatibility
+        // (tools or callers using reflection). Default behavior requires Destination.
+        return ValidateLoadingInfo(trip, requireDestination: true);
+    }
+
+    private string? ValidateLoadingInfo(Trip trip, bool requireDestination)
+    {
         if (trip?.LoadingInfo is null)
             return null;
 
-        if (trip.LoadingInfo.DestinationMode == DestinationMode.Single && string.IsNullOrWhiteSpace(trip.LoadingInfo.Destination))
+        if (requireDestination && trip.LoadingInfo.DestinationMode == DestinationMode.Single && string.IsNullOrWhiteSpace(trip.LoadingInfo.Destination))
             return "Destination is required when DestinationMode is Single.";
 
         return null;
