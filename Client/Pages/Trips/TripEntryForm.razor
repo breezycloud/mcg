@@ -160,7 +160,7 @@
                 @if (tripLoading?.DestinationMode == DestinationMode.Single)
                 {
                     <div class="mt-4">
-                        <StateSelector IsRequired="true" Destination="@tripLoading.Destination" OnLocationChanged="@LocationChanged" FieldName="Destination" Errors="errors" GetInputClass="GetInputClass" />
+                        <StateSelector IsRequired="@EditMode" Destination="@tripLoading.Destination" OnLocationChanged="@LocationChanged" FieldName="Destination" Errors="errors" GetInputClass="GetInputClass" />
                         @if (errors.ContainsKey("Destination"))
                         {
                             <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["Destination"]</p>
@@ -481,7 +481,8 @@
         if (tripLoading!.LoadingPointId.Equals(Guid.Empty))
             errors["LoadingPointId"] = "Loading Point is required";
         
-        if (tripLoading.DestinationMode == DestinationMode.Single && string.IsNullOrWhiteSpace(tripLoading.Destination))
+        // Destination is not required when creating a new trip. Enforce only when editing/updating.
+        if (EditMode && tripLoading.DestinationMode == DestinationMode.Single && string.IsNullOrWhiteSpace(tripLoading.Destination))
             errors["Destination"] = "Destination is required";
         
         if (tripLoading!.DriverId.Equals(Guid.Empty) || tripLoading!.DriverId is null)
