@@ -44,12 +44,9 @@ public class TripsController : ControllerBase
         {
             return BadRequest("Invalid date format. Expected yyyy-MM-dd");
         }
-
-        // Build a stable baseDispatchId from date + sanitized license plate segment
-        var plate = truck.LicensePlate ?? string.Empty;
-        plate = Regex.Replace(plate, "[^a-zA-Z0-9]", "").ToUpperInvariant();
-        var plateSegment = plate.Length > 2 ? plate.Substring(2, Math.Min(6, plate.Length - 2)) : plate;
-        var baseDispatchId = (parsedDate.ToString("yyMMdd") + plateSegment).Trim();
+        
+        var baseDispatchId = (parsedDate.ToString("yyMMdd") + truck.LicensePlate?.Substring(2, 6)).Trim();
+        Console.WriteLine($"Base DispatchId: {baseDispatchId}");
 
         // Query existing dispatch ids that start with the base prefix
         var sameDayDispatches = await _context.Trips
