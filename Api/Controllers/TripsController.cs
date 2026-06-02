@@ -487,9 +487,9 @@ public class TripsController : ControllerBase
         {
             return BadRequest();
         }
-
+        
         var loadingValidation = ValidateLoadingInfo(trip);
-        if (loadingValidation is not null)
+        if (loadingValidation is not null && trip.ArrivalInfo is null)
             return BadRequest(loadingValidation);
 
         _context.Entry(trip).State = EntityState.Modified;
