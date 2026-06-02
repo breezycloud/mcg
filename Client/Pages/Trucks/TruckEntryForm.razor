@@ -431,7 +431,6 @@
                 return;
 
             result = await TruckService.ValidateEntry(type, value, AppState.GetCancellationToken());
-            Console.WriteLine("{0} {1}", result, type);
             if (result)
             {
                 if (type == "EngineNo")

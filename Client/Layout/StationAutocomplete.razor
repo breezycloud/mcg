@@ -135,15 +135,16 @@
 
     private void ApplyFilter()
     {
+        var source = allStations ?? Array.Empty<Station>();
         if (string.IsNullOrWhiteSpace(searchText))
         {
-            filteredStations = allStations.ToList();
+            filteredStations = source.ToList();
         }
         else
         {
             var lowerSearch = searchText.ToLowerInvariant();
-            filteredStations = allStations
-                .Where(s => s.Name.ToLowerInvariant().Contains(lowerSearch))
+            filteredStations = source
+                .Where(s => !string.IsNullOrWhiteSpace(s.Name) && s.Name.ToLowerInvariant().Contains(lowerSearch))
                 .ToList();
         }
 

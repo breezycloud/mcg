@@ -51,6 +51,19 @@ public class AppDbContext : DbContext
             .HasIndex(x => x.Email)
             .IsUnique();
 
+        // Enforce constraints on Trip.DispatchId to avoid duplicate dispatches at the database level.
+        // Use a varchar(30) length and a unique index (filtered to non-null values) as a final safety net.
+        modelBuilder.Entity<Trip>(entity =>
+        {
+            entity.Property(t => t.DispatchId)
+                  .HasMaxLength(30);
+
+            entity.HasIndex(t => t.DispatchId)
+                  .IsUnique()
+                  .HasDatabaseName("IX_Trips_DispatchId")
+                  .HasFilter("\"DispatchId\" IS NOT NULL");
+        });
+
         base.OnModelCreating(modelBuilder);
     }
 

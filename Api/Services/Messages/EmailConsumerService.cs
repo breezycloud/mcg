@@ -34,17 +34,10 @@ public class EmailConsumerService : BackgroundService
             UserName = rabbitConfig.Value.UserName,
             Password = rabbitConfig.Value.Password,
             Port = rabbitConfig.Value.Port
-        };
-        Console.WriteLine("{0} {1} {2} {3}", factory.HostName, factory.UserName, factory.Password, factory.Port);
+        };        
         _connection = factory.CreateConnection();
         _channel = _connection.CreateModel();
 
-        // Set up RazorLight
-        // _templatePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "EmailTemplates");
-        // _razorEngine = new RazorLightEngineBuilder()
-        //     .UseFileSystemProject(_templatePath)
-        //     .UseMemoryCachingProvider()
-        //     .Build();
         var assembly = typeof(Program).Assembly;
         _razorEngine = new RazorLightEngineBuilder()
             .UseEmbeddedResourcesProject(assembly, "Api.EmailTemplates")

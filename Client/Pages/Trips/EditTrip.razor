@@ -10,6 +10,7 @@
 @using Client.Pages.RefuelInfos
 @using Shared.Models.Incidents
 @using Shared.Enums
+@using Client.Pages.Modals
 
 <div class="max-w-4xl mx-auto px-2 lg:px-2">
     @if (AppState.IsBusy)
@@ -507,7 +508,7 @@
             </button>
             @if (activeTab == 1 ||activeTab == 3 || activeTab == 6)
             {
-                <button @onclick="SaveChanges" type="button" class="pr-4 text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800" disabled="@AppState.IsProcessing">
+                <button @onclick="SaveChanges" type="button" class="pr-4 text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800" disabled="@(!CanSave() || AppState.IsProcessing)">
                     @if (AppState.IsProcessing)
                     {
                         <svg class="animate-spin h-5 w-5 mr-2 inline text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -558,6 +559,8 @@
         Trip="@Trip"
         OnClose="@CloseViewDischargeModal"/>
 }
+
+<ConfirmationModal @ref="ConfirmModal" Title="@confirmationTitle" Message="@confirmationMessage" OnClose="OnModeChangeConfirmed" />
 
 @code {
     private int activeTab = 1;
@@ -664,11 +667,40 @@
         StateHasChanged();
     }
 
-    private void SetDestinationMode(DestinationMode mode)
+    
+
+    private ConfirmationModal? ConfirmModal;
+    private TaskCompletionSource<bool>? modeChangeTcs;
+    private string confirmationTitle = "Confirm mode change";
+    private string confirmationMessage = string.Empty;
+
+    private async Task SetDestinationMode(DestinationMode mode)
     {
         if (Trip is null) return;
+        var previous = Trip.LoadingInfo.DestinationMode;
+        if (previous == mode) return;
+
+        // If switching from Single to Multi and a destination exists, ask for confirmation
+        if (previous == DestinationMode.Single && mode == DestinationMode.Multi && !string.IsNullOrWhiteSpace(Trip.LoadingInfo.Destination))
+        {
+            confirmationTitle = "Switch to Multi?";
+            confirmationMessage = "Switching to Multi will clear the current Destination. Do you want to continue?";
+            modeChangeTcs = new TaskCompletionSource<bool>();
+            ConfirmModal?.Show();
+            var confirmed = await modeChangeTcs.Task;
+            modeChangeTcs = null;
+            if (!confirmed)
+            {
+                // user cancelled - do not change mode
+                return;
+            }
+            // user confirmed - clear the single destination
+            Trip.LoadingInfo.Destination = null;
+            ToastService.ShowInfo("Cleared loading destination.");
+        }
+
         Trip.LoadingInfo.DestinationMode = mode;
-        StateHasChanged();
+        StateHasChanged();    
     }
 
     private void ArrivalDestinationChanged(string location)
@@ -676,16 +708,38 @@
         Trip!.ArrivalInfo.Destination = location;
         StateHasChanged();
     }
+
+    private async Task OnModeChangeConfirmed(bool confirmed)
+    {
+        modeChangeTcs?.TrySetResult(confirmed);
+        await Task.CompletedTask;
+    }
+    
+    private bool CanSave()
+    {
+        if (activeTab == 1) return IsLoadingInfoValid();
+        return true;
+    }
+
+    private bool IsLoadingInfoValid()
+    {
+        if (Trip is null || Trip.LoadingInfo is null) return false;
+        if (Trip.LoadingDepotId is null || Trip.LoadingDepotId == Guid.Empty) return false;
+        if (Trip.LoadingInfo.LoadingDate is null) return false;
+        if (Trip.LoadingInfo.Quantity is null || Trip.LoadingInfo.Quantity <= 0) return false;
+        if (string.IsNullOrWhiteSpace(Trip.LoadingInfo.WaybillNo)) return false;
+        if (Trip.LoadingInfo.DispatchType == DispatchType.Depot && (Trip.ReceivingDepotId is null || Trip.ReceivingDepotId == Guid.Empty)) return false;
+        if (Trip.LoadingInfo.DestinationMode == DestinationMode.Single && string.IsNullOrWhiteSpace(Trip.LoadingInfo.Destination)) return false;
+        return true;
+    }
     
     
     private async Task SaveChanges()
     {
         AppState.IsProcessing = true;
-        Console.WriteLine("Available Qty {0}", InitialQuantity);
         errors.Clear();
 
         // Validate required fields       
-
         if (activeTab == 1)
         {            
             if (Trip!.LoadingDepotId is null || Trip!.LoadingDepotId.Equals(Guid.Empty))
@@ -708,9 +762,9 @@
             {
                 errors["ReceivingDepotId"] = "Receiving Depot is required";
             }
-            else if (string.IsNullOrWhiteSpace(Trip!.LoadingInfo.Destination))
+            else if (Trip.LoadingInfo.DestinationMode == DestinationMode.Single && string.IsNullOrWhiteSpace(Trip!.LoadingInfo.Destination))
             {
-                errors["Destination"] = "WayBill No is required";
+                errors["Destination"] = "Destination is required";
             }
             else
             {
@@ -1036,7 +1090,6 @@
 
     private void SetRating(int rating)
     {
-        Console.WriteLine(rating);
         Trip!.CloseInfo.Rating = rating;
         StateHasChanged();        
     }

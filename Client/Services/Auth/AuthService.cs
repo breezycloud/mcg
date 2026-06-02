@@ -12,7 +12,6 @@ public class AuthService(IHttpClientFactory _httpClient, IJSRuntime js) : IAuthS
     {
         try
         {
-            Console.WriteLine("{0} {1}", _httpClient, cancellationToken);                    
             using var response = await _httpClient.CreateClient(Constants.Url).PostAsJsonAsync("auth/login", login, cancellationToken);
             response.EnsureSuccessStatusCode();
 

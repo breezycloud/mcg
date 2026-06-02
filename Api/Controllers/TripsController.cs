@@ -2,16 +2,19 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Text;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Npgsql;
 using Api.Context;
 using Api.Util;
 using Shared.Models.Trips;
 using Shared.Helpers;
 using Shared.Dtos;
 using Shared.Enums;
-using System.Text;
 
 namespace Api.Controllers;
 
@@ -20,41 +23,59 @@ namespace Api.Controllers;
 public class TripsController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly ILogger<TripsController> _logger;
 
-    public TripsController(AppDbContext context)
+    public TripsController(AppDbContext context, ILogger<TripsController> logger)
     {
         _context = context;
-
+        _logger = logger;
     }
 
     [HttpGet("generate-dispatch")]
     public async Task<ActionResult<string>> GenerateDispatchId(Guid truckId, string date, CancellationToken cancellationToken)
     {
-        var truck = await _context.Trucks.FindAsync(truckId);
+        var truck = await _context.Trucks.FindAsync([truckId], cancellationToken);
         if (truck == null)
         {
             return NotFound("Truck not found");
         }
-        var parsedDate = DateOnly.ParseExact(date, "yyyy-MM-dd");
-        var baseDispatchId = (parsedDate.ToString("yyMMdd") + truck.LicensePlate?.Substring(2, 6)).Trim();
-        
-        var sameDayTrips = await _context.Trips
+
+        if (!DateOnly.TryParseExact(date, "yyyy-MM-dd", out var parsedDate))
+        {
+            return BadRequest("Invalid date format. Expected yyyy-MM-dd");
+        }
+
+        // Build a stable baseDispatchId from date + sanitized license plate segment
+        var plate = truck.LicensePlate ?? string.Empty;
+        plate = Regex.Replace(plate, "[^a-zA-Z0-9]", "").ToUpperInvariant();
+        var plateSegment = plate.Length > 2 ? plate.Substring(2, Math.Min(6, plate.Length - 2)) : plate;
+        var baseDispatchId = (parsedDate.ToString("yyMMdd") + plateSegment).Trim();
+
+        // Query existing dispatch ids that start with the base prefix
+        var sameDayDispatches = await _context.Trips
             .Where(t => t.TruckId == truckId && EF.Functions.ILike(t.DispatchId, $"{baseDispatchId}%"))
             .Select(t => t.DispatchId)
             .ToListAsync(cancellationToken);
 
+        var existing = sameDayDispatches
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Select(s => s!.Trim())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        if (!(sameDayTrips.Count > 0 && !sameDayTrips.Contains($"-")))
-            return Ok(baseDispatchId);
-
-
-        int suffix = 1;
-        while (sameDayTrips.Contains($"{baseDispatchId}-{suffix}"))
+        if (!existing.Contains(baseDispatchId))
         {
-            suffix++;
+            return Ok(baseDispatchId);
         }
 
-        return Ok($"{baseDispatchId}-{suffix}");
+        int suffix = 1;
+        string candidate;
+        do
+        {
+            candidate = $"{baseDispatchId}-{suffix}";
+            suffix++;
+        } while (existing.Contains(candidate));
+
+        return Ok(candidate);
     }
 
     [HttpGet("dispatch-exist")]
@@ -467,6 +488,10 @@ public class TripsController : ControllerBase
             return BadRequest();
         }
 
+        var loadingValidation = ValidateLoadingInfo(trip);
+        if (loadingValidation is not null)
+            return BadRequest(loadingValidation);
+
         _context.Entry(trip).State = EntityState.Modified;
 
         try
@@ -497,6 +522,10 @@ public class TripsController : ControllerBase
         {
             return BadRequest();
         }        
+
+        var loadingValidation = ValidateLoadingInfo(trip);
+        if (loadingValidation is not null)
+            return BadRequest(loadingValidation);
 
         _context.Entry(trip).State = EntityState.Modified;
 
@@ -644,20 +673,47 @@ public class TripsController : ControllerBase
             return BadRequest(dispatchValidationError);
         }
 
-        var dispatchResult = await GenerateDispatchId(trip.TruckId, trip.Date.ToString("yyyy-MM-dd"), cancellationToken);
-        if (dispatchResult.Result is OkObjectResult okResult && okResult.Value is string dispatchId)
+        var loadingValidation = ValidateLoadingInfo(trip);
+        if (loadingValidation is not null)
+            return BadRequest(loadingValidation);
+        const int maxAttempts = 3;
+        for (int attempt = 1; attempt <= maxAttempts; attempt++)
         {
-            Console.WriteLine($"Generated DispatchId: {dispatchId}");
-            trip.DispatchId = dispatchId.Trim();
-        }
-        else
-        {
-            return BadRequest("Failed to generate DispatchId.");
-        }
-        _context.Trips.Add(trip);
-        await _context.SaveChangesAsync(cancellationToken);
+            var dispatchResult = await GenerateDispatchId(trip.TruckId, trip.Date.ToString("yyyy-MM-dd"), cancellationToken);
+            if (dispatchResult.Result is OkObjectResult okResult && okResult.Value is string dispatchId)
+            {
+                trip.DispatchId = dispatchId.Trim();
+            }
+            else
+            {
+                return BadRequest("Failed to generate DispatchId.");
+            }
 
-        return CreatedAtAction("GetTrip", new { id = trip.Id }, trip);
+            // Ensure a new GUID id for the new entity if not provided
+            if (trip.Id == Guid.Empty)
+                trip.Id = Guid.NewGuid();
+
+            _context.Trips.Add(trip);
+            try
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+                return CreatedAtAction("GetTrip", new { id = trip.Id }, trip);
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is PostgresException pg && pg.SqlState == "23505")
+            {
+                // Unique violation - likely a race when two requests generate the same DispatchId.
+                // Clear change tracker/state and retry generating a new dispatch id.
+                _context.ChangeTracker.Clear();
+                _logger?.LogWarning(ex, "DispatchId collision for truck {TruckId} dispatch {DispatchId} (attempt {Attempt}/{Max}).", trip.TruckId, trip.DispatchId, attempt, maxAttempts);
+                if (attempt == maxAttempts)
+                {
+                    return Conflict(new { error = "Failed to create trip due to dispatch id collision. Please retry." });
+                }
+                // otherwise loop to retry
+            }
+        }
+
+        return StatusCode(StatusCodes.Status500InternalServerError, new { error = "Failed to create trip." });
     }
 
     // DELETE: api/Trips/5
@@ -679,6 +735,17 @@ public class TripsController : ControllerBase
     private bool TripExists(Guid id)
     {
         return _context.Trips.Any(e => e.Id == id);
+    }
+
+    private string? ValidateLoadingInfo(Trip trip)
+    {
+        if (trip?.LoadingInfo is null)
+            return null;
+
+        if (trip.LoadingInfo.DestinationMode == DestinationMode.Single && string.IsNullOrWhiteSpace(trip.LoadingInfo.Destination))
+            return "Destination is required when DestinationMode is Single.";
+
+        return null;
     }
 
     private async Task<string?> ValidateDispatchDateAsync(Trip trip, CancellationToken cancellationToken)

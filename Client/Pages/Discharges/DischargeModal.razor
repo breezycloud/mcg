@@ -55,9 +55,23 @@
                             }
                         </div>
 
-                        @if (DestinationMode == DestinationMode.Single)
-                        {
-                            <div>
+                        <!-- Discharge Start Time -->
+                        <div>
+                            <label for="discharge-start-time" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                Discharge Start Time <span class="text-red-500">*</span>
+                            </label>
+                            <input type="datetime-local" id="discharge-start-time" @bind="Data.DischargeStartTime"
+                                class="@GetInputClass(nameof(Data.DischargeStartTime))">
+                            @if (errors.ContainsKey("DischargeStartTime"))
+                            {
+                                <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["DischargeStartTime"]</p>
+                            }
+                        </div>
+
+                        <!-- Destination / Station pickers -->
+                        <div>
+                            @if (DestinationMode == DestinationMode.Single)
+                            {
                                 <StationAutocomplete 
                                     @bind-Value="SelectedStation"
                                     Destionation="@Destination"
@@ -71,11 +85,9 @@
                                 {
                                     <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["StationId"]</p>
                                 }
-                            </div>
-                        }
-                        else
-                        {
-                            <div>
+                            }
+                            else
+                            {
                                 <StateSelector 
                                     IsRequired="true" 
                                     Destination="@SelectedDestination" 
@@ -101,19 +113,6 @@
                                         }
                                     </div>
                                 }
-                            </div>
-                        }
-
-                        <!-- Discharge Start Time -->
-                        <div>
-                            <label for="discharge-start-time" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                                Discharge Start Time <span class="text-red-500">*</span>
-                            </label>
-                            <input type="datetime-local" id="discharge-start-time" @bind="Data.DischargeStartTime"
-                                class="@GetInputClass(nameof(Data.DischargeStartTime))">
-                            @if (errors.ContainsKey("DischargeStartTime"))
-                            {
-                                <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["DischargeStartTime"]</p>
                             }
                         </div>
 
@@ -131,7 +130,7 @@
                                 <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["QuantityDischarged"]</p>
                             }
                         </div>                       
-                        
+
                         <!-- Final Discharge Checkbox -->
                         <div class="flex items-center space-x-2">
                             <input type="checkbox" id="is-final-discharge" @bind="Data.IsFinalDischarge"
@@ -139,7 +138,7 @@
                             <label for="is-final-discharge" class="text-sm font-medium text-gray-900 dark:text-white">
                                 Final Discharge
                             </label>
-                        </div>                        
+                        </div>
                     </div>
 
                     <div>
@@ -168,9 +167,20 @@
                         class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-blue-300 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600">
                     Cancel
                 </button>
-                <button @onclick="SaveCheckpoint" type="button"
-                        class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
-                    @(EditMode ? "Save Changes" : "Add Discharge")
+                <button @onclick="SaveCheckpoint" type="button" disabled="@IsSubmitting"
+                        class="text-white bg-blue-700 hover:bg-blue-800 disabled:opacity-50 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                    @if (IsSubmitting)
+                    {
+                        <svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                        </svg>
+                        <span>Saving...</span>
+                    }
+                    else
+                    {
+                        <span>@(EditMode ? "Save Changes" : "Add Discharge")</span>
+                    }
                 </button>
             </div>
         </div>
@@ -190,6 +200,7 @@
 
     private Dictionary<string, string> errors = new();
     private bool IsLoading = false;
+    private bool IsSubmitting = false;
     private Station? SelectedStation;
     private string? SelectedDestination;
     
@@ -249,17 +260,17 @@
 
     private async Task SaveCheckpoint()
     {        
+        if (IsSubmitting)
+            return;
+
+        IsSubmitting = true;
         errors.Clear();
 
-        @* if (SelectedInvoicedStation is null)
+        // When in Multi destination mode, require the user to pick a destination first
+        if (DestinationMode == DestinationMode.Multi && string.IsNullOrWhiteSpace(SelectedDestination))
         {
-            errors["InvoicedStationId"] = "Invoiced station is required.";
+            errors["Destination"] = "Destination is required.";
         }
-        else
-        {
-            Data.InvoicedStationId = SelectedInvoicedStation.Id;
-            Data.InvoicedStation = SelectedInvoicedStation;
-        } *@
 
         if (SelectedStation is null || SelectedStation.Id == Guid.Empty)
         {
@@ -309,8 +320,20 @@
         if (!string.IsNullOrEmpty(Data.Notes))
             Data.Notes = StringConverter.ConvertToTitleCase(Data.Notes);
             
-        await OnSave.InvokeAsync(Data);
-        ToastService.ShowSuccess(EditMode ? "Discharge updated successfully" : "Discharge added successfully");
+        try
+        {
+            await OnSave.InvokeAsync(Data);
+            ToastService.ShowSuccess(EditMode ? "Discharge updated successfully" : "Discharge added successfully");
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError("Failed to save discharge. Please try again.");
+            Console.Error.WriteLine(ex);
+        }
+        finally
+        {
+            IsSubmitting = false;
+        }
     }
 
     private async Task OnUploadComplete(List<UploadResult> files)

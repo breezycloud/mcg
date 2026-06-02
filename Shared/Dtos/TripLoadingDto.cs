@@ -19,13 +19,15 @@ public class TripLoadingDto
     [Required]
     public string? DispatchId { get; set; }
     public string? WaybillNumber { get; set; }
-    [Required]
-    public string? Destination { get; set; } = "abuja";
+    // Destination mode: Single -> expects a Destination; Multi -> Destination may be empty
+    public DestinationMode DestinationMode { get; set; } = DestinationMode.Single;
+
+    public string? Destination { get; set; }
+
     [Required]
     public decimal? DispatchQuantity { get; set; }
 
     public UnitOfMeasure DispatchUnit { get; set; }
 
-    [Required]
     public Guid? DestinationId { get; set; } = null;
 }

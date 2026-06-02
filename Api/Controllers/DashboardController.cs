@@ -32,8 +32,7 @@ public class DashboardController : ControllerBase
         [FromQuery, ModelBinder(typeof(MultiDateFormatBinder))] DateOnly? startDate,
         [FromQuery, ModelBinder(typeof(MultiDateFormatBinder))] DateOnly? endDate,
         [FromQuery] string? product)
-    {
-        Console.WriteLine("{0} {1}", startDate, endDate);
+    {        
         try
         {
             var metrics = await _dashboardService.GetMetricsAsync(startDate, endDate, product);
