@@ -56,12 +56,12 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Trip>(entity =>
         {
             entity.Property(t => t.DispatchId)
-                .HasMaxLength(30);
+                  .HasMaxLength(30);
 
             entity.HasIndex(t => t.DispatchId)
-                .IsUnique()
-                .HasDatabaseName("IX_Trips_DispatchId")
-                .HasFilter("\"DispatchId\" IS NOT NULL");
+                  .IsUnique()
+                  .HasDatabaseName("IX_Trips_DispatchId")
+                  .HasFilter("\"DispatchId\" IS NOT NULL");
         });
 
         base.OnModelCreating(modelBuilder);
