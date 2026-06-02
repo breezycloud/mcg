@@ -23,8 +23,7 @@ public class TripService(IHttpClientFactory _httpClient, IJSRuntime js) : ITripS
             LoadingDepotId = model.LoadingPointId,
             Status = Enums.TripStatus.Active,
             LoadingInfo = new LoadingInfo
-            {
-                LoadingDate = model.LoadingDate?.UtcDateTime,
+            {                
                 WaybillNo = model.WaybillNumber,
                 Destination = model.Destination,
                 DestinationMode = model.DestinationMode,
