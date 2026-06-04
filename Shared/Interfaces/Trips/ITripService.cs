@@ -21,5 +21,5 @@ public interface ITripService
     Task<Trip[]> GetTripsByDateRangeAsync(ReportFilter filter, CancellationToken cancellationToken);
     Task<string?> GenerateDispatchIdAsync(Guid truckId, DateOnly date, CancellationToken cancellationToken);
     Task<bool> DispatchExistAsync(Guid truckId, DateOnly date, CancellationToken cancellationToken);
-    ValueTask DownloadLoadingFilesAsync(string? product, DateOnly? startDate, DateOnly? endDate, CancellationToken cancellationToken);
+    ValueTask DownloadLoadingFilesAsync(ReportFilter filter, CancellationToken cancellationToken);
 }

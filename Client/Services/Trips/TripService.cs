@@ -266,29 +266,19 @@ public class TripService(IHttpClientFactory _httpClient, IJSRuntime js) : ITripS
         }
     }
 
-    public async ValueTask DownloadLoadingFilesAsync(string? product, DateOnly? startDate, DateOnly? endDate, CancellationToken cancellationToken)
+    public async ValueTask DownloadLoadingFilesAsync(ReportFilter filter, CancellationToken cancellationToken)
     {
         try
-        {
-            var queryParams = new List<string>();
-            if (!string.IsNullOrWhiteSpace(product))
-                queryParams.Add($"product={Uri.EscapeDataString(product)}");
-            if (startDate.HasValue)
-                queryParams.Add($"startDate={startDate.Value:yyyy-MM-dd}");
-            if (endDate.HasValue)
-                queryParams.Add($"endDate={endDate.Value:yyyy-MM-dd}");
+        {            
+            var url = "Trips/download-loading-files";            
 
-            var url = "Trips/download-loading-files";
-            if (queryParams.Count > 0)
-                url += "?" + string.Join("&", queryParams);
-
-            using var response = await _httpClient.CreateClient("AppUrl").GetAsync(url, cancellationToken);
+            using var response = await _httpClient.CreateClient("AppUrl").PostAsJsonAsync(url, filter, cancellationToken);
             response.EnsureSuccessStatusCode();
             var content = await response.Content.ReadAsByteArrayAsync(cancellationToken);
 
-            var productLabel = !string.IsNullOrWhiteSpace(product) ? product : "All";
-            var dateLabel = startDate.HasValue
-                ? $"_{startDate:yyyy-MM-dd}" + (endDate.HasValue ? $"_to_{endDate:yyyy-MM-dd}" : "")
+            var productLabel = !string.IsNullOrWhiteSpace(filter.Product) ? filter.Product : "All";
+            var dateLabel = filter.StartDate != default
+                ? $"_{filter.StartDate:yyyy-MM-dd}" + (filter.EndDate.HasValue ? $"_to_{filter.EndDate:yyyy-MM-dd}" : "")
                 : "_all";
             var fileName = $"{productLabel}_LoadingFiles{dateLabel}.zip";
 

@@ -456,10 +456,14 @@
         StateHasChanged();
         try
         {
+            var downloadFilter = new ReportFilter
+            {
+                Product = AppState.TripStore.Request.Product,
+                StartDate = reportFilter.StartDate != default ? reportFilter.StartDate : DateOnly.FromDateTime(DateTime.Now.AddMonths(-1)),
+                EndDate = DateOnly.FromDateTime(DateTime.Now)
+            };
             await TripService.DownloadLoadingFilesAsync(
-                AppState.TripStore.Request.Product,
-                reportFilter.StartDate != default ? reportFilter.StartDate : null,
-                null,
+                downloadFilter,
                 AppState.GetCancellationToken());
             ToastService.ShowSuccess("Loading files downloaded successfully");
         }

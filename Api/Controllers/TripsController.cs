@@ -670,31 +670,27 @@ public class TripsController : ControllerBase
         return Ok(result);
     }
 
-    [HttpGet("download-loading-files")]
+    [HttpPost("download-loading-files")]
     [Authorize(Roles = "Admin, Master")]
     public async Task<IActionResult> DownloadLoadingFilesAsync(
-        [FromQuery] string? product,
-        [FromQuery] DateOnly? startDate,
-        [FromQuery] DateOnly? endDate,
-        CancellationToken cancellationToken)
+        [FromBody] ReportFilter filter,
+        CancellationToken cancellationToken)    
     {
         _logger.LogInformation(
             "Download loading files — Product: {Product}, Start: {Start}, End: {End}",
-            product ?? "All", startDate, endDate);
+            filter.Product ?? "All", filter.StartDate, filter.EndDate);
 
-        var query = _context.Trips.AsNoTracking().AsQueryable();
+        var query = _context.Trips.AsNoTracking().AsQueryable();    
+        query = query.Where(t => t.Date >= filter.StartDate.ToDateTime(TimeOnly.MinValue));
 
-        if (startDate.HasValue)
-            query = query.Where(t => t.Date >= startDate.Value.ToDateTime(TimeOnly.MinValue));
-
-        if (endDate.HasValue)
+        if (filter.EndDate.HasValue)
         {
-            var endDateTime = endDate.Value.ToDateTime(TimeOnly.MaxValue);
+            var endDateTime = filter.EndDate.Value.ToDateTime(TimeOnly.MaxValue);
             query = query.Where(t => t.Date <= endDateTime);
         }
 
         Guid[]? productTruckIds = null;
-        if (!string.IsNullOrWhiteSpace(product) && Enum.TryParse<Product>(product, true, out var parsedProduct))
+        if (!string.IsNullOrWhiteSpace(filter.Product) && Enum.TryParse<Product>(filter.Product, true, out var parsedProduct))
         {
             productTruckIds = await _context.Trucks
                 .AsNoTracking()
@@ -723,7 +719,7 @@ public class TripsController : ControllerBase
             return NotFound("No loading files found for the given criteria.");
 
         var fileCount = 0;
-        using var zipStream = new MemoryStream();
+        var zipStream = new MemoryStream();
 
         try
         {
@@ -778,9 +774,9 @@ public class TripsController : ControllerBase
 
         zipStream.Position = 0;
 
-        var productLabel = !string.IsNullOrWhiteSpace(product) ? product : "All";
-        var dateLabel = startDate.HasValue
-            ? $"_{startDate:yyyy-MM-dd}" + (endDate.HasValue ? $"_to_{endDate:yyyy-MM-dd}" : "")
+        var productLabel = !string.IsNullOrWhiteSpace(filter.Product) ? filter.Product : "All";
+        var dateLabel = filter.StartDate != default
+            ? $"_{filter.StartDate:yyyy-MM-dd}" + (filter.EndDate != default ? $"_to_{filter.EndDate:yyyy-MM-dd}" : "")
             : "_all";
 
         _logger.LogInformation(
