@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Text;
@@ -7,6 +9,8 @@ using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 using Api.Context;
@@ -24,11 +28,17 @@ public class TripsController : ControllerBase
 {
     private readonly AppDbContext _context;
     private readonly ILogger<TripsController> _logger;
+    private readonly string _uploadPath;
 
-    public TripsController(AppDbContext context, ILogger<TripsController> logger)
+    public TripsController(AppDbContext context, ILogger<TripsController> logger, IConfiguration config, IHostEnvironment env)
     {
         _context = context;
         _logger = logger;
+
+        var rawPath = config["FileStorage:UploadPath"]!;
+        _uploadPath = Path.IsPathRooted(rawPath)
+            ? rawPath
+            : Path.Combine(env.ContentRootPath, rawPath);
     }
 
     [HttpGet("generate-dispatch")]
@@ -657,6 +667,107 @@ public class TripsController : ControllerBase
         });
 
         return Ok(result);
+    }
+
+    [HttpGet("download-loading-files")]
+    public async Task<IActionResult> DownloadLoadingFilesAsync(
+        [FromQuery] string? product,
+        [FromQuery] DateOnly? startDate,
+        [FromQuery] DateOnly? endDate,
+        CancellationToken cancellationToken)
+    {
+        var query = _context.Trips
+            .AsNoTracking()
+            .Include(t => t.Truck)
+            .Where(t => t.Truck != null)
+            .Where(t => t.LoadingInfo.Files.Count > 0)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(product) && Enum.TryParse<Product>(product, true, out var parsedProduct))
+            query = query.Where(t => t.Truck!.Product == parsedProduct);
+
+        if (startDate.HasValue)
+            query = query.Where(t => t.Date >= startDate.Value.ToDateTime(TimeOnly.MinValue));
+
+        if (endDate.HasValue)
+        {
+            var endDateTime = endDate.Value.ToDateTime(TimeOnly.MaxValue);
+            query = query.Where(t => t.Date <= endDateTime);
+        }
+
+        var trips = await query
+            .OrderByDescending(t => t.LoadingInfo.LoadingDate)
+            .ToListAsync(cancellationToken);
+
+        using var zipStream = new MemoryStream();
+        using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Create, leaveOpen: true))
+        {
+            var addedEntries = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var trip in trips)
+            {
+                var prefix = string.IsNullOrWhiteSpace(trip.LoadingInfo.WaybillNo)
+                    ? SanitizeFileName(trip.DispatchId ?? "NO-WAYBILL")
+                    : SanitizeFileName(trip.LoadingInfo.WaybillNo);
+
+                foreach (var file in trip.LoadingInfo.Files)
+                {
+                    if (string.IsNullOrWhiteSpace(file.ServerFileName))
+                        continue;
+
+                    var physicalPath = Path.Combine(_uploadPath, file.ServerFileName);
+                    if (!System.IO.File.Exists(physicalPath))
+                    {
+                        _logger.LogWarning("File not found on disk: {Path} (Trip: {TripId})", physicalPath, trip.Id);
+                        continue;
+                    }
+
+                    var entryName = $"{prefix}_{file.FileName}";
+                    entryName = EnsureUniqueEntry(addedEntries, entryName);
+
+                    var entry = archive.CreateEntry(entryName, CompressionLevel.Optimal);
+                    using var entryStream = entry.Open();
+                    using var fileStream = System.IO.File.OpenRead(physicalPath);
+                    await fileStream.CopyToAsync(entryStream, cancellationToken);
+                }
+            }
+        }
+
+        if (zipStream.Length == 0)
+            return NotFound("No loading files found for the given criteria.");
+
+        zipStream.Position = 0;
+
+        var productLabel = !string.IsNullOrWhiteSpace(product) ? product : "All";
+        var dateLabel = startDate.HasValue
+            ? $"_{startDate:yyyy-MM-dd}" + (endDate.HasValue ? $"_to_{endDate:yyyy-MM-dd}" : "")
+            : "_all";
+
+        return File(zipStream, "application/zip", $"{productLabel}_LoadingFiles{dateLabel}.zip");
+    }
+
+    private static string SanitizeFileName(string name)
+    {
+        var invalid = Path.GetInvalidFileNameChars();
+        return string.Concat(name.Select(c => invalid.Contains(c) ? '_' : c));
+    }
+
+    private static string EnsureUniqueEntry(HashSet<string> entries, string candidate)
+    {
+        if (entries.Add(candidate))
+            return candidate;
+
+        var nameWithoutExt = Path.GetFileNameWithoutExtension(candidate);
+        var ext = Path.GetExtension(candidate);
+        var counter = 1;
+        string newName;
+        do
+        {
+            newName = $"{nameWithoutExt}({counter}){ext}";
+            counter++;
+        } while (!entries.Add(newName));
+
+        return newName;
     }
 
     // POST: api/Trips
