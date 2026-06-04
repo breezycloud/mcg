@@ -266,41 +266,6 @@ public class TripService(IHttpClientFactory _httpClient, IJSRuntime js) : ITripS
         }
     }
 
-    public async ValueTask DownloadLoadingFilesAsync(string? product, DateOnly? startDate, DateOnly? endDate, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var queryParams = new List<string>();
-            if (!string.IsNullOrWhiteSpace(product))
-                queryParams.Add($"product={Uri.EscapeDataString(product)}");
-            if (startDate.HasValue)
-                queryParams.Add($"startDate={startDate.Value:yyyy-MM-dd}");
-            if (endDate.HasValue)
-                queryParams.Add($"endDate={endDate.Value:yyyy-MM-dd}");
-
-            var url = "Trips/download-loading-files";
-            if (queryParams.Count > 0)
-                url += "?" + string.Join("&", queryParams);
-
-            using var response = await _httpClient.CreateClient("AppUrl").GetAsync(url, cancellationToken);
-            response.EnsureSuccessStatusCode();
-            var content = await response.Content.ReadAsByteArrayAsync(cancellationToken);
-
-            var productLabel = !string.IsNullOrWhiteSpace(product) ? product : "All";
-            var dateLabel = startDate.HasValue
-                ? $"_{startDate:yyyy-MM-dd}" + (endDate.HasValue ? $"_to_{endDate:yyyy-MM-dd}" : "")
-                : "_all";
-            var fileName = $"{productLabel}_LoadingFiles{dateLabel}.zip";
-
-            await js.InvokeVoidAsync("downloadReport", fileName, Convert.ToBase64String(content));
-        }
-        catch (System.Exception)
-        {
-
-            throw;
-        }
-    }
-
     private static async Task<string> ReadErrorMessageAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {
         var content = await response.Content.ReadAsStringAsync(cancellationToken);

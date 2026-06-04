@@ -134,31 +134,6 @@
                                             @("Export Loading Info")
                                         }
                                     </button>
-                                    <AuthorizeView Roles="Admin, Master" Context="auth">
-                                        <Authorized>
-                                            <button 
-                                                @onclick="DownloadLoadingFiles"
-                                                type="button"
-                                                class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                                disabled="@(isDownloadingFiles || AppState.IsProcessing)">
-                                                @if (isDownloadingFiles)
-                                                {
-                                                    <svg class="animate-spin h-4 w-4 mr-2 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                                                    </svg>
-                                                    @("Downloading...")
-                                                }
-                                                else
-                                                {
-                                                    <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                                                        <path clip-rule="evenodd" fill-rule="evenodd" d="M10 2a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V3a1 1 0 011-1z" />
-                                                    </svg>
-                                                    @("Download Loading Files")
-                                                }
-                                            </button>
-                                        </Authorized>
-                                    </AuthorizeView>
                                     <AuthorizeView Roles="Master, Admin, Supervisor, DriverSupervisor" Context="auth">
                                         <Authorized>
                                             <button 
@@ -351,7 +326,6 @@
     private bool isActionMenuOpen = false;
     private bool isFilterMenuOpen = false;
     private Guid? openRowMenuId = null;
-    private bool isDownloadingFiles = false;
 
     private GridDataResponse<Trip>? response = null;
     private GridDataRequest request = new();
@@ -447,28 +421,6 @@
             ToastService.ShowError("failed to export report");
         }
         AppState.IsExporting = false;
-        StateHasChanged();
-    }
-
-    private async Task DownloadLoadingFiles()
-    {
-        isDownloadingFiles = true;
-        StateHasChanged();
-        try
-        {
-            await TripService.DownloadLoadingFilesAsync(
-                AppState.TripStore.Request.Product,
-                reportFilter.StartDate != default ? reportFilter.StartDate : null,
-                null,
-                AppState.GetCancellationToken());
-            ToastService.ShowSuccess("Loading files downloaded successfully");
-        }
-        catch
-        {
-            ToastService.ShowError("failed to download loading files");
-        }
-        isDownloadingFiles = false;
-        isActionMenuOpen = false;
         StateHasChanged();
     }
 
