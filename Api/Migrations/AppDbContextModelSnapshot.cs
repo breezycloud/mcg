@@ -9,6 +9,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Shared.Enums;
 using Shared.Helpers;
 using Shared.Models.BaseEntity;
+using Shared.Models.Reports;
 using Shared.Models.Trips;
 using Shared.Models.Trucks;
 
@@ -357,10 +358,6 @@ namespace Api.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<List<string>>("ActualTasks")
-                        .IsRequired()
-                        .HasColumnType("jsonb");
-
                     b.Property<Guid?>("AssignedById")
                         .HasColumnType("uuid");
 
@@ -376,14 +373,6 @@ namespace Api.Migrations
                     b.Property<string>("ManagerComment")
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
-
-                    b.Property<List<string>>("PlannedTasks")
-                        .IsRequired()
-                        .HasColumnType("jsonb");
-
-                    b.Property<List<string>>("Recommendations")
-                        .IsRequired()
-                        .HasColumnType("jsonb");
 
                     b.Property<string>("Remark")
                         .HasMaxLength(2000)
@@ -405,12 +394,16 @@ namespace Api.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
-                    b.Property<List<string>>("TomorrowPlans")
+                    b.Property<List<ReportTask>>("TomorrowTasks")
                         .IsRequired()
                         .HasColumnType("jsonb");
 
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<List<ReportTask>>("WorkTasks")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
 
                     b.HasKey("Id");
 

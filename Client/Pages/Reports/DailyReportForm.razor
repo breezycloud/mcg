@@ -456,6 +456,7 @@
                     _model.EmployeeId = selfId;
 
                 var reportNo = await DailyReportService.GenerateReportNoAsync(today, null, default);
+                Console.WriteLine($"Generated report number: {reportNo}");
                 _model.ReportNo = reportNo;
             }
         }
@@ -507,6 +508,12 @@
                 nav.NavigateTo($"/view-daily-report/{created.Id}");
             }
         }
+        catch (DuplicateReportException ex)
+        {
+            // A report already exists for this date — navigate the user there instead of showing an error
+            ToastService.ShowWarning(ex.Message);
+            nav.NavigateTo($"/view-daily-report/{ex.ExistingId}");
+        }
         catch (Exception ex)
         {
             ToastService.ShowError(ex.Message);
@@ -537,10 +544,24 @@
                 var created = await DailyReportService.AddAsync(_model, default);
                 if (created is null) throw new InvalidOperationException("Failed to create report.");
 
-                await DailyReportService.SubmitAsync(created.Id, default);
-                ToastService.ShowSuccess("Report submitted successfully");
+                try
+                {
+                    await DailyReportService.SubmitAsync(created.Id, default);
+                    ToastService.ShowSuccess("Report submitted successfully");
+                }
+                catch
+                {
+                    // Report was saved but submit failed — navigate to the draft so the user can retry
+                    ToastService.ShowWarning("Report saved as draft. Please submit from the view page.");
+                }
                 nav.NavigateTo($"/view-daily-report/{created.Id}");
             }
+        }
+        catch (DuplicateReportException ex)
+        {
+            // A report already exists for this date — navigate the user there instead of showing an error
+            ToastService.ShowWarning(ex.Message);
+            nav.NavigateTo($"/view-daily-report/{ex.ExistingId}");
         }
         catch (Exception ex)
         {

@@ -1,9 +1,16 @@
 using System.Net.Http.Json;
+using System.Text.Json;
 using Microsoft.JSInterop;
 using Shared.Helpers;
 using Shared.Models.Reports;
 
 namespace Shared.Interfaces.Reports;
+
+/// <summary>Thrown when the server returns 409 because a report already exists for that employee+date.</summary>
+public sealed class DuplicateReportException(string message, Guid existingId) : InvalidOperationException(message)
+{
+    public Guid ExistingId { get; } = existingId;
+}
 
 public class DailyReportService(IHttpClientFactory _httpClient, IJSRuntime _js) : IDailyReportService
 {
@@ -31,13 +38,34 @@ public class DailyReportService(IHttpClientFactory _httpClient, IJSRuntime _js) 
         catch (Exception) { throw; }
     }
 
-    /// <summary>Creates a report and returns the full persisted entity (with server-assigned Id).</summary>
+    /// <summary>Creates a report and returns the full persisted entity (with server-assigned Id).
+    /// Throws <see cref="DuplicateReportException"/> when the server returns 409 (report already exists).</summary>
     public async Task<DailyReport?> AddAsync(DailyReport model, CancellationToken cancellationToken)
     {
         try
         {
             using var response = await _httpClient.CreateClient("AppUrl")
                 .PostAsJsonAsync("daily-reports", model, cancellationToken);
+
+            if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+            {
+                var body = await response.Content.ReadAsStringAsync(cancellationToken);
+                Guid existingId = default;
+                string conflictMessage = body.Trim().Trim('"');
+                try
+                {
+                    using var doc = JsonDocument.Parse(body);
+                    var root = doc.RootElement;
+                    conflictMessage = root.GetProperty("message").GetString() ?? conflictMessage;
+                    existingId = root.GetProperty("existingId").GetGuid();
+                }
+                catch { /* not structured JSON — use raw body */ }
+
+                if (existingId != default)
+                    throw new DuplicateReportException(conflictMessage, existingId);
+                throw new InvalidOperationException(conflictMessage);
+            }
+
             if (!response.IsSuccessStatusCode)
                 throw new InvalidOperationException(await ReadErrorMessageAsync(response, cancellationToken));
             // 201 Created — body contains the saved entity with server-assigned Id
@@ -197,6 +225,14 @@ public class DailyReportService(IHttpClientFactory _httpClient, IJSRuntime _js) 
     {
         var content = await response.Content.ReadAsStringAsync(cancellationToken);
         if (string.IsNullOrWhiteSpace(content)) return "Operation failed.";
+        // Try to extract .message from structured JSON body (e.g. 409 responses)
+        try
+        {
+            using var doc = JsonDocument.Parse(content);
+            if (doc.RootElement.TryGetProperty("message", out var msg))
+                return msg.GetString() ?? content.Trim().Trim('"');
+        }
+        catch { /* not JSON — fall through */ }
         return content.Trim().Trim('"');
     }
 }

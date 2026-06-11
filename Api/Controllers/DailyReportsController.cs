@@ -290,7 +290,19 @@ public class DailyReportsController : ControllerBase
             .FirstOrDefaultAsync(cancellationToken);
 
         if (duplicate is not null)
-            return Conflict($"A report for this date already exists (No. {duplicate.ReportNo ?? duplicate.Id.ToString()}).");
+            return Conflict(new
+            {
+                message = $"A report for this date already exists (No. {duplicate.ReportNo ?? duplicate.Id.ToString()}).",
+                existingId = duplicate.Id
+            });
+
+        // ── Always generate ReportNo server-side to prevent nulls from client failures ──
+        var monthCount = await _context.DailyReports
+            .CountAsync(x => x.EmployeeId == model.EmployeeId
+                          && x.ReportDate.Month == model.ReportDate.Month
+                          && x.ReportDate.Year  == model.ReportDate.Year,
+                        cancellationToken);
+        model.ReportNo = $"DR-{model.ReportDate.Year}-{model.ReportDate.Month:D2}-{monthCount + 1:D3}";
 
         _context.DailyReports.Add(model);
         await _context.SaveChangesAsync(cancellationToken);
