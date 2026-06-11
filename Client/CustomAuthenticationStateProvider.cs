@@ -7,6 +7,7 @@ using Shared.Models;
 using Blazored.LocalStorage;
 using Shared.Models.Auth;
 using Client.Handlers;
+using Client.Services.Messages;
 using Shared.Helpers;
 
 namespace Client
@@ -17,12 +18,20 @@ namespace Client
         private HttpClient _httpClient;
         private NavigationManager _navigation;
         private readonly AppState _appState;
-        public CustomAuthenticationStateProvider(ILocalStorageService localStorage, HttpClient httpClient, NavigationManager navigation, AppState appState)
+        private readonly AppHubService _hubService;
+
+        public CustomAuthenticationStateProvider(
+            ILocalStorageService localStorage,
+            HttpClient httpClient,
+            NavigationManager navigation,
+            AppState appState,
+            AppHubService hubService)
         {
             _localStorage = localStorage;
             _httpClient = httpClient;
             _navigation = navigation;
             _appState = appState;
+            _hubService = hubService;
         }
 
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
@@ -65,6 +74,8 @@ namespace Client
                 await _localStorage.RemoveItemAsync("uid");
                 await _localStorage.RemoveItemAsync("role");
                 await _localStorage.RemoveItemAsync("shopId");
+                // Disconnect SignalR on logout
+                await _hubService.StopConnectionAsync();
             }
             else
             {
@@ -72,6 +83,14 @@ namespace Client
                 await _localStorage.SetItemAsync("uid", response.Id);
                 await _localStorage.SetItemAsync("role", response.Role!.ToString());
                 await _localStorage.SetItemAsync("shopId", response.ShopId!);
+
+                // Start SignalR connection with the user's JWT token
+                // Derive the API root URL (strip trailing "/api/" if present)
+                var apiBase = new Client.Handlers.Constants(_navigation).BaseAddress();
+                var hubBase = apiBase.EndsWith("/api/", StringComparison.OrdinalIgnoreCase)
+                    ? apiBase[..^5]   // Remove "/api/"
+                    : apiBase.TrimEnd('/');
+                await _hubService.StartConnectionAsync(hubBase, response.Token);
             }            
             NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
         }

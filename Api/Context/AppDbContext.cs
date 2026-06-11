@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Shared.Models.Drivers;
 using Shared.Models.IoTs;
 using Shared.Models.Logging;
+using Shared.Models.Reports;
 using Shared.Models.Shops;
 using Shared.Models.Stations;
 using Shared.Models.Trips;
@@ -43,6 +44,7 @@ public class AppDbContext : DbContext
     public DbSet<Incident> Incidents { get; set; } = default!;
     public DbSet<IncidentType> IncidentTypes { get; set; } = default!;
     public DbSet<IncidentHistory> IncidentHistories { get; set; } = default!;
+    public virtual DbSet<DailyReport> DailyReports { get; set; } = default!;
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -62,6 +64,46 @@ public class AppDbContext : DbContext
                   .IsUnique()
                   .HasDatabaseName("IX_Trips_DispatchId")
                   .HasFilter("\"DispatchId\" IS NOT NULL");
+        });
+
+        modelBuilder.Entity<DailyReport>(entity =>
+        {
+            entity.Property(x => x.ReportNo).HasMaxLength(20);
+
+            // Store Department enum as integer (default EF behaviour — explicit for clarity)
+            entity.Property(x => x.Department)
+                  .HasConversion<int?>()
+                  .IsRequired(false);
+
+            // Composite UNIQUE index: one report per employee per date (enforced at DB level)
+            // Also serves as the fast per-employee lookup index.
+            entity.HasIndex(x => new { x.EmployeeId, x.ReportDate })
+                  .IsUnique()
+                  .HasDatabaseName("UX_DailyReports_Employee_Date");
+
+            // Separate index for date-range report queries (Admin/Master viewing all)
+            entity.HasIndex(x => x.ReportDate)
+                  .HasDatabaseName("IX_DailyReports_ReportDate");
+
+            entity.Property(x => x.WorkTasks).HasColumnType("jsonb");
+            entity.Property(x => x.TomorrowTasks).HasColumnType("jsonb");
+
+            entity.HasOne(x => x.Employee)
+                  .WithMany()
+                  .HasForeignKey(x => x.EmployeeId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.AssignedBy)
+                  .WithMany()
+                  .HasForeignKey(x => x.AssignedById)
+                  .OnDelete(DeleteBehavior.SetNull)
+                  .IsRequired(false);
+
+            entity.HasOne(x => x.ReviewedBy)
+                  .WithMany()
+                  .HasForeignKey(x => x.ReviewedById)
+                  .OnDelete(DeleteBehavior.SetNull)
+                  .IsRequired(false);
         });
 
         base.OnModelCreating(modelBuilder);

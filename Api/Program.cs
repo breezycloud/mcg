@@ -4,7 +4,9 @@ using System.Threading.RateLimiting;
 using Api.Context;
 using Api.Data;
 using Api.Filters;
+using Api.Hubs;
 using Api.Interceptors;
+using Shared.Hubs;
 using Api.Logging;
 using Api.Services.Dashboards;
 using Api.Services.Messages;
@@ -111,6 +113,21 @@ builder.Services.AddAuthentication(x =>
         IssuerSigningKey = new SymmetricSecurityKey(key),
         ValidateIssuer = false,
         ValidateAudience = false,
+    };
+    // SignalR sends the JWT via the access_token query string parameter (WebSocket doesn't support headers)
+    x.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+            if (!string.IsNullOrEmpty(accessToken) &&
+                path.StartsWithSegments("/hubs"))
+            {
+                context.Token = accessToken;
+            }
+            return Task.CompletedTask;
+        }
     };
 });
 
@@ -223,6 +240,8 @@ app.UseAuthorization();
 app.UseCors(MyAllowSpecificOrigins);
 app.MapRazorPages();
 app.MapControllers();
+app.MapHub<AppHub>("/hubs/app");
+app.MapHub<DashboardHub>("/hubs/dashboard");
 app.MapFallbackToFile("index.html");
 
 app.Run();

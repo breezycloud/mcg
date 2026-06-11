@@ -14,12 +14,21 @@ namespace Api.Controllers;
 public class UsersController : ControllerBase
 {
     private readonly AppDbContext _context;
+
+    #if RELEASE
+        private readonly EmailPublisherService _mailPublisher;
+
+        public UsersController(AppDbContext context, EmailPublisherService mailPublisher)
+        {
+            _context = context;
+            _mailPublisher = mailPublisher;
+        }
+    #endif
     private readonly EmailPublisherService _mailPublisher;
 
-    public UsersController(AppDbContext context, EmailPublisherService mailPublisher)
+    public UsersController(AppDbContext context)
     {
-        _context = context;
-        _mailPublisher = mailPublisher;
+        _context = context;        
     }
 
     // POST: api/Users/SendEmail

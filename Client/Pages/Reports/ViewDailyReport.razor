@@ -1,0 +1,612 @@
+@page "/view-daily-report/{Id:guid}"
+@attribute [Authorize]
+@inject IDailyReportService DailyReportService
+@inject IJSRuntime JS
+@inject IConfiguration Configuration
+
+<PageTitle>Daily Report @(_report?.ReportNo ?? "")</PageTitle>
+
+<section class="bg-gray-50 dark:bg-gray-900 min-h-screen py-6">
+    <div class="max-w-4xl mx-auto px-4">
+
+        @if (_isLoading)
+        {
+            <div class="flex justify-center items-center py-20">
+                <svg class="animate-spin h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+            </div>
+        }
+        else if (_report is null)
+        {
+            <div class="flex flex-col items-center justify-center py-20">
+                <p class="text-gray-500 dark:text-gray-400">Report not found.</p>
+                <button type="button" @onclick="@(() => nav.NavigateTo("/daily-reports"))"
+                    class="mt-4 text-sm text-blue-600 hover:underline">← Back to Reports</button>
+            </div>
+        }
+        else
+        {
+            <!-- Action Bar (hidden on print) -->
+            <div class="mb-6 flex items-center justify-between no-print">
+                <button type="button" @onclick="@(() => nav.NavigateTo("/daily-reports"))"
+                    class="text-sm text-gray-600 dark:text-gray-400 hover:underline flex items-center gap-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Back
+                </button>
+                <div class="flex items-center gap-2">
+                    @if (_report.Status == DailyReportStatus.Draft)
+                    {
+                        <button type="button" @onclick="SubmitReport" disabled="@_isSubmitting"
+                            class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center gap-1.5">
+                            @if (_isSubmitting) { <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> }
+                            Submit
+                        </button>
+                        <button type="button" @onclick="@(() => nav.NavigateTo($"/daily-reports/edit/{Id}"))"
+                            class="px-4 py-2 text-sm font-medium text-white bg-gray-600 rounded-lg hover:bg-gray-700 transition-colors">
+                            Edit
+                        </button>
+                    }
+                    else
+                    {
+                        <!-- Admin/Master can still edit submitted reports -->
+                        <AuthorizeView Roles="Admin,Master" Context="editAuth">
+                            <Authorized>
+                                <button type="button" @onclick="@(() => nav.NavigateTo($"/daily-reports/edit/{Id}"))"
+                                    class="px-4 py-2 text-sm font-medium text-white bg-gray-600 rounded-lg hover:bg-gray-700 transition-colors">
+                                    Edit
+                                </button>
+                                <button type="button" @onclick="RevertToDraft" disabled="@_isReverting"
+                                    class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 transition-colors flex items-center gap-1.5">
+                                    @if (_isReverting) { <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> }
+                                    Revert to Draft
+                                </button>
+                            </Authorized>
+                        </AuthorizeView>
+                    }
+                    <button type="button" @onclick="Print"
+                        class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                        </svg>
+                        Print
+                    </button>
+                    <AuthorizeView Roles="Admin,Master" Context="delAuth">
+                        <Authorized>
+                            <button type="button" @onclick="() => _showDeleteModal = true"
+                                class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors">
+                                Delete
+                            </button>
+                        </Authorized>
+                    </AuthorizeView>
+                </div>
+            </div>
+
+            <!-- Printable Report -->
+            <div class="report-container bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden" id="report-print">
+
+                <!-- Title Bar -->
+                <div class="bg-gray-800 dark:bg-gray-900 px-6 py-4 flex items-center justify-between">
+                    <h1 class="text-xl font-bold text-white tracking-wide">DAILY REPORT</h1>
+                    <div class="flex items-center gap-6 text-sm text-gray-200">
+                        <span>Date: <strong>@_report.ReportDate.ToString("dd / MM / yyyy")</strong></span>
+                        @if (!string.IsNullOrEmpty(_report.ReportNo))
+                        {
+                            <span>No: <strong>@_report.ReportNo</strong></span>
+                        }
+                        <span class="text-xs font-medium px-2 py-0.5 rounded @(_report.Status == DailyReportStatus.Submitted ? "bg-green-500" : "bg-yellow-500") text-white">
+                            @_report.Status
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Company + Employee Info -->
+                <div class="px-6 py-3 bg-gray-50 dark:bg-gray-750 border-b border-gray-200 dark:border-gray-700 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+                    <div>
+                        <span class="text-gray-500 dark:text-gray-400">Company:</span>
+                        <span class="ml-1 font-medium text-gray-900 dark:text-white">@(Configuration["CompanyName"] ?? "Atlantic Co., Ltd.")</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-500 dark:text-gray-400">Name:</span>
+                        <span class="ml-1 font-medium text-gray-900 dark:text-white">
+                            @(_report.Employee is not null ? $"{_report.Employee.FirstName} {_report.Employee.LastName}".Trim() : "—")
+                        </span>
+                    </div>
+                    <div class="flex gap-4">
+                        @if (_report.Department.HasValue)
+                        {
+                            <div>
+                                <span class="text-gray-500 dark:text-gray-400">Dept:</span>
+                                <span class="ml-1 font-medium text-gray-900 dark:text-white">@_report.Department</span>
+                            </div>
+                        }
+                        @if (_report.Employee is not null)
+                        {
+                            <div>
+                                <span class="text-gray-500 dark:text-gray-400">Title:</span>
+                                <span class="ml-1 font-medium text-gray-900 dark:text-white">@_report.Employee.Role</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Work Tasks Table -->
+                <div class="px-6 py-4">
+                    <table class="tasks-table w-full border-collapse text-sm">
+                        <thead>
+                            <tr class="bg-gray-100 dark:bg-gray-700">
+                                <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left text-gray-700 dark:text-gray-300 w-8">#</th>
+                                <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left text-gray-700 dark:text-gray-300">Planned Work Tasks / Temporary Assignments</th>
+                                <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left text-gray-700 dark:text-gray-300">Actual Job Responsibilities</th>
+                                <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center text-gray-700 dark:text-gray-300 w-28 no-print">Status</th>
+                                <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center text-gray-700 dark:text-gray-300 w-28 print-only">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{
+                                int workRowNum = 0;
+                            }
+                            @foreach (var task in _report.WorkTasks)
+                            {
+                                if (string.IsNullOrWhiteSpace(task.Text) && string.IsNullOrWhiteSpace(task.ActualNote)) continue;
+                                workRowNum++;
+                                var capturedTask = task;
+                                <tr class="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750">
+                                    <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-gray-500 text-center">@workRowNum.</td>
+                                    <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-gray-700 dark:text-gray-300">
+                                        @task.Text
+                                    </td>
+                                    <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-gray-700 dark:text-gray-300">
+                                        @task.ActualNote
+                                    </td>
+                                    <!-- Interactive status chip (no-print: hide on print, show inline element) -->
+                                    <td class="border border-gray-300 dark:border-gray-600 px-2 py-2 text-center no-print">
+                                        <button type="button"
+                                            @onclick="async () => await ToggleWorkTaskStatus(capturedTask)"
+                                            disabled="@(_isTogglingTask || !_isOwnerOrManager)"
+                                            title="@(_isOwnerOrManager ? "Click to change status" : "Only the assigned employee or a manager can update task status")"
+                                            class="px-2.5 py-1 rounded-full text-xs font-semibold transition-colors disabled:cursor-default @GetTaskStatusCss(capturedTask.Status)">
+                                            @capturedTask.Status
+                                        </button>
+                                    </td>
+                                    <!-- Print-only plain text status -->
+                                    <td class="border border-gray-300 dark:border-gray-600 px-2 py-2 text-center print-only text-xs text-gray-500">
+                                        @task.Status
+                                    </td>
+                                </tr>
+                            }
+                            @if (workRowNum == 0)
+                            {
+                                <tr><td colspan="5" class="px-4 py-3 text-center text-xs text-gray-400">No tasks recorded</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Remark -->
+                @if (!string.IsNullOrWhiteSpace(_report.Remark))
+                {
+                    <div class="px-6 pb-4">
+                        <div class="border border-gray-300 dark:border-gray-600 rounded-lg p-3">
+                            <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Remark: </span>
+                            <span class="text-sm text-gray-700 dark:text-gray-300">@_report.Remark</span>
+                        </div>
+                    </div>
+                }
+
+                <!-- Tomorrow's Plan Table -->
+                @if (_report.TomorrowTasks.Any(t => !string.IsNullOrWhiteSpace(t.Text)))
+                {
+                    <div class="px-6 pb-4">
+                        <table class="tasks-table w-full border-collapse text-sm">
+                            <thead>
+                                <tr class="bg-gray-100 dark:bg-gray-700">
+                                    <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left text-gray-700 dark:text-gray-300 w-8">#</th>
+                                    <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left text-gray-700 dark:text-gray-300">Tomorrow's Work Plan</th>
+                                    <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left text-gray-700 dark:text-gray-300">Recommendations</th>
+                                    <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center text-gray-700 dark:text-gray-300 w-28 no-print">Status</th>
+                                    <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center text-gray-700 dark:text-gray-300 w-28 print-only">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @{
+                                    int tmrRowNum = 0;
+                                }
+                                @foreach (var task in _report.TomorrowTasks)
+                                {
+                                    if (string.IsNullOrWhiteSpace(task.Text) && string.IsNullOrWhiteSpace(task.ActualNote)) continue;
+                                    tmrRowNum++;
+                                    var capturedTask = task;
+                                    <tr class="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750">
+                                        <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-gray-500 text-center">@tmrRowNum.</td>
+                                        <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-gray-700 dark:text-gray-300">@task.Text</td>
+                                        <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-gray-700 dark:text-gray-300">@task.ActualNote</td>
+                                        <td class="border border-gray-300 dark:border-gray-600 px-2 py-2 text-center no-print">
+                                            <button type="button"
+                                                @onclick="async () => await ToggleTomorrowTaskStatus(capturedTask)"
+                                                disabled="@(_isTogglingTask || !_isOwnerOrManager)"
+                                                title="@(_isOwnerOrManager ? "Click to change status" : "Only the assigned employee or a manager can update task status")"
+                                                class="px-2.5 py-1 rounded-full text-xs font-semibold transition-colors disabled:cursor-default @GetTaskStatusCss(capturedTask.Status)">
+                                                @capturedTask.Status
+                                            </button>
+                                        </td>
+                                        <td class="border border-gray-300 dark:border-gray-600 px-2 py-2 text-center print-only text-xs text-gray-500">
+                                            @task.Status
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+
+                <!-- Footer note -->
+                <div class="px-6 pb-5 pt-1">
+                    <p class="text-xs text-gray-400 dark:text-gray-500 italic">
+                        Please Note: This Daily Report is to be filled out, signed, and shared with your superior on each working day without fail.
+                    </p>
+                    <div class="mt-3 flex items-center gap-4 text-xs text-gray-400">
+                        <span>Created: @_report.CreatedAt.ToString("dd MMM yyyy HH:mm")</span>
+                        @if (_report.UpdatedAt.HasValue)
+                        {
+                            <span>Last updated: @_report.UpdatedAt.Value.ToString("dd MMM yyyy HH:mm")</span>
+                        }
+                    </div>
+                </div>
+
+                <!-- Manager Feedback section (outside print area) -->
+                <div class="px-6 pb-6 no-print">
+                    <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
+                        <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Manager Feedback</h3>
+
+                        @if (!string.IsNullOrWhiteSpace(_report.ManagerComment))
+                        {
+                            <div class="mb-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
+                                <p class="text-sm text-blue-800 dark:text-blue-300">@_report.ManagerComment</p>
+                                @if (_report.ReviewedBy is not null)
+                                {
+                                    <p class="mt-1 text-xs text-blue-500 dark:text-blue-400">
+                                        — @_report.ReviewedBy.FirstName @_report.ReviewedBy.LastName
+                                        @(_report.ReviewedAt.HasValue ? $" on {_report.ReviewedAt.Value:dd MMM yyyy HH:mm}" : "")
+                                    </p>
+                                }
+                            </div>
+                        }
+
+                        <!-- Managers can add/edit the feedback -->
+                        <AuthorizeView Roles="Admin,Master,Supervisor" Context="reviewAuth">
+                            <Authorized>
+                                <textarea @bind="_reviewComment"
+                                    class="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                                    rows="3"
+                                    placeholder="Add feedback for this report..."
+                                    maxlength="2000" />
+                                <div class="mt-2 flex items-center justify-between">
+                                    <span class="text-xs text-gray-400">@(_reviewComment?.Length ?? 0) / 2000</span>
+                                    <button type="button" @onclick="SaveReview"
+                                        disabled="@(_isReviewing || string.IsNullOrWhiteSpace(_reviewComment))"
+                                        class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center gap-1.5">
+                                        @if (_isReviewing) { <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> }
+                                        Save Feedback
+                                    </button>
+                                </div>
+                            </Authorized>
+                        </AuthorizeView>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</section>
+
+<!-- Delete Modal -->
+@if (_showDeleteModal)
+{
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 max-w-sm w-full mx-4">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Delete Report</h3>
+            <p class="text-sm text-gray-600 dark:text-gray-300 mb-5">
+                Are you sure you want to permanently delete this report?
+            </p>
+            <div class="flex justify-end gap-3">
+                <button type="button" @onclick="() => _showDeleteModal = false"
+                    class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                    Cancel
+                </button>
+                <button type="button" @onclick="DeleteReport" disabled="@_isDeleting"
+                    class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors">
+                    @(_isDeleting ? "Deleting..." : "Delete")
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    @@media print {
+        /* Hide all chrome — nav, sidebar, action bar, feedback section */
+        .no-print, nav, aside, header, footer,
+        aside, .no-print { display: none !important; }
+        body, html { background: white !important; margin: 0; padding: 0; }
+        section { background: white !important; padding: 0 !important; }
+
+        /* Full-width printable container — remove rounded corners and shadows */
+        .report-container {
+            border: 1px solid #ccc !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            width: 100%;
+        }
+
+        /* Title bar: dark background + white text (preserved as background-print-color) */
+        .report-container > div:first-child {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            background: #1f2937 !important;
+            color: white !important;
+        }
+
+        /* Force tables to full width and use solid borders matching the Word template */
+        .tasks-table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            page-break-inside: avoid;
+        }
+        .tasks-table th,
+        .tasks-table td {
+            border: 1px solid #000 !important;
+            padding: 5px 8px !important;
+            font-size: 9pt !important;
+            line-height: 1.3;
+        }
+        /* Column widths: narrow S/N, equal split for task columns */
+        .tasks-table th:first-child,
+        .tasks-table td:first-child { width: 24px; text-align: center; }
+
+        /* Hide interactive status column, show plain-text status column */
+        .no-print { display: none !important; }
+        .print-only { display: table-cell !important; }
+
+        /* Header rows: light grey fill (matches Word template) */
+        .tasks-table thead tr {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            background: #e5e7eb !important;
+        }
+
+        /* Remark block: bordered box */
+        .tasks-table + div { margin-top: 8px; }
+
+        /* Footer note: italic, small */
+        .report-container p.italic {
+            font-size: 8pt !important;
+            font-style: italic;
+        }
+
+        /* Signature / "Prepared by" line at bottom — Word template has a signature area */
+        .print-signature-block {
+            display: flex !important;
+            justify-content: space-between;
+            margin-top: 24px;
+            padding-top: 8px;
+            border-top: 1px solid #000;
+            font-size: 9pt;
+        }
+        .print-signature-line {
+            border-top: 1px solid #000;
+            width: 180px;
+            margin-top: 32px;
+            text-align: center;
+            font-size: 8pt;
+        }
+    }
+</style>
+
+<!-- Signature block: only visible on print, appended below the report container -->
+@if (_report is not null)
+{
+    <div class="print-signature-block hidden">
+        <div>
+            <div class="print-signature-line">Prepared by: @(_report.Employee is not null ? $"{_report.Employee.FirstName} {_report.Employee.LastName}".Trim() : "")</div>
+        </div>
+        <div>
+            <div class="print-signature-line">Reviewed by: @(_report.ReviewedBy is not null ? $"{_report.ReviewedBy.FirstName} {_report.ReviewedBy.LastName}".Trim() : "")</div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private DailyReport? _report;
+    private bool _isLoading;
+    private bool _isSubmitting;
+    private bool _isDeleting;
+    private bool _isReviewing;
+    private bool _isReverting;
+    private bool _isTogglingTask;
+    private bool _isOwnerOrManager;
+    private bool _showDeleteModal;
+    private string? _reviewComment;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            _report = await DailyReportService.GetAsync(Id, default);
+            _reviewComment = _report?.ManagerComment;
+
+            // Determine if the current user can toggle task statuses:
+            // only the assigned employee or Admin/Master/Supervisor
+            var authState = await CustomAuthenticationProvider.GetAuthenticationStateAsync();
+            var claims = authState.User;
+            var role = claims.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+            var currentUserIdStr = claims.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            bool isManager = role is "Admin" or "Master" or "Supervisor";
+            bool isOwner   = _report is not null
+                          && Guid.TryParse(currentUserIdStr, out var uid)
+                          && _report.EmployeeId == uid;
+            _isOwnerOrManager = isOwner || isManager;
+        }
+        catch
+        {
+            ToastService.ShowError("Failed to load report");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task SubmitReport()
+    {
+        if (_report is null) return;
+        _isSubmitting = true;
+        try
+        {
+            await DailyReportService.SubmitAsync(_report.Id, default);
+            _report.Status = DailyReportStatus.Submitted;
+            ToastService.ShowSuccess("Report submitted");
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError(ex.Message);
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+        StateHasChanged();
+    }
+
+    private async Task RevertToDraft()
+    {
+        if (_report is null) return;
+        _isReverting = true;
+        try
+        {
+            await DailyReportService.RevertAsync(_report.Id, default);
+            _report.Status = DailyReportStatus.Draft;
+            ToastService.ShowSuccess("Report reverted to Draft");
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError(ex.Message);
+        }
+        finally
+        {
+            _isReverting = false;
+        }
+        StateHasChanged();
+    }
+
+    // ─── Task status toggling ────────────────────────────────────────────────
+
+    private async Task ToggleWorkTaskStatus(ReportTask task)
+    {
+        if (_report is null || _isTogglingTask) return;
+        CycleStatus(task);
+        await SaveTasksAsync();
+    }
+
+    private async Task ToggleTomorrowTaskStatus(ReportTask task)
+    {
+        if (_report is null || _isTogglingTask) return;
+        CycleStatus(task);
+        await SaveTasksAsync();
+    }
+
+    private static void CycleStatus(ReportTask task)
+    {
+        task.Status = task.Status switch
+        {
+            TaskItemStatus.Pending    => TaskItemStatus.InProgress,
+            TaskItemStatus.InProgress => TaskItemStatus.Done,
+            _                         => TaskItemStatus.Pending
+        };
+    }
+
+    private async Task SaveTasksAsync()
+    {
+        if (_report is null) return;
+        _isTogglingTask = true;
+        try
+        {
+            await DailyReportService.UpdateTasksAsync(_report.Id, _report, default);
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Failed to save task status: {ex.Message}");
+        }
+        finally
+        {
+            _isTogglingTask = false;
+        }
+        StateHasChanged();
+    }
+
+    private static string GetTaskStatusCss(TaskItemStatus status) => status switch
+    {
+        TaskItemStatus.Pending    => "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600",
+        TaskItemStatus.InProgress => "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800/50",
+        TaskItemStatus.Done       => "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-800/50",
+        _                         => "bg-gray-100 text-gray-600"
+    };
+
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private async Task SaveReview()
+    {
+        if (_report is null || string.IsNullOrWhiteSpace(_reviewComment)) return;
+        _isReviewing = true;
+        // Track whether this report previously had no comment (to know if badge should decrement)
+        bool wasUnreviewed = string.IsNullOrWhiteSpace(_report.ManagerComment);
+        try
+        {
+            await DailyReportService.ReviewAsync(_report.Id, _reviewComment.Trim(), default);
+            _report.ManagerComment = _reviewComment.Trim();
+            _report.ReviewedAt = DateTimeOffset.UtcNow;
+
+            // Decrement the shared badge count when a previously-unreviewed report gets feedback
+            if (wasUnreviewed)
+                AppState.DailyReportBadgeCount--;
+
+            ToastService.ShowSuccess("Feedback saved");
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError(ex.Message);
+        }
+        finally
+        {
+            _isReviewing = false;
+        }
+        StateHasChanged();
+    }
+
+    private async Task DeleteReport()
+    {
+        if (_report is null) return;
+        _isDeleting = true;
+        try
+        {
+            await DailyReportService.DeleteAsync(_report.Id, default);            ToastService.ShowSuccess("Report deleted");
+            nav.NavigateTo("/daily-reports");
+        }
+        catch
+        {
+            ToastService.ShowError("Failed to delete report");
+        }
+        finally
+        {
+            _isDeleting = false;
+            _showDeleteModal = false;
+        }
+    }
+
+    private async Task Print() => await JS.InvokeVoidAsync("window.print");
+}
