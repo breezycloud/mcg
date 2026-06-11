@@ -460,8 +460,9 @@
                 _model.ReportNo = reportNo;
             }
         }
-        catch
+        catch (Exception ex)
         {
+            Console.WriteLine($"Error loading report data: {ex}");
             ToastService.ShowError("Failed to load report data");
         }
         finally

@@ -135,7 +135,7 @@ public class DailyReportService(IHttpClientFactory _httpClient, IJSRuntime _js) 
 
             using var response = await _httpClient.CreateClient("AppUrl").GetAsync(url, cancellationToken);
             response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<string?>(cancellationToken);
+            return await response.Content.ReadAsStringAsync(cancellationToken);
         }
         catch (Exception) { throw; }
     }
