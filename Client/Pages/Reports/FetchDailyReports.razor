@@ -92,24 +92,6 @@
 
                     <!-- Action menu -->
                     <div class="relative w-full sm:w-auto flex items-center gap-2">
-                        <!-- View toggle -->
-                        <button type="button" title="@(_isCardView ? "Switch to table view" : "Switch to card view")"
-                            class="flex items-center justify-center w-10 h-10 text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-200"
-                            @onclick="() => _isCardView = !_isCardView">
-                            @if (_isCardView)
-                            {
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18M3 6h18M3 18h18" />
-                                </svg>
-                            }
-                            else
-                            {
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                                </svg>
-                            }
-                        </button>
-
                         <!-- Actions dropdown -->
                         <button type="button"
                             class="flex items-center justify-center w-10 h-10 text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-200"
@@ -156,204 +138,101 @@
                 </div>
             </div>
 
-            <!-- Card View -->
-            @if (_isCardView)
-            {
-                <div class="p-4">
-                    @if (_isLoading)
-                    {
-                        <div class="flex justify-center items-center py-12">
-                            <svg class="animate-spin h-6 w-6 text-blue-500 mr-2" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                            </svg>
-                            <span class="text-gray-500 dark:text-gray-400">Loading reports...</span>
-                        </div>
-                    }
-                    else if (_reports.Count == 0)
-                    {
-                        <div class="flex flex-col items-center justify-center py-12">
-                            <svg class="w-10 h-10 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            <span class="text-lg font-medium text-gray-700 dark:text-gray-300">No reports found</span>
-                            <p class="text-sm text-gray-500 mt-1">Create a new report or adjust your filters</p>
-                            <button type="button" @onclick="AddReport"
-                                class="mt-4 inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
-                                <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                    <path clip-rule="evenodd" fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" />
-                                </svg>
-                                New Report
-                            </button>
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Table View -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-400">
+                        <tr>                                
+                            <th scope="col" class="px-6 py-3">Report No.</th>
+                            <th scope="col" class="px-6 py-3">Date</th>
+                            <AuthorizeView Roles="Admin,Master" Context="colAuth">
+                                <Authorized>
+                                    <th scope="col" class="px-6 py-3">Name</th>
+                                </Authorized>
+                            </AuthorizeView>
+                            <th scope="col" class="px-6 py-3">Status</th>
+                            <th scope="col" class="px-6 py-3 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (_isLoading)
+                        {
+                            <tr>
+                                <td colspan="7" class="px-6 py-4 text-center">
+                                    <div class="flex justify-center items-center">
+                                        <svg class="animate-spin h-5 w-5 text-blue-500 mr-2" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                        </svg>
+                                        Loading reports...
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                        else if (_reports.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="7" class="px-6 py-10 text-center text-gray-500 dark:text-gray-400">
+                                    <div class="flex flex-col items-center justify-center">
+                                        <svg class="w-8 h-8 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                        <span>No reports found</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
                             @foreach (var report in _reports)
                             {
-                                <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col">
-                                    <div class="p-4 flex-1">
-                                        <!-- Card header: date + status badge -->
-                                        <div class="flex items-start justify-between mb-3">
-                                            <div>
-                                                <span class="text-lg font-bold text-gray-900 dark:text-white">@report.ReportDate.ToString("dd MMM yyyy")</span>
-                                                @if (!string.IsNullOrEmpty(report.ReportNo))
-                                                {
-                                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">@report.ReportNo</p>
-                                                }
-                                            </div>
-                                            <span class="text-xs font-medium px-2.5 py-0.5 rounded @(report.Status == DailyReportStatus.Submitted ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300")">
-                                                @report.Status
-                                            </span>
-                                        </div>
-
-                                        <!-- Employee info (shown for Admin/Master) -->
-                                        @if (report.Employee is not null)
-                                        {
-                                            <AuthorizeView Roles="Admin,Master" Context="cardAuth">
-                                                <Authorized>
-                                                    <div class="flex items-center gap-1.5 mb-2">
-                                                        <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
-                                                            <path d="M12 12c2.7 0 8 1.34 8 4v2H4v-2c0-2.66 5.3-4 8-4zm0-2a4 4 0 100-8 4 4 0 000 8z"/>
-                                                        </svg>
-                                                        <span class="text-sm text-gray-700 dark:text-gray-300">@report.Employee.FirstName @report.Employee.LastName</span>
-                                                    </div>
-                                                </Authorized>
-                                            </AuthorizeView>
-                                        }
-
-                                        <!-- Department / Title -->
-                                        @if (report.Department.HasValue || report.Employee is not null)
-                                        {
-                                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                                                @(report.Department.HasValue ? report.Department.ToString() : "")
-                                                @(report.Department.HasValue && report.Employee is not null ? " \u00b7 " : "")
-                                                @report.Employee?.Role
-                                            </p>
-                                        }
-
-                                        <!-- Last updated -->
-                                        <p class="text-xs text-gray-400 dark:text-gray-500">
-                                            @(report.UpdatedAt.HasValue ? $"Updated {report.UpdatedAt.Value:dd MMM yyyy}" : $"Created {report.CreatedAt:dd MMM yyyy}")
-                                        </p>
-                                    </div>
-
-                                    <!-- Card actions -->
-                                    <div class="border-t border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center justify-end gap-3">
-                                        <button @onclick="() => ViewReport(report.Id)"
-                                            class="text-sm font-medium text-green-600 dark:text-green-400 hover:underline">View</button>
-                                        @if (report.Status == DailyReportStatus.Draft)
-                                        {
-                                            <button @onclick="() => EditReport(report.Id)"
-                                                class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">Edit</button>
-                                        }
-                                        <AuthorizeView Roles="Admin,Master" Context="deleteAuth">
-                                            <Authorized>
-                                                <button @onclick="() => ConfirmDelete(report)"
-                                                    class="text-sm font-medium text-red-600 dark:text-red-400 hover:underline">Delete</button>
-                                            </Authorized>
-                                        </AuthorizeView>
-                                    </div>
-                                </div>
-                            }
-                        </div>
-                    }
-                </div>
-            }
-            else
-            {
-                <!-- Table View -->
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                        <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-400">
-                            <tr>
-                                <th scope="col" class="px-6 py-3">Date</th>
-                                <th scope="col" class="px-6 py-3">Report No.</th>
-                                <AuthorizeView Roles="Admin,Master" Context="colAuth">
-                                    <Authorized>
-                                        <th scope="col" class="px-6 py-3">Name</th>
-                                    </Authorized>
-                                </AuthorizeView>
-                                <th scope="col" class="px-6 py-3">Department</th>
-                                <th scope="col" class="px-6 py-3">Status</th>
-                                <th scope="col" class="px-6 py-3">Last Updated</th>
-                                <th scope="col" class="px-6 py-3 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @if (_isLoading)
-                            {
-                                <tr>
-                                    <td colspan="7" class="px-6 py-4 text-center">
-                                        <div class="flex justify-center items-center">
-                                            <svg class="animate-spin h-5 w-5 text-blue-500 mr-2" fill="none" viewBox="0 0 24 24">
-                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                                            </svg>
-                                            Loading reports...
-                                        </div>
+                                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                                    <td class="px-6 py-4 text-gray-700 dark:text-gray-300">@(report.ReportNo ?? "—")</td>
+                                    <td class="px-6 py-4 text-gray-700 dark:text-gray-300 font-medium">@report.ReportDate.ToString("dd MMM yyyy")</td>                                        
+                                    <AuthorizeView Roles="Admin,Master" Context="rowColAuth">
+                                        <Authorized>
+                                            <td class="px-6 py-4 text-gray-700 dark:text-gray-300">@report.Employee?.FirstName @report.Employee?.LastName</td>
+                                        </Authorized>
+                                    </AuthorizeView>                                        
+                                    <td class="px-6 py-4">
+                                        <span class="text-xs font-medium px-2.5 py-0.5 rounded @(report.Status == DailyReportStatus.Submitted ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300")">
+                                            @report.Status
+                                        </span>
                                     </td>
-                                </tr>
-                            }
-                            else if (_reports.Count == 0)
-                            {
-                                <tr>
-                                    <td colspan="7" class="px-6 py-10 text-center text-gray-500 dark:text-gray-400">
-                                        <div class="flex flex-col items-center justify-center">
-                                            <svg class="w-8 h-8 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                            </svg>
-                                            <span>No reports found</span>
-                                        </div>
-                                    </td>
-                                </tr>
-                            }
-                            else
-                            {
-                                @foreach (var report in _reports)
-                                {
-                                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                                        <td class="px-6 py-4 text-gray-700 dark:text-gray-300 font-medium">@report.ReportDate.ToString("dd MMM yyyy")</td>
-                                        <td class="px-6 py-4 text-gray-700 dark:text-gray-300">@(report.ReportNo ?? "—")</td>
-                                        <AuthorizeView Roles="Admin,Master" Context="rowColAuth">
-                                            <Authorized>
-                                                <td class="px-6 py-4 text-gray-700 dark:text-gray-300">@report.Employee?.FirstName @report.Employee?.LastName</td>
-                                            </Authorized>
-                                        </AuthorizeView>
-                                        <td class="px-6 py-4 text-gray-700 dark:text-gray-300">@(report.Department.HasValue ? report.Department.ToString() : "—")</td>
-                                        <td class="px-6 py-4">
-                                            <span class="text-xs font-medium px-2.5 py-0.5 rounded @(report.Status == DailyReportStatus.Submitted ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300")">
-                                                @report.Status
-                                            </span>
-                                        </td>
-                                        <td class="px-6 py-4 text-gray-500 dark:text-gray-400 text-xs">
-                                            @(report.UpdatedAt.HasValue ? report.UpdatedAt.Value.ToString("dd MMM yyyy HH:mm") : report.CreatedAt.ToString("dd MMM yyyy HH:mm"))
-                                        </td>
-                                        <td class="px-6 py-4 text-right">
-                                            <div class="flex items-center justify-end gap-3">
-                                                <button @onclick="() => ViewReport(report.Id)"
-                                                    class="font-medium text-green-600 dark:text-green-400 hover:underline text-sm">View</button>
-                                                @if (report.Status == DailyReportStatus.Draft)
-                                                {
-                                                    <button @onclick="() => EditReport(report.Id)"
-                                                        class="font-medium text-blue-600 dark:text-blue-400 hover:underline text-sm">Edit</button>
-                                                }
+                                    <td class="px-6 py-4 text-right">
+                                        <div class="flex items-center justify-end gap-3">
+                                            <button @onclick="() => ViewReport(report.Id)"
+                                                class="font-medium text-green-600 dark:text-green-400 hover:underline text-sm">View</button>
+                                            @if (report.Status == DailyReportStatus.Draft)
+                                            {
+                                                <button @onclick="() => EditReport(report.Id)"
+                                                    class="font-medium text-blue-600 dark:text-blue-400 hover:underline text-sm">Edit</button>
+                                                <button @onclick="() => PrintReport(report.Id)"
+                                                    class="font-medium text-gray-600 dark:text-gray-400 hover:underline text-sm">Print</button>
                                                 <AuthorizeView Roles="Admin,Master" Context="rowDeleteAuth">
                                                     <Authorized>
                                                         <button @onclick="() => ConfirmDelete(report)"
                                                             class="font-medium text-red-600 dark:text-red-400 hover:underline text-sm">Delete</button>
                                                     </Authorized>
                                                 </AuthorizeView>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                }
+                                            }
+                                            else
+                                            {
+                                                <AuthorizeView Roles="Admin,Master" Context="rowDeleteAuthSubmitted">
+                                                    <Authorized>
+                                                        <button @onclick="() => ConfirmDelete(report)"
+                                                            class="font-medium text-red-600 dark:text-red-400 hover:underline text-sm">Delete</button>
+                                                    </Authorized>
+                                                </AuthorizeView>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
                             }
-                        </tbody>
-                    </table>
-                </div>
-            }
+                        }
+                    </tbody>
+                </table>
+            </div>
 
             <!-- Pagination -->
             <div class="p-4 border-t border-gray-200 dark:border-gray-700">
@@ -406,7 +285,6 @@
     private GridDataRequest _request = new() { Page = 0, PageSize = 10 };
     private int _total;
     private bool _isLoading;
-    private bool _isCardView = true;
     private bool _isActionMenuOpen;
     private bool _isFilterMenuOpen;
     private DailyReport? _reportToDelete;
@@ -531,6 +409,7 @@
 
     private void ViewReport(Guid id) => nav.NavigateTo($"/view-daily-report/{id}");
     private void EditReport(Guid id) => nav.NavigateTo($"/daily-reports/edit/{id}");
+    private void PrintReport(Guid id) => nav.NavigateTo($"/print-daily-report/{id}");
 
     private void ConfirmDelete(DailyReport report)
     {

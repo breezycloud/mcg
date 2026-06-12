@@ -142,7 +142,6 @@
                                 <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left text-gray-700 dark:text-gray-300">Planned Work Tasks / Temporary Assignments</th>
                                 <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left text-gray-700 dark:text-gray-300">Actual Job Responsibilities</th>
                                 <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center text-gray-700 dark:text-gray-300 w-28 no-print">Status</th>
-                                <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center text-gray-700 dark:text-gray-300 w-28 print-only">Status</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -171,11 +170,7 @@
                                             class="px-2.5 py-1 rounded-full text-xs font-semibold transition-colors disabled:cursor-default @GetTaskStatusCss(capturedTask.Status)">
                                             @capturedTask.Status
                                         </button>
-                                    </td>
-                                    <!-- Print-only plain text status -->
-                                    <td class="border border-gray-300 dark:border-gray-600 px-2 py-2 text-center print-only text-xs text-gray-500">
-                                        @task.Status
-                                    </td>
+                                    </td>                                    
                                 </tr>
                             }
                             @if (workRowNum == 0)
@@ -208,7 +203,6 @@
                                     <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left text-gray-700 dark:text-gray-300">Tomorrow's Work Plan</th>
                                     <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left text-gray-700 dark:text-gray-300">Recommendations</th>
                                     <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center text-gray-700 dark:text-gray-300 w-28 no-print">Status</th>
-                                    <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center text-gray-700 dark:text-gray-300 w-28 print-only">Status</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -232,9 +226,6 @@
                                                 class="px-2.5 py-1 rounded-full text-xs font-semibold transition-colors disabled:cursor-default @GetTaskStatusCss(capturedTask.Status)">
                                                 @capturedTask.Status
                                             </button>
-                                        </td>
-                                        <td class="border border-gray-300 dark:border-gray-600 px-2 py-2 text-center print-only text-xs text-gray-500">
-                                            @task.Status
                                         </td>
                                     </tr>
                                 }

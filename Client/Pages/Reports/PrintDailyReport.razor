@@ -1,0 +1,304 @@
+@page "/print-daily-report/{Id:guid}"
+@attribute [Authorize]
+@inject IDailyReportService DailyReportService
+@inject IJSRuntime JS
+@inject IConfiguration Configuration
+
+<PageTitle>Print — Daily Report @(_report?.ReportNo ?? "")</PageTitle>
+
+<section class="bg-white min-h-screen py-6">
+    <div class="max-w-4xl mx-auto px-4">
+
+        @if (_isLoading)
+        {
+            <div class="flex justify-center items-center py-20">
+                <svg class="animate-spin h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                <span class="ml-2 text-gray-500">Loading report...</span>
+            </div>
+        }
+        else if (_report is null)
+        {
+            <div class="flex flex-col items-center justify-center py-20">
+                <p class="text-gray-500">Report not found.</p>
+                <button type="button" @onclick="GoBack"
+                    class="mt-4 text-sm text-blue-600 hover:underline">← Back to Reports</button>
+            </div>
+        }
+        else
+        {
+            <!-- Printable Report (matches ViewDailyReport exactly) -->
+            <div class="report-container bg-white border border-gray-200 overflow-hidden">
+
+                <!-- Title Bar -->
+                <div class="bg-gray-800 px-6 py-4 flex items-center justify-between">
+                    <h1 class="text-xl font-bold text-white tracking-wide">DAILY REPORT</h1>
+                    <div class="flex items-center gap-6 text-sm text-gray-200">
+                        <span>Date: <strong>@_report.ReportDate.ToString("dd / MM / yyyy")</strong></span>
+                        @if (!string.IsNullOrEmpty(_report.ReportNo))
+                        {
+                            <span>No: <strong>@_report.ReportNo</strong></span>
+                        }
+                        <span class="text-xs font-medium px-2 py-0.5 rounded @(_report.Status == DailyReportStatus.Submitted ? "bg-green-500" : "bg-yellow-500") text-white">
+                            @_report.Status
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Company + Employee Info -->
+                <div class="px-6 py-3 bg-gray-50 border-b border-gray-200 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+                    <div>
+                        <span class="text-gray-500">Company:</span>
+                        <span class="ml-1 font-medium text-gray-900">@(Configuration["CompanyName"] ?? "Atlantic Co., Ltd.")</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-500">Name:</span>
+                        <span class="ml-1 font-medium text-gray-900">
+                            @(_report.Employee is not null ? $"{_report.Employee.FirstName} {_report.Employee.LastName}".Trim() : "—")
+                        </span>
+                    </div>
+                    <div class="flex gap-4">
+                        @if (_report.Department.HasValue)
+                        {
+                            <div>
+                                <span class="text-gray-500">Dept:</span>
+                                <span class="ml-1 font-medium text-gray-900">@_report.Department</span>
+                            </div>
+                        }
+                        @if (_report.Employee is not null)
+                        {
+                            <div>
+                                <span class="text-gray-500">Title:</span>
+                                <span class="ml-1 font-medium text-gray-900">@_report.Employee.Role</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Work Tasks Table -->
+                <div class="px-6 py-4">
+                    <table class="tasks-table w-full border-collapse text-sm">
+                        <thead>
+                            <tr class="bg-gray-100">
+                                <th class="border border-gray-300 px-4 py-2 text-left text-gray-700 w-8">#</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-gray-700">Planned Work Tasks / Temporary Assignments</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-gray-700">Actual Job Responsibilities</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{
+                                int workRowNum = 0;
+                            }
+                            @foreach (var task in _report.WorkTasks)
+                            {
+                                if (string.IsNullOrWhiteSpace(task.Text) && string.IsNullOrWhiteSpace(task.ActualNote)) continue;
+                                workRowNum++;
+                                <tr class="border-b border-gray-200">
+                                    <td class="border border-gray-300 px-4 py-2 text-gray-500 text-center">@workRowNum.</td>
+                                    <td class="border border-gray-300 px-4 py-2 text-gray-700">@task.Text</td>
+                                    <td class="border border-gray-300 px-4 py-2 text-gray-700">@task.ActualNote</td>
+                                </tr>
+                            }
+                            @if (workRowNum == 0)
+                            {
+                                <tr><td colspan="3" class="px-4 py-3 text-center text-xs text-gray-400">No tasks recorded</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Remark -->
+                @if (!string.IsNullOrWhiteSpace(_report.Remark))
+                {
+                    <div class="px-6 pb-4">
+                        <div class="border border-gray-300 rounded-lg p-3">
+                            <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Remark: </span>
+                            <span class="text-sm text-gray-700">@_report.Remark</span>
+                        </div>
+                    </div>
+                }
+
+                <!-- Tomorrow's Plan Table -->
+                @if (_report.TomorrowTasks.Any(t => !string.IsNullOrWhiteSpace(t.Text)))
+                {
+                    <div class="px-6 pb-4">
+                        <table class="tasks-table w-full border-collapse text-sm">
+                            <thead>
+                                <tr class="bg-gray-100">
+                                    <th class="border border-gray-300 px-4 py-2 text-left text-gray-700 w-8">#</th>
+                                    <th class="border border-gray-300 px-4 py-2 text-left text-gray-700">Tomorrow's Work Plan</th>
+                                    <th class="border border-gray-300 px-4 py-2 text-left text-gray-700">Recommendations</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @{
+                                    int tmrRowNum = 0;
+                                }
+                                @foreach (var task in _report.TomorrowTasks)
+                                {
+                                    if (string.IsNullOrWhiteSpace(task.Text) && string.IsNullOrWhiteSpace(task.ActualNote)) continue;
+                                    tmrRowNum++;
+                                    <tr class="border-b border-gray-200">
+                                        <td class="border border-gray-300 px-4 py-2 text-gray-500 text-center">@tmrRowNum.</td>
+                                        <td class="border border-gray-300 px-4 py-2 text-gray-700">@task.Text</td>
+                                        <td class="border border-gray-300 px-4 py-2 text-gray-700">@task.ActualNote</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+
+                <!-- Footer note -->
+                <div class="px-6 pb-5 pt-1">
+                    <p class="text-xs text-gray-400 italic">
+                        Please Note: This Daily Report is to be filled out, signed, and shared with your superior on each working day without fail.
+                    </p>
+                    <div class="mt-3 flex items-center gap-4 text-xs text-gray-400">
+                        <span>Created: @_report.CreatedAt.ToString("dd MMM yyyy HH:mm")</span>
+                        @if (_report.UpdatedAt.HasValue)
+                        {
+                            <span>Last updated: @_report.UpdatedAt.Value.ToString("dd MMM yyyy HH:mm")</span>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Signature block: only visible on print -->
+            <div class="print-signature-block hidden">
+                <div>
+                    <div class="print-signature-line">Prepared by: @(_report.Employee is not null ? $"{_report.Employee.FirstName} {_report.Employee.LastName}".Trim() : "")</div>
+                </div>
+                <div>
+                    <div class="print-signature-line">Reviewed by: @(_report.ReviewedBy is not null ? $"{_report.ReviewedBy.FirstName} {_report.ReviewedBy.LastName}".Trim() : "")</div>
+                </div>
+            </div>
+
+            <!-- Fallback print button (visible if print dialog doesn't auto-open) -->
+            <div class="mt-6 text-center no-print">
+                <button type="button" @onclick="Print"
+                    class="px-6 py-3 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
+                    Print Report
+                </button>
+                <button type="button" @onclick="GoBack"
+                    class="ml-3 px-6 py-3 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                    Back to Reports
+                </button>
+            </div>
+        }
+    </div>
+</section>
+
+<style>
+    @@media print {
+        /* Hide non-printable elements */
+        .no-print, nav, aside, header, footer,
+        aside, .no-print { display: none !important; }
+        body, html { background: white !important; margin: 0; padding: 0; }
+        section { background: white !important; padding: 0 !important; }
+
+        /* Full-width printable container */
+        .report-container {
+            border: 1px solid #ccc !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            width: 100%;
+        }
+
+        /* Title bar: dark background + white text */
+        .report-container > div:first-child {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            background: #1f2937 !important;
+            color: white !important;
+        }
+
+        /* Force tables to full width with solid borders */
+        .tasks-table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            page-break-inside: avoid;
+        }
+        .tasks-table th,
+        .tasks-table td {
+            border: 1px solid #000 !important;
+            padding: 5px 8px !important;
+            font-size: 9pt !important;
+            line-height: 1.3;
+        }
+        .tasks-table th:first-child,
+        .tasks-table td:first-child { width: 24px; text-align: center; }
+
+        /* Header rows: light grey fill */
+        .tasks-table thead tr {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            background: #e5e7eb !important;
+        }
+
+        /* Footer note */
+        .report-container p.italic {
+            font-size: 8pt !important;
+            font-style: italic;
+        }
+
+        /* Signature block */
+        .print-signature-block {
+            display: flex !important;
+            justify-content: space-between;
+            margin-top: 24px;
+            padding-top: 8px;
+            border-top: 1px solid #000;
+            font-size: 9pt;
+        }
+        .print-signature-line {
+            border-top: 1px solid #000;
+            width: 180px;
+            margin-top: 32px;
+            text-align: center;
+            font-size: 8pt;
+        }
+    }
+</style>
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private DailyReport? _report;
+    private bool _isLoading;
+    private bool _hasTriggeredPrint;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            _report = await DailyReportService.GetAsync(Id, default);
+        }
+        catch
+        {
+            ToastService.ShowError("Failed to load report");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && _report is not null && !_hasTriggeredPrint)
+        {
+            _hasTriggeredPrint = true;
+            // Small delay to ensure the DOM is fully rendered
+            await Task.Delay(300);
+            await JS.InvokeVoidAsync("window.print");
+        }
+    }
+
+    private void GoBack() => nav.NavigateTo("/daily-reports");
+
+    private async Task Print() => await JS.InvokeVoidAsync("window.print");
+}
