@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_DB: mcg_db
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: nerdyamin
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
     ports:
       - "5432:5432"
     volumes:
@@ -22,8 +22,8 @@ services:
   rabbitmq:
     image: rabbitmq:3-management-alpine
     environment:
-      RABBITMQ_DEFAULT_USER: mcc_admin
-      RABBITMQ_DEFAULT_PASS: Mccmis25
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:?set RABBITMQ_USER in .env}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?set RABBITMQ_PASSWORD in .env}
     ports:
       - "5672:5672"
       - "15672:15672"   # Management UI → http://localhost:15672
@@ -39,6 +39,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: final
     ports:
       - "5294:5294"    # HTTP  (matches launchSettings.json http profile)
       - "7229:7229"    # HTTPS (matches launchSettings.json https profile)
@@ -46,27 +47,46 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: "https://+:7229;http://+:5294"
       # Dev certificate mounted from host — generated with:
-      #   dotnet dev-certs https -ep "$env:USERPROFILE\.aspnet\https\aspnetapp.pfx" -p mcg_dev_cert_2026
-      #   dotnet dev-certs https --trust
+      #   dotnet dev-certs https -ep "$HOME/.aspnet/https/aspnetapp.pfx" -p mcg_dev_cert_2026 --trust
+      # (Windows/PowerShell: use $env:USERPROFILE instead of $HOME below and above)
       ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
       ASPNETCORE_Kestrel__Certificates__Default__Password: mcg_dev_cert_2026
+      # Secrets — all sourced from .env (gitignored), see .env.example
+      App__Key: ${APP_KEY:?set APP_KEY in .env}
+      ExternalApiKeys__ValidKeys__0: ${EXTERNAL_API_KEY:-}
+      # Brevo email — optional; leave blank in .env to skip (Makulli = API key, Password = SMTP key)
+      Brevo__Makulli: ${BREVO_MAKULLI:-}
+      Brevo__Email: ${BREVO_EMAIL:-}
+      Brevo__Password: ${BREVO_SMTP_KEY:-}
       # Override the Production connection string to point at the db container
-      ConnectionStrings__Production: "Host=db;port=5432;Username=postgres;Password=nerdyamin;Database=mcg_db"
+      ConnectionStrings__Production: "Host=db;port=5432;Username=postgres;Password=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env};Database=mcg_db"
       # Override RabbitMQ host to point at the rabbitmq container
       RabbitMQ__HostName: rabbitmq
-      RabbitMQ__UserName: mcc_admin
-      RabbitMQ__Password: Mccmis25
+      RabbitMQ__UserName: ${RABBITMQ_USER:?set RABBITMQ_USER in .env}
+      RabbitMQ__Password: ${RABBITMQ_PASSWORD:?set RABBITMQ_PASSWORD in .env}
       # File storage inside the container
       FileStorage__UploadPath: /var/www/uploads
       FileStorage__PublicUrl: /uploads
     volumes:
       - uploads_data:/var/www/uploads
-      - ${USERPROFILE}/.aspnet/https:/https:ro   # dev cert mounted read-only
+      - ${HOME}/.aspnet/https:/https:ro   # dev cert mounted read-only
     depends_on:
       db:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+    restart: unless-stopped
+
+  # ── Client (Blazor WASM, served as static files via nginx) ─────────────────────
+  client:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: client
+    ports:
+      - "5080:8080"   # http://localhost:5080 (5000 is taken by macOS AirPlay Receiver on this host)
+    depends_on:
+      - api
     restart: unless-stopped
 
 volumes:

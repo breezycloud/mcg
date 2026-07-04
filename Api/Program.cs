@@ -4,6 +4,7 @@ using System.Threading.RateLimiting;
 using Api.Context;
 using Api.Data;
 using Api.Filters;
+using Api.Hubs;
 using Api.Interceptors;
 using Api.Logging;
 using Api.Services.Dashboards;
@@ -33,12 +34,13 @@ brevo_csharp.Client.Configuration.Default.ApiKey.Add("api-key", builder.Configur
 builder.Services.Configure<MessageBrokerSetting>(builder.Configuration?.GetSection("RabbitMQ"));
 var key = Encoding.ASCII.GetBytes(builder.Configuration["App:Key"]!);
 string MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(name: MyAllowSpecificOrigins,
-            builder =>
+            policy =>
             {
-                builder.AllowAnyOrigin()
+                policy.WithOrigins(allowedOrigins)
                        .AllowAnyHeader()
                        .AllowAnyMethod();
             });
@@ -124,7 +126,6 @@ builder.Services.AddResponseCompression(opts =>
 });
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddHttpClient();
-// builder.Services.AddHostedService<ServerPeriodicJob>();
 builder.Services.AddSingleton<ILoggerProvider, ApplicationLoggerProvider>();
 builder.Services.AddTransient<IDashboardService, DashboardService>();
 
@@ -223,6 +224,7 @@ app.UseAuthorization();
 app.UseCors(MyAllowSpecificOrigins);
 app.MapRazorPages();
 app.MapControllers();
+app.MapHub<DashboardHub>("/tripsHub");
 app.MapFallbackToFile("index.html");
 
 app.Run();

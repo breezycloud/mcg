@@ -30,23 +30,18 @@ public class SeedData
 
         if (created)
         {
+            stopWatch = new();
+            stopWatch.Start();
             AddUsers(db);
+            await AddDrivers(db);
+            await AddTrucks(db);
+            await AddStations(db);
+            await db.SaveChangesAsync();
+            stopWatch.Stop();
+            var ts = stopWatch.Elapsed;
+            var elapsedTime = $"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}.{ts.Milliseconds / 10:00}";
+            Console.WriteLine($"Data Successfully Imported in {elapsedTime}");
         }
-       
-        // if (db.Database.EnsureCreated())
-        // {
-        //     stopWatch = new();
-        //     stopWatch.Start();
-        //     AddUsers(db);            
-        //     await AddDrivers(db);
-        //     await AddTrucks(db);
-        //     await AddStations(db);
-        //     await db.SaveChangesAsync();
-        //     stopWatch.Stop();
-        //     var ts = stopWatch.Elapsed;
-        //     var elapsedTime = $"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}.{ts.Milliseconds / 10:00}";
-        //     Console.WriteLine($"Data Successfully Imported in {elapsedTime}");
-        // }
     }
 
     private static async Task AddMigrations(IServiceScopeFactory scopeFactory)
@@ -139,7 +134,8 @@ public class SeedData
             await foreach (var truck in JsonSerializer.DeserializeAsyncEnumerable<Truck>(stream, options: null, cancellationToken: new CancellationTokenSource().Token))
             {
                 if (truck != null)
-                {                    
+                {
+                    truck.Id = Guid.NewGuid();
                     if (!KDrivers.Any(x => x.LicensePlate == truck.LicensePlate))
                     {
                         truck.DriverId = null;

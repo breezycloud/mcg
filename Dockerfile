@@ -42,3 +42,15 @@ COPY --from=build /app/publish .
 EXPOSE 5294 7229
 
 CMD ["dotnet", "Api.dll"]
+
+
+# ─── Stage 3: Client publish ────────────────────────────────────────────────────
+FROM build AS client-publish
+RUN dotnet publish "Client/Client.csproj" -c Release -o /app/client-publish --no-restore
+
+
+# ─── Stage 4: Client runtime (static files via nginx) ───────────────────────────
+FROM nginx:1.27-alpine AS client
+COPY --from=client-publish /app/client-publish/wwwroot /usr/share/nginx/html
+COPY Client/nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 8080

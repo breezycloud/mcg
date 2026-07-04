@@ -1,8 +1,8 @@
 ﻿@page "/dashboard"
 @using Client.Pages.Products
-@inject AppHubService HubService
 @inject IDashboardService DashboardService
 @inject NavigationManager NavigationManager
+@inject IConfiguration Configuration
 @implements IAsyncDisposable
 @attribute [Authorize]
 
@@ -11,9 +11,9 @@
     <div class="flex justify-between items-center mb-6">
         <div>
             <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Dashboard</h1>
-            @* <span class="text-sm @(isConnected ? "text-green-500" : "text-red-500")">
+            <span class="text-sm @(isConnected ? "text-green-500" : "text-red-500")">
                 @(isConnected ? "● Live" : "● Disconnected")
-            </span> *@
+            </span>
         </div>
     </div>
     
@@ -50,11 +50,11 @@
     private DateOnly? filterEndDate;
     private ProductFilter selectedProduct;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        @* await HubService.StartConnectionAsync(); *@
         filterStartDate = DateOnly.FromDateTime(DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek));
         filterEndDate = DateOnly.FromDateTime(DateTime.Today);
+        await InitializeSignalR();
     }
 
     private void HandleProductChanged(ProductFilter product)
@@ -65,8 +65,14 @@
 
     private async Task InitializeSignalR()
     {
+        // The hub is mapped on the Api, not the Client, so resolve against the
+        // same Api base address the rest of the app uses (they run on different
+        // origins outside of combined hosting).
+        var apiBaseAddress = new Client.Handlers.Constants(NavigationManager, Configuration).BaseAddress();
+        var hubUrl = new Uri(new Uri(apiBaseAddress), "/tripsHub");
+
         hubConnection = new HubConnectionBuilder()
-            .WithUrl(NavigationManager.ToAbsoluteUri("/tripsHub"))
+            .WithUrl(hubUrl)
             .Build();
 
         hubConnection.On<string>("ReceiveTripUpdate", message =>

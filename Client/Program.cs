@@ -56,7 +56,7 @@ builder.Services.AddAuthorizationCore();
 builder.Services.AddBlazoredLocalStorage();
 
 
-string uri = new Client.Handlers.Constants(builder.Services.BuildServiceProvider().GetRequiredService<NavigationManager>()).BaseAddress();
+string uri = new Client.Handlers.Constants(builder.Services.BuildServiceProvider().GetRequiredService<NavigationManager>(), builder.Configuration).BaseAddress();
 
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(uri) });
 builder.Services.AddHttpClient("AppUrl", http =>
@@ -114,7 +114,6 @@ builder.Services.AddHttpClient<ILocationService, LocationService>(client =>
 
 
 builder.Services.AddSingleton<ToastService>();
-builder.Services.AddSingleton<AppHubService>();
 builder.Services.AddScoped<SidebarService>();
 
 builder.Services.AddTransient<IExportService, CsvExportService>();
