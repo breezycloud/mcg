@@ -21,7 +21,7 @@ public class Constants(NavigationManager nav)
         }
         else
         {
-            return "https://localhost:7229/api/";
+            return "http://localhost:5294/api/";
         }
     }
 }

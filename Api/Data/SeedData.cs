@@ -85,6 +85,17 @@ public class SeedData
             ALTER TABLE ""Users""
             ALTER COLUMN ""ManagedProducts"" SET NOT NULL;
         ");
+
+        // Password reset token fields (idempotent)
+        _ = await db.Database.ExecuteSqlRawAsync(@"
+            ALTER TABLE ""Users"" ADD COLUMN IF NOT EXISTS ""PasswordResetToken"" text NULL;
+        ");
+        _ = await db.Database.ExecuteSqlRawAsync(@"
+            ALTER TABLE ""Users"" ADD COLUMN IF NOT EXISTS ""PasswordResetTokenExpiry"" timestamp with time zone NULL;
+        ");
+        _ = await db.Database.ExecuteSqlRawAsync(@"
+            CREATE INDEX IF NOT EXISTS ""IX_Users_PasswordResetToken"" ON ""Users"" (""PasswordResetToken"");
+        ");
     }
 
     public record Drivers(Guid Id, string FirstName, string LastName,string PhoneNo, string LicensePlate);

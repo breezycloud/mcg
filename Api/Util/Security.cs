@@ -50,4 +50,15 @@ public static class Security
         }
         return new string(res);
     }
+
+    public static string GenerateResetToken()
+    {
+        var tokenBytes = new byte[32];
+        var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
+        rng.GetBytes(tokenBytes);
+        return Convert.ToBase64String(tokenBytes)
+            .Replace('+', '-')
+            .Replace('/', '_')
+            .TrimEnd('=');
+    }
 }
