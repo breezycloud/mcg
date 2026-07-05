@@ -54,10 +54,13 @@ services:
       # Secrets — all sourced from .env (gitignored), see .env.example
       App__Key: ${APP_KEY:?set APP_KEY in .env}
       ExternalApiKeys__ValidKeys__0: ${EXTERNAL_API_KEY:-}
-      # Brevo email — optional; leave blank in .env to skip (Makulli = API key, Password = SMTP key)
+      # Brevo email — optional; leave blank in .env to skip
+      # (Makulli = Brevo API key; SMTP:* = Brevo's SMTP relay, used by SmtpOption)
       Brevo__Makulli: ${BREVO_MAKULLI:-}
-      Brevo__Email: ${BREVO_EMAIL:-}
-      Brevo__Password: ${BREVO_SMTP_KEY:-}
+      SMTP__Host: smtp-relay.brevo.com
+      SMTP__Port: 587
+      SMTP__Email: ${BREVO_EMAIL:-}
+      SMTP__Password: ${BREVO_SMTP_KEY:-}
       # Override the Production connection string to point at the db container
       ConnectionStrings__Production: "Host=db;port=5432;Username=postgres;Password=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env};Database=mcg_db"
       # Override RabbitMQ host to point at the rabbitmq container

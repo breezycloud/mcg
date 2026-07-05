@@ -1,0 +1,450 @@
+@page "/daily-reports"
+@inject IDailyReportService DailyReportService
+@inject AppHubService AppHubService
+@attribute [Authorize]
+@implements IDisposable
+
+<PageTitle>Daily Reports</PageTitle>
+
+<!-- Summary stat cards -->
+<div class="px-4 lg:px-9 pb-4 pt-2">
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Total</p>
+            <p class="mt-1 text-2xl font-bold text-gray-900 dark:text-white">
+                @(_summary?.Total.ToString() ?? "—")
+            </p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
+            <p class="text-xs font-medium text-green-600 dark:text-green-400 uppercase tracking-wide">Submitted</p>
+            <p class="mt-1 text-2xl font-bold text-gray-900 dark:text-white">
+                @(_summary?.Submitted.ToString() ?? "—")
+            </p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
+            <p class="text-xs font-medium text-yellow-600 dark:text-yellow-400 uppercase tracking-wide">Draft</p>
+            <p class="mt-1 text-2xl font-bold text-gray-900 dark:text-white">
+                @(_summary?.Draft.ToString() ?? "—")
+            </p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
+            <p class="text-xs font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wide">Assigned to Me</p>
+            <p class="mt-1 text-2xl font-bold text-gray-900 dark:text-white">
+                @(_summary?.AssignedToMe.ToString() ?? "—")
+            </p>
+        </div>
+    </div>
+</div>
+
+<section class="bg-gray-50 dark:bg-gray-900 rounded-lg">
+    <div class="px-4 lg:px-9">
+        <div class="bg-white dark:bg-gray-800 relative shadow-md sm:rounded-lg overflow-hidden">
+
+            <!-- Toolbar -->
+            <div class="flex flex-col md:flex-row gap-4 p-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm">
+                <!-- Search -->
+                <div class="relative w-full lg:w-1/2">
+                    <label for="report-search" class="sr-only">Search reports</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                            <svg class="w-5 h-5 text-gray-400 dark:text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <input type="text" id="report-search"
+                            class="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                            placeholder="Search by name or report no..."
+                            @bind-value="@_request.SearchTerm"
+                            @bind-value:event="oninput"
+                            @onkeyup="async () => await HandleSearch(_request.SearchTerm!)" />
+                    </div>
+                </div>
+
+                <!-- Filters + Actions -->
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full lg:w-auto lg:flex-1">
+                    <div class="relative w-full sm:w-auto flex sm:items-center sm:gap-3">
+                        <!-- Mobile filter toggle -->
+                        <button type="button"
+                            class="sm:hidden flex items-center justify-between w-full px-4 py-2 text-sm font-medium text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-200"
+                            @onclick="ToggleFilterMenu">
+                            <span>Filters</span>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                        <div class="@(_isFilterMenuOpen ? "grid" : "hidden sm:grid") grid-cols-1 sm:auto-cols-max sm:grid-flow-col gap-3 w-full sm:w-auto">
+                            <!-- Month filter -->
+                            <input type="month" id="report-month"
+                                class="bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full sm:w-36 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-all duration-200"
+                                value="@_monthFilter"
+                                @oninput="async e => { _monthFilter = e.Value?.ToString() ?? _monthFilter; await Reload(); }" />
+                            <!-- Status filter -->
+                            <select class="bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full sm:w-36 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-all duration-200"
+                                @onchange="OnStatusChanged">
+                                <option value="">All Statuses</option>
+                                @foreach (var s in Enum.GetValues(typeof(DailyReportStatus)))
+                                {
+                                    <option value="@s">@s</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Action menu -->
+                    <div class="relative w-full sm:w-auto flex items-center gap-2">
+                        <!-- Actions dropdown -->
+                        <button type="button"
+                            class="flex items-center justify-center w-10 h-10 text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-200"
+                            @onclick="ToggleActionMenu">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                            </svg>
+                        </button>
+                        <div class="@(_isActionMenuOpen ? "block" : "hidden") absolute right-0 top-12 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg z-20 border border-gray-200 dark:border-gray-700">
+                            <div class="py-1">
+                                <button type="button" @onclick="AddReport"
+                                    class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                    <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                        <path clip-rule="evenodd" fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" />
+                                    </svg>
+                                    New Report
+                                </button>
+                                <AuthorizeView Roles="Admin,Master,Supervisor,Monitoring" Context="exportAuth">
+                                    <Authorized>
+                                        <button type="button" @onclick="ExportCsv"
+                                            class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                            disabled="@(AppState.IsExporting || AppState.IsProcessing)">
+                                            @if (AppState.IsExporting)
+                                            {
+                                                <svg class="animate-spin h-4 w-4 mr-2 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                                                </svg>
+                                                @("Exporting...")
+                                            }
+                                            else
+                                            {
+                                                <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path clip-rule="evenodd" fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" />
+                                                </svg>
+                                                @("Export CSV")
+                                            }
+                                        </button>
+                                    </Authorized>
+                                </AuthorizeView>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table View -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-400">
+                        <tr>                                
+                            <th scope="col" class="px-6 py-3">Report No.</th>
+                            <th scope="col" class="px-6 py-3">Date</th>
+                            <AuthorizeView Roles="Admin,Master" Context="colAuth">
+                                <Authorized>
+                                    <th scope="col" class="px-6 py-3">Name</th>
+                                </Authorized>
+                            </AuthorizeView>
+                            <th scope="col" class="px-6 py-3">Status</th>
+                            <th scope="col" class="px-6 py-3 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (_isLoading)
+                        {
+                            <tr>
+                                <td colspan="7" class="px-6 py-4 text-center">
+                                    <div class="flex justify-center items-center">
+                                        <svg class="animate-spin h-5 w-5 text-blue-500 mr-2" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                        </svg>
+                                        Loading reports...
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                        else if (_reports.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="7" class="px-6 py-10 text-center text-gray-500 dark:text-gray-400">
+                                    <div class="flex flex-col items-center justify-center">
+                                        <svg class="w-8 h-8 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                        <span>No reports found</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var report in _reports)
+                            {
+                                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                                    <td class="px-6 py-4 text-gray-700 dark:text-gray-300">@(report.ReportNo ?? "—")</td>
+                                    <td class="px-6 py-4 text-gray-700 dark:text-gray-300 font-medium">@report.ReportDate.ToString("dd MMM yyyy")</td>                                        
+                                    <AuthorizeView Roles="Admin,Master" Context="rowColAuth">
+                                        <Authorized>
+                                            <td class="px-6 py-4 text-gray-700 dark:text-gray-300">@report.Employee?.FirstName @report.Employee?.LastName</td>
+                                        </Authorized>
+                                    </AuthorizeView>                                        
+                                    <td class="px-6 py-4">
+                                        <span class="text-xs font-medium px-2.5 py-0.5 rounded @(report.Status == DailyReportStatus.Submitted ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300")">
+                                            @report.Status
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <div class="flex items-center justify-end gap-3">
+                                            <button @onclick="() => ViewReport(report.Id)"
+                                                class="font-medium text-green-600 dark:text-green-400 hover:underline text-sm">View</button>
+                                            @if (report.Status == DailyReportStatus.Draft)
+                                            {
+                                                <button @onclick="() => EditReport(report.Id)"
+                                                    class="font-medium text-blue-600 dark:text-blue-400 hover:underline text-sm">Edit</button>
+                                                <button @onclick="() => PrintReport(report.Id)"
+                                                    class="font-medium text-gray-600 dark:text-gray-400 hover:underline text-sm">Print</button>
+                                                <AuthorizeView Roles="Admin,Master" Context="rowDeleteAuth">
+                                                    <Authorized>
+                                                        <button @onclick="() => ConfirmDelete(report)"
+                                                            class="font-medium text-red-600 dark:text-red-400 hover:underline text-sm">Delete</button>
+                                                    </Authorized>
+                                                </AuthorizeView>
+                                            }
+                                            else
+                                            {
+                                                <AuthorizeView Roles="Admin,Master" Context="rowDeleteAuthSubmitted">
+                                                    <Authorized>
+                                                        <button @onclick="() => ConfirmDelete(report)"
+                                                            class="font-medium text-red-600 dark:text-red-400 hover:underline text-sm">Delete</button>
+                                                    </Authorized>
+                                                </AuthorizeView>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+                <Pagination
+                    CurrentPage="_request.Page + 1"
+                    PageSize="_request.PageSize"
+                    TotalItems="_total"
+                    OnPageChanged="async (page) => { _request.Page = page - 1; await LoadReports(); StateHasChanged(); }" />
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Delete Confirmation Modal -->
+@if (_reportToDelete is not null)
+{
+    <div class="fixed inset-0 z-50 min-h-screen w-full grid place-items-center bg-black/50 p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 max-w-sm w-full">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Delete Report</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">This action cannot be undone.</p>
+                </div>
+            </div>
+            <p class="text-sm text-gray-600 dark:text-gray-300 mb-5">
+                Are you sure you want to delete the report <strong>@(_reportToDelete.ReportNo ?? _reportToDelete.ReportDate.ToString("dd MMM yyyy"))</strong>?
+            </p>
+            <div class="flex justify-end gap-3">
+                <button type="button" @onclick="() => _reportToDelete = null"
+                    class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                    Cancel
+                </button>
+                <button type="button" @onclick="DeleteReport"
+                    disabled="@_isDeleting"
+                    class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors">
+                    @if (_isDeleting) { <span>Deleting...</span> } else { <span>Delete</span> }
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<DailyReport> _reports = [];
+    private GridDataRequest _request = new() { Page = 0, PageSize = 10 };
+    private int _total;
+    private bool _isLoading;
+    private bool _isActionMenuOpen;
+    private bool _isFilterMenuOpen;
+    private DailyReport? _reportToDelete;
+    private bool _isDeleting;
+    private DailyReportSummary? _summary;
+
+    // Month filter binding — maps to request.Date
+    private string _monthFilter = DateTime.Now.ToString("yyyy-MM");
+
+    private DailyReportFilter _exportFilter = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _request.Date = DateOnly.FromDateTime(DateTime.Now);
+        // OnReportAssigned: a report was assigned to this user — reload to show it
+        AppHubService.OnReportAssigned += HandleReportAssigned;
+        // OnReportSubmitted: a team member submitted — reload so managers see the status change
+        AppHubService.OnReportSubmitted += HandleReportSubmitted;
+        await LoadReports();
+    }
+
+    public void Dispose()
+    {
+        AppHubService.OnReportAssigned -= HandleReportAssigned;
+        AppHubService.OnReportSubmitted -= HandleReportSubmitted;
+    }
+
+    private void HandleReportAssigned(string reportNo, Guid reportId)
+    {
+        InvokeAsync(async () =>
+        {
+            ToastService.ShowSuccess($"A daily report ({reportNo}) has been assigned to you.");
+            await LoadReports();
+            StateHasChanged();
+        });
+    }
+
+    private void HandleReportSubmitted(string reportNo, Guid reportId)
+    {
+        // Only managers receive this event (server only sends to the Managers group).
+        // Silently reload — no toast needed; the list status badge will update.
+        InvokeAsync(async () =>
+        {
+            await LoadReports();
+            StateHasChanged();
+        });
+    }
+
+    private async Task LoadReports()
+    {
+        _isLoading = true;
+        try
+        {
+            var month = _request.Date ?? DateOnly.FromDateTime(DateTime.Now);
+            // Load list and summary in parallel
+            var listTask    = DailyReportService.GetPagedAsync(_request, default);
+            var summaryTask = DailyReportService.GetSummaryAsync(month, default);
+            await Task.WhenAll(listTask, summaryTask);
+
+            var result = await listTask;
+            _reports = result?.Data ?? [];
+            _total = result?.Total ?? 0;
+            _summary = await summaryTask;
+        }
+        catch
+        {
+            ToastService.ShowError("Failed to load reports");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+        StateHasChanged();
+    }
+
+    private async Task HandleSearch(string search)
+    {
+        _request.SearchTerm = string.IsNullOrWhiteSpace(search) ? null : search;
+        _request.Page = 0;
+        await LoadReports();
+    }
+
+    private async Task Reload()
+    {
+        if (DateTime.TryParse(_monthFilter + "-01", out var parsed))
+        {
+            _request.Date = DateOnly.FromDateTime(parsed);
+            _exportFilter.StartDate = _request.Date.Value;
+        }
+        _request.Page = 0; // Always reset to page 1 when month changes
+        await LoadReports();
+    }
+
+    private async Task OnStatusChanged(ChangeEventArgs e)
+    {
+        _request.Status = string.IsNullOrEmpty(e.Value?.ToString()) ? null : e.Value.ToString();
+        _request.Page = 0;
+        await LoadReports();
+    }
+
+    private async Task ExportCsv()
+    {
+        AppState.IsExporting = true;
+        _isActionMenuOpen = false;
+        try
+        {
+            await DailyReportService.ExportToCsvAsync(_exportFilter, default);
+        }
+        catch
+        {
+            ToastService.ShowError("Failed to export report");
+        }
+        AppState.IsExporting = false;
+        StateHasChanged();
+    }
+
+    private void AddReport()
+    {
+        _isActionMenuOpen = false;
+        nav.NavigateTo("/daily-reports/add");
+    }
+
+    private void ViewReport(Guid id) => nav.NavigateTo($"/view-daily-report/{id}");
+    private void EditReport(Guid id) => nav.NavigateTo($"/daily-reports/edit/{id}");
+    private void PrintReport(Guid id) => nav.NavigateTo($"/print-daily-report/{id}");
+
+    private void ConfirmDelete(DailyReport report)
+    {
+        _reportToDelete = report;
+        StateHasChanged();
+    }
+
+    private async Task DeleteReport()
+    {
+        if (_reportToDelete is null) return;
+        _isDeleting = true;
+        try
+        {
+            await DailyReportService.DeleteAsync(_reportToDelete.Id, default);
+            ToastService.ShowSuccess("Report deleted");
+            _reportToDelete = null;
+            await LoadReports();
+        }
+        catch
+        {
+            ToastService.ShowError("Failed to delete report");
+        }
+        _isDeleting = false;
+        StateHasChanged();
+    }
+
+    private void ToggleActionMenu()
+    {
+        _isActionMenuOpen = !_isActionMenuOpen;
+        _isFilterMenuOpen = false;
+    }
+
+    private void ToggleFilterMenu()
+    {
+        _isFilterMenuOpen = !_isFilterMenuOpen;
+        _isActionMenuOpen = false;
+    }
+}

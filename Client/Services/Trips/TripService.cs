@@ -266,6 +266,31 @@ public class TripService(IHttpClientFactory _httpClient, IJSRuntime js) : ITripS
         }
     }
 
+    public async ValueTask DownloadLoadingFilesAsync(ReportFilter filter, CancellationToken cancellationToken)
+    {
+        try
+        {            
+            var url = "Trips/download-loading-files";            
+
+            using var response = await _httpClient.CreateClient("AppUrl").PostAsJsonAsync(url, filter, cancellationToken);
+            response.EnsureSuccessStatusCode();
+            var content = await response.Content.ReadAsByteArrayAsync(cancellationToken);
+
+            var productLabel = !string.IsNullOrWhiteSpace(filter.Product) ? filter.Product : "All";
+            var dateLabel = filter.StartDate != default
+                ? $"_{filter.StartDate:yyyy-MM-dd}" + (filter.EndDate.HasValue ? $"_to_{filter.EndDate:yyyy-MM-dd}" : "")
+                : "_all";
+            var fileName = $"{productLabel}_LoadingFiles{dateLabel}.zip";
+
+            await js.InvokeVoidAsync("downloadReport", fileName, Convert.ToBase64String(content));
+        }
+        catch (System.Exception)
+        {
+
+            throw;
+        }
+    }
+
     private static async Task<string> ReadErrorMessageAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {
         var content = await response.Content.ReadAsStringAsync(cancellationToken);

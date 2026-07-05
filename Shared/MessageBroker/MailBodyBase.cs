@@ -5,6 +5,7 @@ public class MailBodyBase
     public string? Name { get; set; }
     public string? Email { get; set; }
     public string? SupportEmail { get; set; } = "mcg@gmail.com";
+    public string? ResetUrl { get; set; }
 }
 
 

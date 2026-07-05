@@ -11,13 +11,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install Blazor WebAssembly tooling (needed for Client project)
 RUN dotnet workload install wasm-tools
 
-# Copy solution + project files first so dependency restore is cached
-# as a separate layer — only re-runs when .csproj / .sln files change
-COPY ["mcg.sln", "."]
+# Copy project files first so dependency restore is cached as a separate
+# layer — only re-runs when .csproj files change. Restoring Api + Client
+# explicitly (rather than a solution file) also restores Shared as their
+# transitive dependency, and skips the standalone tools/ project entirely,
+# which isn't needed for this image.
 COPY ["Api/Api.csproj", "Api/"]
 COPY ["Client/Client.csproj", "Client/"]
 COPY ["Shared/Shared.csproj", "Shared/"]
-RUN dotnet restore
+RUN dotnet restore Api/Api.csproj
+RUN dotnet restore Client/Client.csproj
 
 # Copy all source and publish
 COPY . .

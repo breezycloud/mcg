@@ -46,6 +46,7 @@ using Shared.Interfaces;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Components;
 using Shared.Helpers;
+using Shared.Interfaces.Reports;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
@@ -107,6 +108,7 @@ builder.Services.AddTransient<IRefuelInfoService, RefuelInfoService>();
 builder.Services.AddTransient<IDischargeService, DischargeService>();
 builder.Services.AddTransient<IIncidentService, IncidentService>();
 builder.Services.AddTransient<IIncidentTypeService, IncidentTypeService>();
+builder.Services.AddTransient<IDailyReportService, DailyReportService>();
 builder.Services.AddHttpClient<ILocationService, LocationService>(client =>
 {
     client.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress);

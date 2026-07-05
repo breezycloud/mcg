@@ -1,0 +1,728 @@
+@page "/daily-reports/{Action}/{Id:guid?}"
+@attribute [Authorize]
+@inject IDailyReportService DailyReportService
+@inject IUserService UserService
+
+<PageTitle>@(_isEdit ? "Edit Daily Report" : "New Daily Report")</PageTitle>
+
+<section class="bg-gray-50 dark:bg-gray-900 min-h-screen py-6">
+    <div class="max-w-4xl mx-auto px-4">
+        <!-- Page Header -->
+        <div class="mb-6 flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+                    @(_isEdit ? "Edit Daily Report" : "New Daily Report")
+                </h1>
+                @if (!string.IsNullOrEmpty(_model.ReportNo))
+                {
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">@_model.ReportNo</p>
+                }
+            </div>
+            <button type="button" @onclick="Cancel"
+                class="text-sm text-gray-600 dark:text-gray-400 hover:underline flex items-center gap-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+                Back
+            </button>
+        </div>
+
+        @if (_isLoading)
+        {
+            <div class="flex justify-center items-center py-20">
+                <svg class="animate-spin h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+            </div>
+        }
+        else
+        {
+            <EditForm Model="_model" OnValidSubmit="SaveDraft">
+                <DataAnnotationsValidator />
+
+                <!-- Section 1: Report Header -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-5">
+                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
+                        Report Details
+                    </h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- Date -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Date <span class="text-red-500">*</span>
+                            </label>
+                            <InputDate @bind-Value="_model.ReportDate"
+                                class="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                disabled="@_isReadOnly" />
+                            <ValidationMessage For="@(() => _model.ReportDate)" class="text-xs text-red-500 mt-1" />
+                        </div>
+
+                        <!-- Report No (readonly) -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Report No.</label>
+                            <input type="text" value="@_model.ReportNo" readonly
+                                class="w-full px-3 py-2.5 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-500 dark:text-gray-400 cursor-not-allowed" />
+                        </div>
+
+                        <!-- Department dropdown (enum) -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Department</label>
+                            <InputSelect @bind-Value="_model.Department"
+                                class="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                disabled="@_isReadOnly">
+                                <option value="">— Select Department —</option>
+                                @foreach (var dept in Enum.GetValues(typeof(Department)))
+                                {
+                                    <option value="@dept">@dept</option>
+                                }
+                            </InputSelect>
+                        </div>
+
+                        <!-- Admin/Master: user assignment autocomplete -->
+                        @if (_isAdminOrMaster)
+                        {
+                            <div class="sm:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Assign To
+                                    <span class="ml-1 text-xs text-gray-400 font-normal">(leave empty to create for yourself)</span>
+                                </label>
+                                <Autocomplete TItem="User"
+                                    SearchFunc="SearchUsers"
+                                    SelectedChanged="OnUserSelected"
+                                    Placeholder="Search employee by name..."
+                                    InitialText="@_selectedEmployeeName">
+                                    <OptionTemplate Context="user">
+                                        <span>@user.FirstName @user.LastName
+                                            <span class="ml-1 text-xs text-gray-400">(@user.Role)</span>
+                                        </span>
+                                    </OptionTemplate>
+                                </Autocomplete>
+                            </div>
+
+                            <!-- Title: shown once a user is selected -->
+                            @if (_selectedEmployee is not null)
+                            {
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Title / Position</label>
+                                    <input type="text" value="@_selectedEmployee.Role" readonly
+                                        class="w-full px-3 py-2.5 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-500 dark:text-gray-400 cursor-not-allowed" />
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <!-- Non-admin: display own name + role as read-only title -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
+                                <input type="text" value="@_selfName" readonly
+                                    class="w-full px-3 py-2.5 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-500 dark:text-gray-400 cursor-not-allowed" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Title / Position</label>
+                                <input type="text" value="@_selfRole" readonly
+                                    class="w-full px-3 py-2.5 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-500 dark:text-gray-400 cursor-not-allowed" />
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Section 2: Work Tasks -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-5">
+                    <div class="flex items-center justify-between mb-5 pb-3 border-b border-gray-200 dark:border-gray-700">
+                        <div>
+                            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Work Tasks</h2>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Record planned tasks and what was actually done</p>
+                        </div>
+                        @if (!_isEdit && !_isReadOnly)
+                        {
+                            <button type="button" @onclick="CopyYesterdaysPlans"
+                                disabled="@_isCopying"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 transition-colors">
+                                @if (_isCopying)
+                                {
+                                    <svg class="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                                }
+                                else
+                                {
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" /></svg>
+                                }
+                                Copy Yesterday's Plans
+                            </button>
+                        }
+                    </div>
+
+                    <div class="space-y-3">
+                        @for (int i = 0; i < _model.WorkTasks.Count; i++)
+                        {
+                            var idx = i;
+                            var task = _model.WorkTasks[idx];
+                            <!-- Task card with left status stripe -->
+                            <div class="relative flex items-stretch rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden bg-gray-50 dark:bg-gray-750 @(task.Status == TaskItemStatus.Done ? "opacity-75" : "")">
+                                <!-- Left status stripe -->
+                                <div class="w-1.5 flex-shrink-0 @GetTaskStripeCss(task.Status)"></div>
+
+                                <!-- Card body -->
+                                <div class="flex-1 p-3">
+                                    <!-- Row 1: task number + status badge + delete -->
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-xs font-semibold text-gray-400 dark:text-gray-500">Task @(idx + 1)</span>
+                                        <div class="flex items-center gap-2">
+                                            <!-- Status cycle button -->
+                                            <button type="button"
+                                                @onclick="() => CycleTaskStatus(_model.WorkTasks, idx)"
+                                                disabled="@_isReadOnly"
+                                                title="Click to cycle: Pending → In Progress → Done"
+                                                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border transition-colors @GetTaskStatusBadgeCss(task.Status) @(_isReadOnly ? "cursor-default" : "cursor-pointer")">
+                                                @GetTaskStatusIcon(task.Status)
+                                                @task.Status
+                                            </button>
+                                            @if (!_isReadOnly)
+                                            {
+                                                <button type="button" @onclick="() => RemoveWorkTaskRow(idx)"
+                                                    title="Remove task"
+                                                    disabled="@(_model.WorkTasks.Count <= 1)"
+                                                    class="flex items-center justify-center w-6 h-6 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors disabled:opacity-20 disabled:cursor-not-allowed">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                                                </button>
+                                            }
+                                        </div>
+                                    </div>
+                                    <!-- Row 2: two inputs side by side -->
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1 font-medium">Planned</label>
+                                            <input type="text"
+                                                value="@task.Text"
+                                                @oninput="e => { _model.WorkTasks[idx].Text = e.Value?.ToString(); }"
+                                                class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                                                placeholder="What was planned..."
+                                                disabled="@_isReadOnly" />
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1 font-medium">Actual / Notes</label>
+                                            <input type="text"
+                                                value="@task.ActualNote"
+                                                @oninput="e => { _model.WorkTasks[idx].ActualNote = e.Value?.ToString(); }"
+                                                class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                                                placeholder="What was done..."
+                                                disabled="@_isReadOnly" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    @if (!_isReadOnly)
+                    {
+                        <div class="mt-4 flex items-center gap-3">
+                            <button type="button" @onclick="AddWorkTaskRow"
+                                disabled="@(_model.WorkTasks.Count >= MaxTaskRows)"
+                                class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                                Add Task
+                            </button>
+                            <div class="flex items-center gap-1.5">
+                                @for (int d = 0; d < MaxTaskRows; d++)
+                                {
+                                    var di = d;
+                                    <div class="w-2 h-2 rounded-full transition-colors @(di < _model.WorkTasks.Count ? "bg-blue-400 dark:bg-blue-500" : "bg-gray-200 dark:bg-gray-600")"></div>
+                                }
+                                <span class="ml-1 text-xs text-gray-400">@_model.WorkTasks.Count / @MaxTaskRows</span>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <!-- Section 3: Remark -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-5">
+                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
+                        Remark
+                    </h2>
+                    <InputTextArea @bind-Value="_model.Remark"
+                        class="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                        rows="3"
+                        placeholder="Any remarks for today..."
+                        disabled="@_isReadOnly" />
+                </div>
+
+                <!-- Section 4: Tomorrow's Plan -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-5">
+                    <div class="mb-5 pb-3 border-b border-gray-200 dark:border-gray-700">
+                        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Tomorrow's Plan</h2>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Plan tomorrow's tasks and track any recommendations</p>
+                    </div>
+
+                    <div class="space-y-3">
+                        @for (int i = 0; i < _model.TomorrowTasks.Count; i++)
+                        {
+                            var idx = i;
+                            var task = _model.TomorrowTasks[idx];
+                            <div class="relative flex items-stretch rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden bg-gray-50 dark:bg-gray-750 @(task.Status == TaskItemStatus.Done ? "opacity-75" : "")">
+                                <!-- Left status stripe -->
+                                <div class="w-1.5 flex-shrink-0 @GetTaskStripeCss(task.Status)"></div>
+
+                                <!-- Card body -->
+                                <div class="flex-1 p-3">
+                                    <!-- Row 1: task number + status badge + delete -->
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-xs font-semibold text-gray-400 dark:text-gray-500">Plan @(idx + 1)</span>
+                                        <div class="flex items-center gap-2">
+                                            <button type="button"
+                                                @onclick="() => CycleTaskStatus(_model.TomorrowTasks, idx)"
+                                                disabled="@_isReadOnly"
+                                                title="Click to cycle: Pending → In Progress → Done"
+                                                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border transition-colors @GetTaskStatusBadgeCss(task.Status) @(_isReadOnly ? "cursor-default" : "cursor-pointer")">
+                                                @GetTaskStatusIcon(task.Status)
+                                                @task.Status
+                                            </button>
+                                            @if (!_isReadOnly)
+                                            {
+                                                <button type="button" @onclick="() => RemoveTomorrowPlanRow(idx)"
+                                                    title="Remove plan"
+                                                    disabled="@(_model.TomorrowTasks.Count <= 1)"
+                                                    class="flex items-center justify-center w-6 h-6 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors disabled:opacity-20 disabled:cursor-not-allowed">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                                                </button>
+                                            }
+                                        </div>
+                                    </div>
+                                    <!-- Row 2: two inputs side by side -->
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1 font-medium">Tomorrow's Plan</label>
+                                            <input type="text"
+                                                value="@task.Text"
+                                                @oninput="e => { _model.TomorrowTasks[idx].Text = e.Value?.ToString(); }"
+                                                class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                                                placeholder="Plan for tomorrow..."
+                                                disabled="@_isReadOnly" />
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1 font-medium">Recommendation</label>
+                                            <input type="text"
+                                                value="@task.ActualNote"
+                                                @oninput="e => { _model.TomorrowTasks[idx].ActualNote = e.Value?.ToString(); }"
+                                                class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                                                placeholder="Any recommendation..."
+                                                disabled="@_isReadOnly" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    @if (!_isReadOnly)
+                    {
+                        <div class="mt-4 flex items-center gap-3">
+                            <button type="button" @onclick="AddTomorrowPlanRow"
+                                disabled="@(_model.TomorrowTasks.Count >= MaxTaskRows)"
+                                class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                                Add Plan
+                            </button>
+                            <div class="flex items-center gap-1.5">
+                                @for (int d = 0; d < MaxTaskRows; d++)
+                                {
+                                    var di = d;
+                                    <div class="w-2 h-2 rounded-full transition-colors @(di < _model.TomorrowTasks.Count ? "bg-blue-400 dark:bg-blue-500" : "bg-gray-200 dark:bg-gray-600")"></div>
+                                }
+                                <span class="ml-1 text-xs text-gray-400">@_model.TomorrowTasks.Count / @MaxTaskRows</span>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <!-- Notice -->
+                <div class="mb-5 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <p class="text-xs text-blue-700 dark:text-blue-300 italic">
+                        Please Note: This Daily Report is to be filled out, signed, and shared with your superior on each working day without fail.
+                    </p>
+                </div>
+
+                <!-- Submitted warning -->
+                @if (_model.Status == DailyReportStatus.Submitted)
+                {
+                    <div class="mb-5 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg flex items-center gap-2">
+                        <svg class="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                        </svg>
+                        <p class="text-sm text-green-700 dark:text-green-300">This report has been submitted and is read-only.</p>
+                    </div>
+                }
+
+                <!-- Action Buttons -->
+                @if (!_isReadOnly)
+                {
+                    <div class="flex items-center justify-end gap-3">
+                        <button type="button" @onclick="Cancel"
+                            class="px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                            Cancel
+                        </button>
+                        <button type="submit" disabled="@_isSaving"
+                            class="px-5 py-2.5 text-sm font-medium text-white bg-gray-600 rounded-lg hover:bg-gray-700 disabled:opacity-50 transition-colors flex items-center gap-2">
+                            @if (_isSaving) { <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> }
+                            Save Draft
+                        </button>
+                        <button type="button" @onclick="SubmitReport" disabled="@(_isSaving || _isSubmitting)"
+                            class="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center gap-2">
+                            @if (_isSubmitting) { <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> }
+                            Submit Report
+                        </button>
+                    </div>
+                }
+            </EditForm>
+        }
+    </div>
+</section>
+
+@code {
+    [Parameter] public string Action { get; set; } = "add";
+    [Parameter] public Guid? Id { get; set; }
+
+    // Start with 1 blank task row; rows grow dynamically as the user adds tasks.
+    private DailyReport _model = new()
+    {
+        ReportDate    = DateOnly.FromDateTime(DateTime.Now),
+        WorkTasks     = [new ReportTask()],
+        TomorrowTasks = [new ReportTask()]
+    };
+
+    private const int MaxTaskRows = 9;
+
+    private bool _isEdit => Action.Equals("edit", StringComparison.OrdinalIgnoreCase) && Id.HasValue;
+    private bool _isLoading;
+    private bool _isSaving;
+    private bool _isSubmitting;
+    private bool _isCopying;
+    private bool _isReadOnly;
+    private bool _isAdminOrMaster;
+
+    // Current authenticated user info (shown read-only for non-admin)
+    private string _selfName = string.Empty;
+    private string _selfRole = string.Empty;
+
+    // Selected employee for Admin/Master assignment
+    private User? _selectedEmployee;
+    private string _selectedEmployeeName = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            var authState = await CustomAuthenticationProvider.GetAuthenticationStateAsync();
+            var claims = authState.User;
+            var role = claims.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+            var currentUserIdStr = claims.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var currentUserName = claims.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value;
+
+            _isAdminOrMaster = role is "Admin" or "Master";
+            _selfRole = role ?? string.Empty;
+            _selfName = currentUserName ?? string.Empty;
+
+            if (_isEdit && Id.HasValue)
+            {
+                var existing = await DailyReportService.GetAsync(Id.Value, default);
+                if (existing is null)
+                {
+                    ToastService.ShowError("Report not found");
+                    nav.NavigateTo("/daily-reports");
+                    return;
+                }
+
+                // Trim trailing empty tasks and ensure at least 1 row each
+                EnsureMinOneTask(existing.WorkTasks);
+                EnsureMinOneTask(existing.TomorrowTasks);
+
+                _model = existing;
+                _isReadOnly = existing.Status == DailyReportStatus.Submitted && !_isAdminOrMaster;
+
+                // Pre-populate assignment autocomplete display for Admin/Master
+                if (_isAdminOrMaster && existing.Employee is not null)
+                {
+                    _selectedEmployee = existing.Employee;
+                    _selectedEmployeeName = $"{existing.Employee.FirstName} {existing.Employee.LastName}".Trim();
+                }
+            }
+            else
+            {
+                var today = DateOnly.FromDateTime(DateTime.Now);
+                _model.ReportDate = today;
+
+                if (Guid.TryParse(currentUserIdStr, out var selfId))
+                    _model.EmployeeId = selfId;
+
+                var reportNo = await DailyReportService.GenerateReportNoAsync(today, null, default);
+                Console.WriteLine($"Generated report number: {reportNo}");
+                _model.ReportNo = reportNo;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading report data: {ex}");
+            ToastService.ShowError("Failed to load report data");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    /// <summary>Autocomplete search: calls UserService paged endpoint.</summary>
+    private async Task<List<User>> SearchUsers(string searchTerm, int page, CancellationToken ct)
+    {
+        var request = new GridDataRequest { SearchTerm = searchTerm, Page = page, PageSize = 10 };
+        var response = await UserService.GetPagedAsync(request, ct);
+        return response?.Data ?? [];
+    }
+
+    /// <summary>Called when Admin/Master selects a user from the autocomplete.</summary>
+    private async Task OnUserSelected(User user)
+    {
+        _selectedEmployee = user;
+        _model.EmployeeId = user.Id;
+        // Regenerate report number for the newly selected employee
+        _model.ReportNo = await DailyReportService.GenerateReportNoAsync(
+            _model.ReportDate, user.Id, default);
+        StateHasChanged();
+    }
+
+    private async Task SaveDraft()
+    {
+        _isSaving = true;
+        try
+        {
+            TrimTaskLists();
+            if (_isEdit)
+            {
+                await DailyReportService.UpdateAsync(_model, default);
+                ToastService.ShowSuccess("Report saved");
+            }
+            else
+            {
+                var created = await DailyReportService.AddAsync(_model, default);
+                if (created is null) throw new InvalidOperationException("Failed to create report.");
+                ToastService.ShowSuccess("Report created");
+                nav.NavigateTo($"/view-daily-report/{created.Id}");
+            }
+        }
+        catch (DuplicateReportException ex)
+        {
+            // A report already exists for this date — navigate the user there instead of showing an error
+            ToastService.ShowWarning(ex.Message);
+            nav.NavigateTo($"/view-daily-report/{ex.ExistingId}");
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError(ex.Message);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private async Task SubmitReport()
+    {
+        _isSubmitting = true;
+        try
+        {
+            TrimTaskLists();
+
+            if (_isEdit)
+            {
+                await DailyReportService.UpdateAsync(_model, default);
+                await DailyReportService.SubmitAsync(_model.Id, default);
+                ToastService.ShowSuccess("Report submitted successfully");
+                nav.NavigateTo($"/view-daily-report/{_model.Id}");
+            }
+            else
+            {
+                // Create first — get back the server-assigned Id — then submit in a second call
+                var created = await DailyReportService.AddAsync(_model, default);
+                if (created is null) throw new InvalidOperationException("Failed to create report.");
+
+                try
+                {
+                    await DailyReportService.SubmitAsync(created.Id, default);
+                    ToastService.ShowSuccess("Report submitted successfully");
+                }
+                catch
+                {
+                    // Report was saved but submit failed — navigate to the draft so the user can retry
+                    ToastService.ShowWarning("Report saved as draft. Please submit from the view page.");
+                }
+                nav.NavigateTo($"/view-daily-report/{created.Id}");
+            }
+        }
+        catch (DuplicateReportException ex)
+        {
+            // A report already exists for this date — navigate the user there instead of showing an error
+            ToastService.ShowWarning(ex.Message);
+            nav.NavigateTo($"/view-daily-report/{ex.ExistingId}");
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError(ex.Message);
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+
+    /// <summary>
+    /// Copies the previous report's TomorrowTasks.Text into today's WorkTasks.Text,
+    /// resetting all statuses to Pending. Only available in add mode.
+    /// </summary>
+    private async Task CopyYesterdaysPlans()
+    {
+        if (_isCopying) return;
+        _isCopying = true;
+        try
+        {
+            var targetEmployee = _selectedEmployee?.Id ?? _model.EmployeeId;
+            if (targetEmployee == Guid.Empty)
+            {
+                ToastService.ShowError("No employee selected.");
+                return;
+            }
+
+            var previous = await DailyReportService.GetLatestForCopyAsync(
+                targetEmployee, _model.ReportDate, default);
+
+            if (previous is null || previous.TomorrowTasks.Count == 0)
+            {
+                ToastService.ShowError("No previous report with plans found.");
+                return;
+            }
+
+            // Map each TomorrowTask from the previous report into a fresh WorkTask (status reset to Pending)
+            _model.WorkTasks = previous.TomorrowTasks
+                .Where(t => !string.IsNullOrWhiteSpace(t.Text))
+                .Select(t => new ReportTask { Text = t.Text, Status = TaskItemStatus.Pending })
+                .ToList();
+
+            if (_model.WorkTasks.Count == 0)
+                _model.WorkTasks.Add(new ReportTask());
+
+            ToastService.ShowSuccess($"Planned tasks pre-filled from {previous.ReportDate:dd MMM yyyy}.");
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError(ex.Message);
+        }
+        finally
+        {
+            _isCopying = false;
+        }
+    }
+
+    // ─── Row management ───────────────────────────────────────────────────────
+
+    private void AddWorkTaskRow()
+    {
+        if (_model.WorkTasks.Count >= MaxTaskRows) return;
+        _model.WorkTasks.Add(new ReportTask());
+    }
+
+    private void RemoveWorkTaskRow(int index)
+    {
+        if (_model.WorkTasks.Count <= 1) return;
+        if (index < _model.WorkTasks.Count) _model.WorkTasks.RemoveAt(index);
+    }
+
+    private void AddTomorrowPlanRow()
+    {
+        if (_model.TomorrowTasks.Count >= MaxTaskRows) return;
+        _model.TomorrowTasks.Add(new ReportTask());
+    }
+
+    private void RemoveTomorrowPlanRow(int index)
+    {
+        if (_model.TomorrowTasks.Count <= 1) return;
+        if (index < _model.TomorrowTasks.Count) _model.TomorrowTasks.RemoveAt(index);
+    }
+
+    // ─── Status cycling ───────────────────────────────────────────────────────
+
+    /// <summary>Cycles a task's status: Pending → InProgress → Done → Pending.</summary>
+    private static void CycleTaskStatus(List<ReportTask> list, int index)
+    {
+        if (index >= list.Count) return;
+        list[index].Status = list[index].Status switch
+        {
+            TaskItemStatus.Pending    => TaskItemStatus.InProgress,
+            TaskItemStatus.InProgress => TaskItemStatus.Done,
+            _                         => TaskItemStatus.Pending
+        };
+    }
+
+    /// <summary>Returns Tailwind classes for the left status stripe of a task card.</summary>
+    private static string GetTaskStripeCss(TaskItemStatus status) => status switch
+    {
+        TaskItemStatus.Pending    => "bg-gray-300 dark:bg-gray-600",
+        TaskItemStatus.InProgress => "bg-blue-400 dark:bg-blue-500",
+        TaskItemStatus.Done       => "bg-green-400 dark:bg-green-500",
+        _                         => "bg-gray-300 dark:bg-gray-600"
+    };
+
+    /// <summary>Returns Tailwind classes for the status badge button inside a task card.</summary>
+    private static string GetTaskStatusBadgeCss(TaskItemStatus status) => status switch
+    {
+        TaskItemStatus.Pending    => "bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600",
+        TaskItemStatus.InProgress => "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900/50",
+        TaskItemStatus.Done       => "bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 border-green-200 dark:border-green-700 hover:bg-green-100 dark:hover:bg-green-900/50",
+        _                         => "bg-gray-50 text-gray-500 border-gray-200"
+    };
+
+    /// <summary>Returns a tiny SVG icon string for each task status.</summary>
+    private static MarkupString GetTaskStatusIcon(TaskItemStatus status) => status switch
+    {
+        TaskItemStatus.Pending    => new MarkupString("<svg class=\"w-3 h-3\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><circle cx=\"12\" cy=\"12\" r=\"9\" stroke-width=\"2\"/></svg>"),
+        TaskItemStatus.InProgress => new MarkupString("<svg class=\"w-3 h-3\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z\"/></svg>"),
+        TaskItemStatus.Done       => new MarkupString("<svg class=\"w-3 h-3\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z\"/></svg>"),
+        _                         => new MarkupString("")
+    };
+
+    /// <summary>Returns Tailwind classes for a task status chip (used in form cycling button).</summary>
+    private static string GetTaskStatusCss(TaskItemStatus status) => status switch
+    {
+        TaskItemStatus.Pending    => "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600",
+        TaskItemStatus.InProgress => "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800/50",
+        TaskItemStatus.Done       => "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-800/50",
+        _                         => "bg-gray-100 text-gray-600"
+    };
+
+    // ─── List helpers ─────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Trims trailing empty tasks and ensures at least 1 row.
+    /// Called when loading existing report data into the edit form.
+    /// </summary>
+    private static void EnsureMinOneTask(List<ReportTask> list)
+    {
+        while (list.Count > 1 && string.IsNullOrWhiteSpace(list[^1].Text) && string.IsNullOrWhiteSpace(list[^1].ActualNote))
+            list.RemoveAt(list.Count - 1);
+        if (list.Count == 0)
+            list.Add(new ReportTask());
+    }
+
+    /// <summary>Remove trailing empty task entries before saving to reduce stored JSONB size.</summary>
+    private void TrimTaskLists()
+    {
+        static void Trim(List<ReportTask> l)
+        {
+            while (l.Count > 0 && string.IsNullOrWhiteSpace(l[^1].Text) && string.IsNullOrWhiteSpace(l[^1].ActualNote))
+                l.RemoveAt(l.Count - 1);
+        }
+        Trim(_model.WorkTasks);
+        Trim(_model.TomorrowTasks);
+    }
+
+    private void Cancel() => nav.NavigateTo(_isEdit && Id.HasValue ? $"/view-daily-report/{Id}" : "/daily-reports");
+}

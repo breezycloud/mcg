@@ -4,6 +4,9 @@ using System.Threading.Tasks;
 using Api.Context;
 using Api.Controllers;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting.Internal;
+using Microsoft.Extensions.Logging.Abstractions;
 using Shared.Models.Trips;
 using Shared.Enums;
 
@@ -17,9 +20,14 @@ class Program
 
         using var context = new AppDbContext(options);
 
-        var controller = new TripsController(context);
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["FileStorage:UploadPath"] = "/tmp/uploads" })
+            .Build();
+        var env = new HostingEnvironment { ContentRootPath = "/tmp" };
 
-        var method = typeof(TripsController).GetMethod("ValidateLoadingInfo", BindingFlags.NonPublic | BindingFlags.Instance);
+        var controller = new TripsController(context, NullLogger<TripsController>.Instance, config, env);
+
+        var method = typeof(TripsController).GetMethod("ValidateLoadingInfo", BindingFlags.NonPublic | BindingFlags.Instance, null, [typeof(Trip)], null);
         if (method == null)
         {
             Console.WriteLine("ValidateLoadingInfo method not found.");

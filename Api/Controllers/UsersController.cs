@@ -16,11 +16,22 @@ public class UsersController : ControllerBase
     private readonly AppDbContext _context;
     private readonly EmailPublisherService _mailPublisher;
 
-    public UsersController(AppDbContext context, EmailPublisherService mailPublisher)
-    {
-        _context = context;
-        _mailPublisher = mailPublisher;
-    }
+    #if RELEASE        
+
+        public UsersController(AppDbContext context, EmailPublisherService mailPublisher)
+        {
+            _context = context;
+            _mailPublisher = mailPublisher;
+        }
+    #endif    
+
+     #if DEBUG
+        public UsersController(AppDbContext context)
+        {
+            _context = context;
+        }
+     #endif
+    
 
     // POST: api/Users/SendEmail
     [HttpPost("send-email")]

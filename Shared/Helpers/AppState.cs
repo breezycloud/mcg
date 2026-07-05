@@ -83,4 +83,27 @@ public partial class AppState
         IsDriverSupervisor = isDriverSupervisor;
         ManagedProducts = isDriverSupervisor ? products.Distinct().ToList() : new List<Product>();
     }
+
+    // ─── Daily Report badge ───────────────────────────────────────────────────
+
+    /// <summary>
+    /// Count of submitted reports with no manager comment.
+    /// Loaded by NavMenu on init. Decremented by SaveReview. Incremented by SignalR submission notification.
+    /// </summary>
+    private int _dailyReportBadgeCount;
+    public int DailyReportBadgeCount
+    {
+        get => _dailyReportBadgeCount;
+        set
+        {
+            var clamped = Math.Max(0, value);
+            if (_dailyReportBadgeCount != clamped)
+            {
+                _dailyReportBadgeCount = clamped;
+                DailyReportBadgeChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+    }
+
+    public event EventHandler? DailyReportBadgeChanged;
 }
