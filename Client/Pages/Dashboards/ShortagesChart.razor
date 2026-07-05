@@ -230,8 +230,7 @@
                 Y = new TooltipY { Formatter = @"function(val) { return val.toFixed(2) }" } // Format for decimal units
             }
         };
-        chart.Options = chartOptions;
-        await UpdateChart();        
+        await UpdateChart();
     }
 
     private async Task UpdateChart()

@@ -425,10 +425,8 @@
     [CascadingParameter] public Task<AuthenticationState>? authenticationState { get; set; }
     private AuthenticationState? Authentication { get; set; }
 
-    private bool showDischargeModal = false;
     private bool showDeleteModal = false;
     private Discharge? editingDischarge;
-    private Discharges.DischargeModal? dischargeModalRef;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -457,18 +455,15 @@
     private void ShowAddDischargeModal()
     {
         editingDischarge = null;
-        showDischargeModal = true;
     }
 
     private void EditDischarge(Discharge discharge)
     {
         editingDischarge = discharge;
-        showDischargeModal = true;
     }
 
     private void HideDischargeModal()
     {
-        showDischargeModal = false;
         editingDischarge = null;
         StateHasChanged();
     }

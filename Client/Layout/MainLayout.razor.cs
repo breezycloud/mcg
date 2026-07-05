@@ -14,7 +14,6 @@ public partial class MainLayout
     protected NavigationManager NavigationManager { get; set; } = default!;
     [CascadingParameter] public Task<AuthenticationState>? AuthenticationState { get; set; } = default;
     AuthenticationState Authentication { get; set; }
-    private bool IsAuthenticated = false;
     protected override async Task OnInitializedAsync()
     {
         Authentication = await AuthenticationState!;

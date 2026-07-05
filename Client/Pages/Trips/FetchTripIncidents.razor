@@ -202,7 +202,6 @@
 
     private MaintenanceSite[]? Sites;
     private MaintenanceSite? Site = new();
-    private bool IsBusy, IsDisabled = false;
     
     protected override async Task OnInitializedAsync()
     {
@@ -249,15 +248,7 @@
     
     private async Task LoadIncidents()
     {
-        IsBusy = true;
-        try 
-        {
-            response = await IncidentService.GetPagedAsync(request, AppState.GetCancellationToken());
-        }
-        finally
-        {
-            IsBusy = false;
-        }
+        response = await IncidentService.GetPagedAsync(request, AppState.GetCancellationToken());
         StateHasChanged();
     }
 
@@ -329,7 +320,7 @@
                 await Task.Delay(1000);                
             }                        
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             ToastService.ShowError("An error occurred while saving");
         }

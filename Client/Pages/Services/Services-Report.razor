@@ -283,7 +283,7 @@
             var fileName = $"ServiceRequests_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
             await _js.InvokeVoidAsync("downloadReport", fileName,  Convert.ToBase64String(bytes));
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             ToastService.ShowError("Export failed. Try again later.");
         }

@@ -90,7 +90,7 @@
     private GridDataResponse<RefuelInfo>? refuelling = null;
     private GridDataRequest request = new();
     [Parameter] public EventCallback OnSave { get; set; }
-    private bool IsBusy, IsProcessing = false;
+    private bool IsBusy = false;
     
     @* protected override async Task OnInitializedAsync()
     {
@@ -132,7 +132,6 @@
 
     private async Task Delete(Guid id)
     {
-        IsProcessing = true;
         try
         {
             var response = await RefuelInfoService.DeleteAsync(id, AppState.GetCancellationToken());
@@ -146,11 +145,10 @@
                 ToastService.ShowError("Failed to delete info");
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             ToastService.ShowError("Failed to delete info");
         }
-        IsProcessing = false;
     }
 
     public void Dispose()

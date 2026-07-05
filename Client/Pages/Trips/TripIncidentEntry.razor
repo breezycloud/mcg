@@ -347,7 +347,7 @@
                 Cancel();
             }          
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             alert = new($"Operation failed", ToastIcon.Error);
         }
@@ -387,7 +387,7 @@
                 ToastService.ShowWarning($"Truck has no active trip");
             } *@
         }   
-        catch (Exception ex)     
+        catch (Exception)     
         {
             ToastService.ShowWarning("Truck has no active trip or network error");
         }
@@ -457,7 +457,7 @@
                 CloseIncidentModal();
             }                       
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             ToastService.ShowError("An error occurred while saving");
         }

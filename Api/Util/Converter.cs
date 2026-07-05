@@ -29,12 +29,18 @@ namespace Api.Util
 
             return v switch
             {
-                "ago" => (product = Product.AGO) is Product,
-                "atk" => (product = Product.ATK) is Product,
-                "lpg" => (product = Product.LPG) is Product,
-                "pms" => (product = Product.PMS) is Product,
+                "ago" => Assign(out product, Product.AGO),
+                "atk" => Assign(out product, Product.ATK),
+                "lpg" => Assign(out product, Product.LPG),
+                "pms" => Assign(out product, Product.PMS),
                 _ => false
             };
+        }
+
+        private static bool Assign(out Product product, Product value)
+        {
+            product = value;
+            return true;
         }
     }
 }

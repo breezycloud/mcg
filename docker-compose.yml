@@ -44,8 +44,19 @@ services:
       - "5294:5294"    # HTTP  (matches launchSettings.json http profile)
       - "7229:7229"    # HTTPS (matches launchSettings.json https profile)
     environment:
-      ASPNETCORE_ENVIRONMENT: Development
+      # NOT "Development": this image is built with `dotnet publish -c Release` (matching
+      # the real staging/prod build), and Auth.cs has a compile-time `#if RELEASE` branch
+      # whose constructor requires EmailPublisherService — which is only registered in DI
+      # when the runtime environment is non-Development. Release build + Development
+      # environment is a combination the app was never designed to support; every other
+      # local/dev workflow pairs Debug-build with Development, or Release-build with a
+      # real environment. "Production" here just means "fully provisioned, real build" —
+      # the one differing bit (local CORS origin) is added explicitly below.
+      ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: "https://+:7229;http://+:5294"
+      # appsettings.json's Cors:AllowedOrigins only has the real prod/staging domains —
+      # add the local Docker client as a third allowed origin.
+      Cors__AllowedOrigins__2: http://localhost:5080
       # Dev certificate mounted from host — generated with:
       #   dotnet dev-certs https -ep "$HOME/.aspnet/https/aspnetapp.pfx" -p mcg_dev_cert_2026 --trust
       # (Windows/PowerShell: use $env:USERPROFILE instead of $HOME below and above)

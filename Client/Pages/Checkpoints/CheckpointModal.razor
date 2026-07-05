@@ -88,9 +88,6 @@
     public bool EditMode { get; set; } = false;
     [Parameter]
     public TripCheckpoint Data { get; set; } = new();
-    private TripCheckpoint? editingTripCheckpoint;
-    private bool showDeleteTripCheckpointModal = false;
-    private TripCheckpoint? checkpointToDelete;
     [Parameter]
     public EventCallback<TripCheckpoint> OnSave { get; set; }
     [Parameter]

@@ -576,27 +576,18 @@
 
     public decimal InitialQuantity => Trip!.LoadingInfo.Quantity  - Trip.Discharges.Sum(x => x.QuantityDischarged) ?? 0;
 
-    private List<TripCheckpoint>? checkpoints;
     private string checkpointSearch = string.Empty;
     private TripCheckpoint currentCheckpoint = new();
-    private TripCheckpoint? editingCheckpoint;
-    private bool showCheckpointModal = false;
-    private bool showDeleteCheckpointModal = false;
     private TripCheckpoint? checkpointToDelete;
 
     private Discharge currentDischarge = new();
-    private Discharge? editingDischarge;
     private bool showDischargeModal = false;
-    
+
     private bool viewDischargesModal = false;
-    private bool showDeleteDischargeModal = false;
-    private Discharge? dischargeToDelete;    
+    private Discharge? dischargeToDelete;
 
     private bool showRefuelModal = false;
-    private bool viewRefuelModal = false;
-    private bool showDeleteRefuelModal = false;
     private RefuelInfo? RefuelInfo { get; set;} = new();
-    private RefuelInfo? editingRefuelInfo = null;
     private RefuelInfo? refuelInfoToDelete = null;
     private Station[]? LoadingDepots = [];    
     private Station[]? Depots = [];
@@ -850,8 +841,6 @@
     private void ShowAddCheckpointModal()
     {
         currentCheckpoint = new();
-        editingCheckpoint = null;
-        showCheckpointModal = true;
     }
 
     private void EditCheckpoint(TripCheckpoint checkpoint)
@@ -871,18 +860,16 @@
     private void ShowDeleteCheckpointModal(TripCheckpoint checkpoint)
     {
         checkpointToDelete = checkpoint;
-        showDeleteCheckpointModal = true;
     }
 
     private async Task DeleteCheckpoint()
     {
         if (checkpointToDelete == null) return;
-        
+
         try
         {
             @* await CheckpointService.DeleteAsync(checkpointToDelete.Id);
             await LoadCheckpoints(); *@
-            showDeleteCheckpointModal = false;
         }
         catch (Exception ex)
         {
@@ -893,14 +880,11 @@
 
     private void CloseCheckpointModal()
     {
-        showCheckpointModal = false;
         currentCheckpoint = new();
-        editingCheckpoint = null;
     }
 
     private void ShowAddDischargeModal()
-    {               
-        editingDischarge = null;
+    {
         showDischargeModal = true;
         if (!Trip.Discharges.Any() && Trip.ArrivalInfo.StationArrivalDateTime is not null)
             currentDischarge = new() { TruckArrival = Trip.ArrivalInfo.StationArrivalDateTime };
@@ -909,9 +893,8 @@
     }
 
     private void ShowAddRefuelInfoModal()
-    {                       
-        editingRefuelInfo = null;
-        showRefuelModal = true;        
+    {
+        showRefuelModal = true;
         RefuelInfo = new() { DispatchId = Trip!.DispatchId, Truck = Trip.Truck, TruckId = Trip.Truck.Id };
     }    
 
@@ -975,13 +958,11 @@
     private void ShowDeleteDischargeModal(Discharge discharge)
     {
         dischargeToDelete = discharge;
-        showDeleteDischargeModal = true;
     }
 
     private void ShowDeleteDischargeModal(RefuelInfo info)
     {
-        refuelInfoToDelete = info;        
-        showDeleteRefuelModal = true;
+        refuelInfoToDelete = info;
     }
 
     private async Task DeleteDischarge(Guid id)
@@ -1008,8 +989,7 @@
             Console.WriteLine($"Error deleting discharge: {ex.Message}");
         }
         finally
-        {            
-            showDeleteDischargeModal = false;
+        {
             dischargeToDelete = null;
             StateHasChanged();
         }
@@ -1019,14 +999,12 @@
     {
         showDischargeModal = false;
         currentDischarge = new();
-        editingDischarge = null;
     }
 
     private void CloseRefuelModal()
     {
         showRefuelModal = false;
         RefuelInfo = new();
-        editingRefuelInfo = null;        
         StateHasChanged();
     }
 
@@ -1038,7 +1016,6 @@
 
     private void CloseViewRefuelInfoModal()
     {
-        viewRefuelModal = false;
         StateHasChanged();
     }
 
@@ -1085,8 +1062,6 @@
     {
         ToastService.ShowSuccess("Trip Successfully Updated");
     }
-
-    private int hoverRating;
 
     private void SetRating(int rating)
     {

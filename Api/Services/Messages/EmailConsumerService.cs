@@ -18,7 +18,6 @@ public class EmailConsumerService : BackgroundService
     private readonly IFluentEmail _fluentEmail;
     private readonly RazorLightEngine _razorEngine;
     private readonly ILogger<EmailConsumerService> _logger;
-    private readonly string _templatePath;
 
     public EmailConsumerService(
         IOptions<MessageBrokerSetting> rabbitConfig,

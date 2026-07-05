@@ -383,7 +383,6 @@
     private Product Product { get; set; } = Product.PMS;
     
     bool result = false;
-    private NotificationAlert? alert = null;
 
     private Dictionary<string, string> errors = new();
 
@@ -446,7 +445,7 @@
                     errors["LicensePlate"] = "License Plate already exist";
             }    
         }
-        catch(Exception ex)
+        catch (Exception)
         {
 
         }
@@ -597,7 +596,7 @@
                 Cancel();
             }                
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             ToastService.ShowError("error occured");
         }

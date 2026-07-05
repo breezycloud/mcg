@@ -358,7 +358,6 @@
     private Trip selectedTrip;
     private string openMenuId;
     private bool showData = true;
-    private bool showStatusModal = false;
     private TripStatus? Status { get; set; }
 
     
@@ -572,11 +571,7 @@
             if (result)
             {
                 ToastService.ShowSuccess("Trip Successfully Updated", 5);
-
-                if (trip.Status == TripStatus.Closed)
-                    showStatusModal = false;
-
-            }                
+            }
 
         }
         catch (Exception ex)

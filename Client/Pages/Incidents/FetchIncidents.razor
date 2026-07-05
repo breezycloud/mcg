@@ -194,19 +194,15 @@
 
 @code {
     private GridDataResponse<Incident>? response = null;
-    private bool IsExporting = false;
-    private int Progress = 0;
 
     private GridDataRequest request = new();
     private IncidentStatus? Status;
-    private bool IsVisible = false;
 
     private IncidentType? IncidentType  = new();
     private IncidentType? editingIncidentType;
 
     private MaintenanceSite[]? Sites;
     private MaintenanceSite? Site = new();
-    private bool IsDisabled = false;
     [CascadingParameter] public Task<AuthenticationState>? authenticationState { get; set; }
     protected override async Task OnInitializedAsync()
     {
@@ -306,18 +302,6 @@
         nav.NavigateTo("/incidents/add");
     }
 
-    private void AddIncidentType()
-    {
-        IsVisible = true;
-        StateHasChanged();
-    }
-
-    private void CloseIncidentModal()
-    {
-        IsVisible = false;
-        StateHasChanged();        
-    }
-
     private async Task SaveIncidentType()
     {
         AppState.IsProcessing = true;
@@ -356,7 +340,7 @@
                 await Task.Delay(1000);                
             }                        
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             ToastService.ShowError("An error occurred while saving");
         }

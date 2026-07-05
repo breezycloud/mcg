@@ -91,7 +91,6 @@
     [Parameter] public EventCallback OnCancel { get; set; }
 
     bool result = false;
-    private NotificationAlert? alert = null;
 
     private Dictionary<string, string> errors = new();
 
@@ -161,7 +160,7 @@
                 nav.NavigateTo("stations");
             }                            
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             ToastService.ShowError("Operation failed");
         }

@@ -116,6 +116,7 @@ builder.Services.AddHttpClient<ILocationService, LocationService>(client =>
 
 
 builder.Services.AddSingleton<ToastService>();
+builder.Services.AddSingleton<AppHubService>();
 builder.Services.AddScoped<SidebarService>();
 
 builder.Services.AddTransient<IExportService, CsvExportService>();

@@ -78,7 +78,6 @@
 @code {
     private LoginModel Model { get; set; } = new();
     [CascadingParameter] public Task<AuthenticationState>? authenticationState { get; set; }
-    private LoginResponse? loginResponse = null;
 
     
 
