@@ -25,7 +25,7 @@
         </div>
     </div>
     <!-- Dashboard content -->
-    <DashboardMetrics  StartDate="@filterStartDate" EndDate="@filterEndDate" Product="@selectedProduct" />
+    <DashboardMetrics  StartDate="@filterStartDate" EndDate="@filterEndDate" Product="@selectedProduct" TimeFilter="@currentTimeFilter" />
 
     <!-- Charts & Recent Trips -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -40,7 +40,7 @@
     <ShortagesChart StartDate="@filterStartDate.Value" EndDate="@filterEndDate.Value" />
 
     <!-- Product Shipments Table -->
-    <ProductShipments StartDate="@filterStartDate" EndDate="@filterEndDate" Product="@selectedProduct" />        
+    <ProductShipments StartDate="@filterStartDate" EndDate="@filterEndDate" Product="@selectedProduct" TimeFilter="@currentTimeFilter" />
 </div>
 
 @code {
@@ -48,6 +48,7 @@
     private bool isConnected;
     private DateOnly? filterStartDate;
     private DateOnly? filterEndDate;
+    private TimeFilter currentTimeFilter = TimeFilter.ThisWeek;
     private ProductFilter selectedProduct;
 
     protected override async Task OnInitializedAsync()
@@ -69,7 +70,7 @@
         // same Api base address the rest of the app uses (they run on different
         // origins outside of combined hosting).
         var apiBaseAddress = new Client.Handlers.Constants(NavigationManager, Configuration).BaseAddress();
-        var hubUrl = new Uri(new Uri(apiBaseAddress), "/tripsHub");
+        var hubUrl = new Uri(new Uri(apiBaseAddress), "/hubs/dashboard");
 
         hubConnection = new HubConnectionBuilder()
             .WithUrl(hubUrl)
@@ -91,11 +92,12 @@
         }
     }
 
-    private void HandleTimeFilterChange((DateOnly Start, DateOnly End) dates)
+    private void HandleTimeFilterChange((DateOnly Start, DateOnly End, TimeFilter Filter) dates)
     {
         AppState.IsBusy = true;
         filterStartDate = dates.Start;
         filterEndDate = dates.End;
+        currentTimeFilter = dates.Filter;
         AppState.OnFilterChanged();
     }
 

@@ -22,7 +22,7 @@
 
 @code {
     [Parameter]
-    public EventCallback<(DateOnly StartDate, DateOnly EndDate)> OnFilterChanged { get; set; }
+    public EventCallback<(DateOnly StartDate, DateOnly EndDate, TimeFilter Filter)> OnFilterChanged { get; set; }
 
     private TimeFilter currentFilter = TimeFilter.ThisWeek;
 
@@ -58,7 +58,7 @@
             )
         };
 
-        OnFilterChanged.InvokeAsync((startDate, endDate));
+        OnFilterChanged.InvokeAsync((startDate, endDate, filter));
     }
 
     private string GetButtonClass(TimeFilter filter) =>

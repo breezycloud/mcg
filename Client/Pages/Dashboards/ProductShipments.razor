@@ -1,7 +1,6 @@
 @using Shared.Extensions
 @using Shared.Enums
 @inject IDashboardService DashboardService
-@implements IDisposable
 
 @if (IsLoading)
 {
@@ -72,7 +71,7 @@ else
                             <tr>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="flex items-center">
-                                        <div class="flex-shrink-0 h-5 w-5 @GetProductColor(item.Product) rounded-full"></div>
+                                        <div class="flex-shrink-0 h-5 w-5 rounded-full @GetProductColorClass(item.Product)" style="@GetProductColorStyle(item.Product)"></div>
                                         <div class="ml-2 text-gray-900 dark:text-gray-100">@FormatProduct(item.Product)</div>
                                     </div>
                                 </td>
@@ -102,6 +101,8 @@ else
     public DateOnly? EndDate { get; set; }
     [Parameter]
     public ProductFilter Product { get; set; } = ProductFilter.All;
+    [Parameter]
+    public TimeFilter TimeFilter { get; set; } = TimeFilter.ThisWeek;
 
     private List<ProductShipmentDto>? shipments;
     private string TimeRangeLabel => GetTimeRangeLabel();
@@ -110,17 +111,11 @@ else
 
     protected override async Task OnParametersSetAsync()
     {
-        AppState.FilterChanged += OnFilterChanged!;
-        await LoadData();         
-    }
-
-    private async void OnFilterChanged(object sender, EventArgs args)
-    {
         await LoadData();
     }
 
     private async Task LoadData()
-    {        
+    {
         IsLoading = true;
         shipments = await DashboardService.GetProductShipmentsAsync(StartDate, EndDate, Product.ToString());
         IsLoading = false;
@@ -132,34 +127,46 @@ else
         if (!StartDate.HasValue || !EndDate.HasValue)
             return "All Time";
 
-         var diff = (EndDate.Value.ToDateTime(TimeOnly.MinValue) - StartDate.Value.ToDateTime(TimeOnly.MinValue)).TotalDays;
-
-        return diff switch
+        return TimeFilter switch
         {
-            <= 7 => "This Week",
-            <= 14 => "Last Week",
-            <= 31 => "This Month",
-            <= 62 => "Last Month",
+            TimeFilter.ThisWeek => "This Week",
+            TimeFilter.LastWeek => "Last Week",
+            TimeFilter.ThisMonth => "This Month",
+            TimeFilter.LastMonth => "Last Month",
             _ => $"{StartDate:MMM dd} - {EndDate:MMM dd}"
         };
     }
 
 
-    private string GetProductColor(string? product)
+    private string GetProductColorClass(string? product)
     {
         if (string.IsNullOrWhiteSpace(product)) return "bg-gray-500";
         var p = product.Trim();
         return p switch
         {
-            "CNG" or "CngAbuja" or "CNG-Abuja" => "bg-blue-500",
-            "CngLagos" or "CNG-Lagos" => "bg-indigo-500",
-            "PMS" => "bg-yellow-500",
-            "ATK" => "bg-red-500",
-            "LPG" => "bg-green-500",
-            "AGO" => "bg-purple-500",
+            "PMS" => "bg-blue-500",
+            "ATK" => "bg-black",
+            "AGO" => "", // blue base + yellow top stripe applied via inline style instead
+            "LPG" => "bg-blue-900",
+            "CngLagos" or "CNG-Lagos" => "", // purple base + white top stripe applied via inline style instead
+            "CNG" or "CngAbuja" or "CNG-Abuja" => "bg-purple-500",
             _ => "bg-gray-500"
         };
     }
+
+    private string GetProductColorStyle(string? product)
+    {
+        var p = product?.Trim();
+        return p switch
+        {
+            "AGO" => TopStripeGradient(baseColor: "#0ea5e9", stripeColor: "#eab308"),
+            "CngLagos" or "CNG-Lagos" => TopStripeGradient(baseColor: "#a855f7", stripeColor: "#eab308"),
+            _ => ""
+        };
+    }
+
+    private static string TopStripeGradient(string baseColor, string stripeColor)
+        => $"background: linear-gradient(to bottom, {stripeColor} 0%, {stripeColor} 30%, {baseColor} 30%, {baseColor} 100%);";
 
     private string GetUnitForProduct(string? product)
     {
@@ -201,9 +208,4 @@ else
         // Implementation would use EPPlus or similar
         // to generate an Excel file for download
     }
-
-    public void Dispose()
-    {
-        AppState.FilterChanged -= OnFilterChanged!;
-    }     
 }

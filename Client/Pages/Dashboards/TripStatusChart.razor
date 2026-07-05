@@ -1,7 +1,6 @@
 @using ApexCharts
 @using System.Threading.Tasks
 @inject IDashboardService DashboardService
-@implements IDisposable
 
 @if (IsLoading)
 {
@@ -50,9 +49,8 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        AppState.FilterChanged += OnFilterChanged!;    
         await InitializeChartOptions();
-        await LoadData();        
+        await LoadData();
     }
 
     protected override async Task OnParametersSetAsync()
@@ -171,6 +169,7 @@ else
 
         // Set x-axis categories
         chartOptions.Xaxis.Categories = months;
+        chartOptions.Colors = products.Select(GetProductHexColor).ToList();
         @* chart.Series = Series *@
 
         // Update chart
@@ -183,12 +182,23 @@ else
         await InvokeAsync(StateHasChanged);
     }
 
-    private async void OnFilterChanged(object? sender, EventArgs e)
+    private static string GetProductHexColor(string? product)
     {
-        await LoadData();
-        await UpdateChart();
+        if (string.IsNullOrWhiteSpace(product)) return "#6b7280"; // gray-500
+        var p = product.Trim();
+        return p switch
+        {
+            "PMS" => "#3b82f6",                              // blue-500
+            "ATK" => "#000000",                              // black
+            "LPG" => "#1e3a8a",                              // blue-900 (dark blue)
+            "AGO" => "#eab308",                              // yellow-500
+            "CNG" or "CngAbuja" or "CNG-Abuja" => "#a855f7", // purple-500
+            "CngLagos" or "CNG-Lagos" => "#ef4444",          // red-500
+            "PAO" => "#a52a2a",                              // brown
+            _ => "#6b7280"
+        };
     }
-    
+
     private string GetPointColor(TripStatus status)
     {   
         switch (status)
@@ -202,10 +212,5 @@ else
             default:
                 return "#6c757d"; // Gray
         }
-    }   
-
-    public void Dispose()
-    {
-        AppState.FilterChanged -= OnFilterChanged!;
-    }     
+    }
 }

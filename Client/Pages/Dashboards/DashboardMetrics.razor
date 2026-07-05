@@ -1,5 +1,4 @@
 @inject IDashboardService DashboardService
-@implements IDisposable
 
 @if (IsLoading)
 {
@@ -106,6 +105,8 @@ else
     public DateOnly? EndDate { get; set; }
     [Parameter]
     public ProductFilter Product { get; set; } = ProductFilter.All;
+    [Parameter]
+    public TimeFilter TimeFilter { get; set; } = TimeFilter.ThisWeek;
     private DashboardMetricsDto? metrics;
     private MetricsTrendDto? trends;
     private string TimeRangeLabel => GetTimeRangeLabel();
@@ -113,8 +114,7 @@ else
     private bool IsLoading = false;
     protected override async Task OnParametersSetAsync()
     {
-        AppState.FilterChanged += OnFilterChanged!;
-        await LoadData();        
+        await LoadData();
     }
 
     private async Task LoadData()
@@ -126,24 +126,17 @@ else
         StateHasChanged();
     }
 
-    private async void OnFilterChanged(object sender, EventArgs args)
-    {
-        await LoadData();
-    }
-
     private string GetTimeRangeLabel()
     {
         if (!StartDate.HasValue || !EndDate.HasValue)
             return "All time";
 
-        var diff = (EndDate.Value.ToDateTime(TimeOnly.MinValue) - StartDate.Value.ToDateTime(TimeOnly.MinValue)).TotalDays;
-
-        return diff switch
+        return TimeFilter switch
         {
-            <= 7 => "This week",
-            <= 14 => "Last week",
-            <= 31 => "This month",
-            <= 62 => "Last month",
+            TimeFilter.ThisWeek => "This week",
+            TimeFilter.LastWeek => "Last week",
+            TimeFilter.ThisMonth => "This month",
+            TimeFilter.LastMonth => "Last month",
             _ => $"{StartDate:MMM dd} - {EndDate:MMM dd}"
         };
     }
@@ -158,11 +151,5 @@ else
     {
         if (!trend.HasValue) return "fas fa-minus";
         return trend.Value >= 0 ? "fas fa-arrow-up" : "fas fa-arrow-down";
-    }
-
-
-    public void Dispose()
-    {
-        AppState.FilterChanged -= OnFilterChanged!;
     }
 }
