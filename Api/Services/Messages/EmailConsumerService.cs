@@ -108,7 +108,12 @@ public class EmailConsumerService : BackgroundService
             email.Attach(attachment);
         }
 
-        await email.SendAsync();
+        var response = await email.SendAsync();
+        if (!response.Successful)
+        {
+            throw new InvalidOperationException(
+                $"Email send failed for {message.To}: {string.Join("; ", response.ErrorMessages)}");
+        }
         _logger.LogInformation("Mail successfully sent to {0}", message!.To);
     }
 
