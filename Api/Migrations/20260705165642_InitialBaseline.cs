@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 using Shared.Enums;
 using Shared.Helpers;
 using Shared.Models.BaseEntity;
+using Shared.Models.Reports;
 using Shared.Models.Trips;
 using Shared.Models.Trucks;
 
@@ -12,7 +13,7 @@ using Shared.Models.Trucks;
 namespace Api.Migrations
 {
     /// <inheritdoc />
-    public partial class AddDailyReports : Migration
+    public partial class InitialBaseline : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -131,6 +132,8 @@ namespace Api.Migrations
                     Email = table.Column<string>(type: "text", nullable: false),
                     PhoneNo = table.Column<string>(type: "text", nullable: true),
                     HashedPassword = table.Column<string>(type: "text", nullable: true),
+                    PasswordResetToken = table.Column<string>(type: "text", nullable: true),
+                    PasswordResetTokenExpiry = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     Role = table.Column<int>(type: "integer", nullable: false),
                     ManagedProducts = table.Column<List<Product>>(type: "jsonb", nullable: false),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false),
@@ -257,14 +260,15 @@ namespace Api.Migrations
                     ReportDate = table.Column<DateOnly>(type: "date", nullable: false),
                     ReportNo = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
                     EmployeeId = table.Column<Guid>(type: "uuid", nullable: false),
-                    Department = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
-                    Title = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
-                    PlannedTasks = table.Column<List<string>>(type: "jsonb", nullable: false),
-                    ActualTasks = table.Column<List<string>>(type: "jsonb", nullable: false),
+                    AssignedById = table.Column<Guid>(type: "uuid", nullable: true),
+                    Department = table.Column<int>(type: "integer", nullable: true),
+                    WorkTasks = table.Column<List<ReportTask>>(type: "jsonb", nullable: false),
                     Remark = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
-                    TomorrowPlans = table.Column<List<string>>(type: "jsonb", nullable: false),
-                    Recommendations = table.Column<List<string>>(type: "jsonb", nullable: false),
+                    TomorrowTasks = table.Column<List<ReportTask>>(type: "jsonb", nullable: false),
                     Status = table.Column<int>(type: "integer", nullable: false),
+                    ManagerComment = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    ReviewedById = table.Column<Guid>(type: "uuid", nullable: true),
+                    ReviewedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
                 },
@@ -272,11 +276,23 @@ namespace Api.Migrations
                 {
                     table.PrimaryKey("PK_DailyReports", x => x.Id);
                     table.ForeignKey(
+                        name: "FK_DailyReports_Users_AssignedById",
+                        column: x => x.AssignedById,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
                         name: "FK_DailyReports_Users_EmployeeId",
                         column: x => x.EmployeeId,
                         principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_DailyReports_Users_ReviewedById",
+                        column: x => x.ReviewedById,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
                 });
 
             migrationBuilder.CreateTable(
@@ -656,14 +672,25 @@ namespace Api.Migrations
                 column: "StationId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_DailyReports_Employee_Date",
+                name: "IX_DailyReports_AssignedById",
                 table: "DailyReports",
-                columns: new[] { "EmployeeId", "ReportDate" });
+                column: "AssignedById");
 
             migrationBuilder.CreateIndex(
                 name: "IX_DailyReports_ReportDate",
                 table: "DailyReports",
                 column: "ReportDate");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DailyReports_ReviewedById",
+                table: "DailyReports",
+                column: "ReviewedById");
+
+            migrationBuilder.CreateIndex(
+                name: "UX_DailyReports_Employee_Date",
+                table: "DailyReports",
+                columns: new[] { "EmployeeId", "ReportDate" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Discharges_InvoicedStationId",

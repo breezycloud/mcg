@@ -10,6 +10,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Shared.Enums;
 using Shared.Helpers;
 using Shared.Models.BaseEntity;
+using Shared.Models.Reports;
 using Shared.Models.Trips;
 using Shared.Models.Trucks;
 
@@ -18,15 +19,15 @@ using Shared.Models.Trucks;
 namespace Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260611125036_AddDailyReports")]
-    partial class AddDailyReports
+    [Migration("20260705165642_InitialBaseline")]
+    partial class InitialBaseline
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.16")
+                .HasAnnotation("ProductVersion", "9.0.17")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -360,27 +361,21 @@ namespace Api.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<List<string>>("ActualTasks")
-                        .IsRequired()
-                        .HasColumnType("jsonb");
+                    b.Property<Guid?>("AssignedById")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("Department")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                    b.Property<int?>("Department")
+                        .HasColumnType("integer");
 
                     b.Property<Guid>("EmployeeId")
                         .HasColumnType("uuid");
 
-                    b.Property<List<string>>("PlannedTasks")
-                        .IsRequired()
-                        .HasColumnType("jsonb");
-
-                    b.Property<List<string>>("Recommendations")
-                        .IsRequired()
-                        .HasColumnType("jsonb");
+                    b.Property<string>("ManagerComment")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
 
                     b.Property<string>("Remark")
                         .HasMaxLength(2000)
@@ -393,27 +388,38 @@ namespace Api.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
+                    b.Property<DateTimeOffset?>("ReviewedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ReviewedById")
+                        .HasColumnType("uuid");
+
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
-                    b.Property<string>("Title")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<List<string>>("TomorrowPlans")
+                    b.Property<List<ReportTask>>("TomorrowTasks")
                         .IsRequired()
                         .HasColumnType("jsonb");
 
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<List<ReportTask>>("WorkTasks")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("AssignedById");
 
                     b.HasIndex("ReportDate")
                         .HasDatabaseName("IX_DailyReports_ReportDate");
 
+                    b.HasIndex("ReviewedById");
+
                     b.HasIndex("EmployeeId", "ReportDate")
-                        .HasDatabaseName("IX_DailyReports_Employee_Date");
+                        .IsUnique()
+                        .HasDatabaseName("UX_DailyReports_Employee_Date");
 
                     b.ToTable("DailyReports");
                 });
@@ -957,6 +963,12 @@ namespace Api.Migrations
                         .IsRequired()
                         .HasColumnType("jsonb");
 
+                    b.Property<string>("PasswordResetToken")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("PasswordResetTokenExpiry")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("PhoneNo")
                         .HasColumnType("text");
 
@@ -1081,13 +1093,27 @@ namespace Api.Migrations
 
             modelBuilder.Entity("Shared.Models.Reports.DailyReport", b =>
                 {
+                    b.HasOne("Shared.Models.Users.User", "AssignedBy")
+                        .WithMany()
+                        .HasForeignKey("AssignedById")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Shared.Models.Users.User", "Employee")
                         .WithMany()
                         .HasForeignKey("EmployeeId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Shared.Models.Users.User", "ReviewedBy")
+                        .WithMany()
+                        .HasForeignKey("ReviewedById")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("AssignedBy");
+
                     b.Navigation("Employee");
+
+                    b.Navigation("ReviewedBy");
                 });
 
             modelBuilder.Entity("Shared.Models.Services.ServiceRequest", b =>
