@@ -200,31 +200,51 @@
                                         </span>
                                     </td>
                                     <td class="px-6 py-4 text-right">
-                                        <div class="flex items-center justify-end gap-3">
-                                            <button @onclick="() => ViewReport(report.Id)"
-                                                class="font-medium text-green-600 dark:text-green-400 hover:underline text-sm">View</button>
-                                            @if (report.Status == DailyReportStatus.Draft)
-                                            {
-                                                <button @onclick="() => EditReport(report.Id)"
-                                                    class="font-medium text-blue-600 dark:text-blue-400 hover:underline text-sm">Edit</button>
-                                                <button @onclick="() => PrintReport(report.Id)"
-                                                    class="font-medium text-gray-600 dark:text-gray-400 hover:underline text-sm">Print</button>
-                                                <AuthorizeView Roles="Admin,Master" Context="rowDeleteAuth">
-                                                    <Authorized>
-                                                        <button @onclick="() => ConfirmDelete(report)"
-                                                            class="font-medium text-red-600 dark:text-red-400 hover:underline text-sm">Delete</button>
-                                                    </Authorized>
-                                                </AuthorizeView>
-                                            }
-                                            else
-                                            {
-                                                <AuthorizeView Roles="Admin,Master" Context="rowDeleteAuthSubmitted">
-                                                    <Authorized>
-                                                        <button @onclick="() => ConfirmDelete(report)"
-                                                            class="font-medium text-red-600 dark:text-red-400 hover:underline text-sm">Delete</button>
-                                                    </Authorized>
-                                                </AuthorizeView>
-                                            }
+                                        <div class="relative inline-block text-left">
+                                            <button type="button" @onclick="() => ToggleActionMenu(report.Id)"
+                                                class="p-1.5 rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white focus:outline-none">
+                                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                                    <path d="M10 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4z" />
+                                                </svg>
+                                            </button>
+                                            <div class="@(_openActionMenuId == report.Id ? "block" : "hidden") absolute right-0 mt-1 w-32 bg-white dark:bg-gray-800 rounded-lg shadow-lg z-20 border border-gray-200 dark:border-gray-700">
+                                                <div class="py-1">
+                                                    <button type="button" @onclick="() => { ToggleActionMenu(report.Id); ViewReport(report.Id); }"
+                                                        class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                                        View
+                                                    </button>
+                                                    @if (report.Status == DailyReportStatus.Draft)
+                                                    {
+                                                        <button type="button" @onclick="() => { ToggleActionMenu(report.Id); EditReport(report.Id); }"
+                                                            class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                                            Edit
+                                                        </button>
+                                                        <button type="button" @onclick="() => { ToggleActionMenu(report.Id); PrintReport(report.Id); }"
+                                                            class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                                            Print
+                                                        </button>
+                                                        <AuthorizeView Roles="Admin,Master" Context="rowDeleteAuth">
+                                                            <Authorized>
+                                                                <button type="button" @onclick="() => { ToggleActionMenu(report.Id); ConfirmDelete(report); }"
+                                                                    class="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                                                    Delete
+                                                                </button>
+                                                            </Authorized>
+                                                        </AuthorizeView>
+                                                    }
+                                                    else
+                                                    {
+                                                        <AuthorizeView Roles="Admin,Master" Context="rowDeleteAuthSubmitted">
+                                                            <Authorized>
+                                                                <button type="button" @onclick="() => { ToggleActionMenu(report.Id); ConfirmDelete(report); }"
+                                                                    class="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                                                    Delete
+                                                                </button>
+                                                            </Authorized>
+                                                        </AuthorizeView>
+                                                    }
+                                                </div>
+                                            </div>
                                         </div>
                                     </td>
                                 </tr>
@@ -287,9 +307,15 @@
     private bool _isLoading;
     private bool _isActionMenuOpen;
     private bool _isFilterMenuOpen;
+    private Guid? _openActionMenuId;
     private DailyReport? _reportToDelete;
     private bool _isDeleting;
     private DailyReportSummary? _summary;
+
+    private void ToggleActionMenu(Guid reportId)
+    {
+        _openActionMenuId = _openActionMenuId == reportId ? null : reportId;
+    }
 
     // Month filter binding — maps to request.Date
     private string _monthFilter = DateTime.Now.ToString("yyyy-MM");

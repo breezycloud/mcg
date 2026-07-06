@@ -115,26 +115,33 @@
                                         </span>
                                     </td>
                                     <td class="px-6 py-4 text-right">
-                                        <div class="flex justify-end space-x-3">
-                                            <button 
-                                                @onclick="(() => ViewDriver(driver.Id))" 
-                                                class="font-medium text-green-600 dark:text-green-500 hover:underline">
-                                                View
+                                        <div class="relative inline-block text-left">
+                                            <button type="button" @onclick="() => ToggleActionMenu(driver.Id)"
+                                                class="p-1.5 rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white focus:outline-none">
+                                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                                    <path d="M10 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4z" />
+                                                </svg>
                                             </button>
-                                            <AuthorizeView Roles="Supervisor, DriverSupervisor, Admin, Master, Manager">
-                                                <Authorized>
-                                                    <button 
-                                                        @onclick="() => EditDriver(driver.Id)" 
-                                                        class="font-medium text-blue-600 dark:text-blue-400 hover:underline">
-                                                        Edit
+                                            <div class="@(openActionMenuId == driver.Id ? "block" : "hidden") absolute right-0 mt-1 w-32 bg-white dark:bg-gray-800 rounded-lg shadow-lg z-20 border border-gray-200 dark:border-gray-700">
+                                                <div class="py-1">
+                                                    <button type="button" @onclick="() => { ToggleActionMenu(driver.Id); ViewDriver(driver.Id); }"
+                                                        class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                                        View
                                                     </button>
-                                                </Authorized>
-                                            </AuthorizeView>                                            
-                                            @* <button 
-                                                @onclick="() => DeleteDriver(driver.Id)" 
-                                                class="font-medium text-red-600 dark:text-red-500 hover:underline">
-                                                Delete
-                                            </button> *@
+                                                    <AuthorizeView Roles="Supervisor, DriverSupervisor, Admin, Master, Manager">
+                                                        <Authorized>
+                                                            <button type="button" @onclick="() => { ToggleActionMenu(driver.Id); EditDriver(driver.Id); }"
+                                                                class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                                                Edit
+                                                            </button>
+                                                        </Authorized>
+                                                    </AuthorizeView>
+                                                    @* <button type="button" @onclick="() => { ToggleActionMenu(driver.Id); DeleteDriver(driver.Id); }"
+                                                        class="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                                        Delete
+                                                    </button> *@
+                                                </div>
+                                            </div>
                                         </div>
                                     </td>
                                 </tr>
@@ -192,6 +199,12 @@
     private GridDataResponse<Driver>? drivers = null;
     private GridDataRequest request = new();
     private bool isActionMenuOpen;
+    private Guid? openActionMenuId;
+
+    private void ToggleActionMenu(Guid driverId)
+    {
+        openActionMenuId = openActionMenuId == driverId ? null : driverId;
+    }
 
     protected override async Task OnInitializedAsync()
     {

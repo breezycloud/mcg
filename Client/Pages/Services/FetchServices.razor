@@ -140,27 +140,34 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 text-right">
-                                    <div class="flex justify-end space-x-3">
-                                       <AuthorizeView Roles="Admin, Master, Monitoring, Maintenance, MaintenanceSupervisor, Manager">
-                                            @if(request.Status == RequestStatus.Pending)
-                                            {
-                                                <button 
-                                                    @onclick="() => EditRequest(request.Id)" 
-                                                    class="font-medium text-blue-600 dark:text-blue-400 hover:underline">
-                                                    Edit
-                                                </button>
-                                            }                                       
-                                        <button 
-                                            @onclick="() => ViewRequest(request.Id)" 
-                                            class="font-medium text-gray-600 dark:text-gray-400 hover:underline">
-                                            View
+                                    <div class="relative inline-block text-left">
+                                        <button type="button" @onclick="() => ToggleActionMenu(request.Id)"
+                                            class="p-1.5 rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white focus:outline-none">
+                                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                                <path d="M10 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4z" />
+                                            </svg>
                                         </button>
-                                       </AuthorizeView>                                                                               
-                                        @* <button 
-                                            @onclick="() => DeleteRequest(request.Id)" 
-                                            class="font-medium text-red-600 dark:text-red-500 hover:underline">
-                                            Delete
-                                        </button> *@
+                                        <div class="@(openActionMenuId == request.Id ? "block" : "hidden") absolute right-0 mt-1 w-32 bg-white dark:bg-gray-800 rounded-lg shadow-lg z-20 border border-gray-200 dark:border-gray-700">
+                                            <div class="py-1">
+                                                <AuthorizeView Roles="Admin, Master, Monitoring, Maintenance, MaintenanceSupervisor, Manager">
+                                                    @if(request.Status == RequestStatus.Pending)
+                                                    {
+                                                        <button type="button" @onclick="() => { ToggleActionMenu(request.Id); EditRequest(request.Id); }"
+                                                            class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                                            Edit
+                                                        </button>
+                                                    }
+                                                    <button type="button" @onclick="() => { ToggleActionMenu(request.Id); ViewRequest(request.Id); }"
+                                                        class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                                        View
+                                                    </button>
+                                                </AuthorizeView>
+                                                @* <button type="button" @onclick="() => { ToggleActionMenu(request.Id); DeleteRequest(request.Id); }"
+                                                    class="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                                    Delete
+                                                </button> *@
+                                            </div>
+                                        </div>
                                     </div>
                                 </td>
                             </tr>
@@ -223,6 +230,13 @@
     private MaintenanceSite[]? Sites;
     private MaintenanceSite? Site = new();
     private bool IsDisabled = false;
+    private Guid? openActionMenuId;
+
+    private void ToggleActionMenu(Guid requestId)
+    {
+        openActionMenuId = openActionMenuId == requestId ? null : requestId;
+    }
+
     protected override async Task OnInitializedAsync()
     {
         // Load trucks and sites here
