@@ -1,7 +1,7 @@
 @page "/requests"
 @inject IRequestService RequestService
 @inject IMaintenanceService SiteService
-@attribute [Authorize(Roles ="Supervisor, Maintenance, Monitoring, Admin, Master")]
+@attribute [Authorize(Roles ="Supervisor, Maintenance, Monitoring, Admin, Master, MaintenanceSupervisor")]
 <PageTitle>Requests</PageTitle>
 
 
@@ -38,8 +38,8 @@
                             <option value="@status">@StringConverter.ToDescription(status)</option>
                         }
                     </select>
-                     <AuthorizeView Roles="Admin, Master">
-                        <InputSelect id="maintenanceSite" 
+                     <AuthorizeView Roles="Admin, Master, MaintenanceSupervisor">
+                        <InputSelect id="maintenanceSite"
                             class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                             @bind-Value="request.Id"
                             style="width: 15rem;"
@@ -141,7 +141,7 @@
                                 </td>
                                 <td class="px-6 py-4 text-right">
                                     <div class="flex justify-end space-x-3">
-                                       <AuthorizeView Roles="Admin, Master, Monitoring, Maintenance">
+                                       <AuthorizeView Roles="Admin, Master, Monitoring, Maintenance, MaintenanceSupervisor">
                                             @if(request.Status == RequestStatus.Pending)
                                             {
                                                 <button 

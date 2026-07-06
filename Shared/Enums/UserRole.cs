@@ -10,7 +10,8 @@ public enum UserRole
     Monitoring, // Trip Data, Service Request
     Management, // Dashboard only
     Nrl,
-    DriverSupervisor
+    DriverSupervisor,
+    MaintenanceSupervisor // Same access as Maintenance, plus Daily Reports, but not tied to a single site — sees all maintenance locations
 }
 
 

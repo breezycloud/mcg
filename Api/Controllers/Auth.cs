@@ -62,6 +62,8 @@ public class Auth : ControllerBase
             _result.Email = credential.Email;
             if (credential.Role == UserRole.Maintenance)
             {
+                // MaintenanceSupervisor is intentionally excluded — unlike Maintenance staff, they
+                // oversee all maintenance locations and are not pinned to a single site's ShopId.
                 var site = await _context.MaintenanceSites.FindAsync(credential.MaintenanceSiteId);
                 if (site is not null)
                     _result.ShopId = site!.Id;

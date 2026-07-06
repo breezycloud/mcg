@@ -57,6 +57,7 @@ public static class StringConverter
         UserRole.Supervisor => "Supervisor",
         UserRole.Nrl => "NRL",
         UserRole.DriverSupervisor => "Driver Supervisor",
+        UserRole.MaintenanceSupervisor => "Maintenance Supervisor",
         _ => role.ToString()
     };
 }
