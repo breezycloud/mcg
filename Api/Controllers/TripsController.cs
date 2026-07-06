@@ -20,6 +20,7 @@ using Shared.Models.Trips;
 using Shared.Helpers;
 using Shared.Dtos;
 using Shared.Enums;
+using Shared.Extensions;
 
 namespace Api.Controllers;
 
@@ -349,9 +350,69 @@ public class TripsController : ControllerBase
         }
         catch (System.Exception)
         {
-            
+
             throw;
         }
+    }
+
+    // POST: api/Trips/station-report — every trip that discharged at the given
+    // station. Shortage is trip-wide (loaded qty minus the sum of ALL of that
+    // trip's discharges, not just this station's) — see StationReportDto.
+    [HttpPost("station-report")]
+    public async Task<ActionResult<List<StationReportDto>>> GetStationReport([FromBody] StationReportFilter filter, CancellationToken cancellationToken = default)
+    {
+        var query = _context.Trips
+            .Include(x => x.Driver)
+            .Include(x => x.Truck)
+            .Include(x => x.LoadingDepot)
+            .Include(x => x.Discharges)
+            .AsSplitQuery()
+            .Where(x => x.Discharges.Any(d => d.StationId == filter.StationId))
+            .AsQueryable();
+
+        if (filter.StartDate.HasValue)
+        {
+            var start = filter.StartDate.Value.ToDateTime(TimeOnly.MinValue);
+            query = query.Where(x => x.Date >= start);
+        }
+        if (filter.EndDate.HasValue)
+        {
+            var end = filter.EndDate.Value.ToDateTime(TimeOnly.MaxValue);
+            query = query.Where(x => x.Date <= end);
+        }
+
+        var trips = await query.OrderByDescending(x => x.Date).ToListAsync(cancellationToken);
+
+        var report = trips.Select(trip =>
+        {
+            var totalDischarged = trip.Discharges?.Sum(d => d.QuantityDischarged) ?? 0;
+            var dischargedAtStation = trip.Discharges?
+                .Where(d => d.StationId == filter.StationId)
+                .Sum(d => d.QuantityDischarged) ?? 0;
+            var loaded = trip.LoadingInfo?.Quantity ?? 0;
+
+            return new StationReportDto
+            {
+                TripId = trip.Id,
+                Date = trip.Date,
+                TruckNo = trip.Truck?.TruckNo,
+                TruckPlate = trip.Truck?.LicensePlate,
+                Product = trip.Truck?.Product?.ToDisplay(),
+                DriverName = trip.Driver?.ToString(),
+                DriverPhone = trip.Driver?.PhoneNo,
+                LoadingDepot = trip.LoadingDepot?.Name,
+                LoadingDate = trip.LoadingInfo?.LoadingDate.HasValue == true
+                    ? trip.LoadingInfo.LoadingDate.Value.ToString("dd/MM/yyyy")
+                    : null,
+                DispatchQuantity = loaded,
+                DischargedQuantity = dischargedAtStation,
+                ShortageAmount = loaded - totalDischarged,
+                Unit = trip.GetUnit(),
+                Status = trip.Status.ToString(),
+            };
+        }).ToList();
+
+        return report;
     }
 
     // private string EscapeCsv(string? value)

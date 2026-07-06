@@ -116,6 +116,13 @@ public class TripService(IHttpClientFactory _httpClient, IJSRuntime js) : ITripS
             throw;
         }
     }
+
+    public async Task<List<StationReportDto>> GetStationReportAsync(StationReportFilter filter, CancellationToken cancellationToken)
+    {
+        using var response = await _httpClient.CreateClient("AppUrl").PostAsJsonAsync("Trips/station-report", filter, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<List<StationReportDto>>(cancellationToken: cancellationToken) ?? [];
+    }
     
     public async Task<bool> UploadAsync(Trip model, CancellationToken cancellationToken)
     {
