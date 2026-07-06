@@ -317,8 +317,16 @@ public class DailyReportsController : ControllerBase
                     cancellationToken);
         }
 
-        // Return the full persisted entity so the client gets the server-assigned Id
-        return CreatedAtAction(nameof(GetAsync), new { id = model.Id }, model);
+        // Return the full persisted entity so the client gets the server-assigned Id.
+        // Uses an explicit URI rather than CreatedAtAction(nameof(GetAsync), ...) —
+        // the latter throws "No route matches the supplied values" while building
+        // the Location header on every single call (confirmed via reproduction and
+        // the Logs table), because this controller's route is a literal
+        // "api/daily-reports" with no [controller] token, which action-name-based
+        // link generation can't resolve back to. The DB save above already
+        // succeeded by this point regardless — this bug only broke the response,
+        // silently succeeding server-side while the client saw "operation failed".
+        return Created($"api/daily-reports/{model.Id}", model);
     }
 
     // ─── UPDATE ───────────────────────────────────────────────────────────────
