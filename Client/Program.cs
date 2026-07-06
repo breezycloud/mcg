@@ -95,6 +95,7 @@ builder.Services.AddTransient<IAuthService, AuthService>();
 builder.Services.AddTransient<ITruckService, TruckService>();
 builder.Services.AddTransient<ITripService, TripService>();
 builder.Services.AddTransient<IDriverService, DriverService>();
+builder.Services.AddTransient<IMotorMateService, MotorMateService>();
 builder.Services.AddTransient<IDashboardService, DashboardService>();
 builder.Services.AddTransient<IRequestService, RequestService>();
 builder.Services.AddTransient<IMaintenanceService, MaintenanceService>();

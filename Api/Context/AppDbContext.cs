@@ -26,6 +26,8 @@ public class AppDbContext : DbContext
     public virtual DbSet<User> Users { get; set; } = default!;
     public virtual DbSet<AuditLog> AuditLogs { get; set; } = default!;
     public virtual DbSet<Driver> Drivers { get; set; } = default!;
+    public virtual DbSet<MotorMate> MotorMates { get; set; } = default!;
+    public virtual DbSet<MotorMateHistory> MotorMateHistories { get; set; } = default!;
     public virtual DbSet<LogMessage> Logs { get; set; } = default!;
     public virtual DbSet<MaintenanceSite> MaintenanceSites { get; set; } = default!;
     public virtual DbSet<Station> Stations { get; set; } = default!;
@@ -102,6 +104,41 @@ public class AppDbContext : DbContext
             entity.HasOne(x => x.ReviewedBy)
                   .WithMany()
                   .HasForeignKey(x => x.ReviewedById)
+                  .OnDelete(DeleteBehavior.SetNull)
+                  .IsRequired(false);
+        });
+
+        modelBuilder.Entity<Driver>(entity =>
+        {
+            entity.HasOne(x => x.CurrentMotorMate)
+                  .WithMany(x => x.Drivers)
+                  .HasForeignKey(x => x.CurrentMotorMateId)
+                  .OnDelete(DeleteBehavior.SetNull)
+                  .IsRequired(false);
+        });
+
+        modelBuilder.Entity<MotorMateHistory>(entity =>
+        {
+            entity.HasOne(x => x.Driver)
+                  .WithMany()
+                  .HasForeignKey(x => x.DriverId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.PreviousMotorMate)
+                  .WithMany()
+                  .HasForeignKey(x => x.PreviousMotorMateId)
+                  .OnDelete(DeleteBehavior.SetNull)
+                  .IsRequired(false);
+
+            entity.HasOne(x => x.NewMotorMate)
+                  .WithMany()
+                  .HasForeignKey(x => x.NewMotorMateId)
+                  .OnDelete(DeleteBehavior.SetNull)
+                  .IsRequired(false);
+
+            entity.HasOne(x => x.ChangedBy)
+                  .WithMany()
+                  .HasForeignKey(x => x.ChangedById)
                   .OnDelete(DeleteBehavior.SetNull)
                   .IsRequired(false);
         });

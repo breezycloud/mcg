@@ -1,5 +1,6 @@
 @page "/drivers/{Action}/{Id:guid?}"
 @inject IDriverService DriverService
+@inject IMotorMateService MotorMateService
 @attribute [Authorize(Roles = "Supervisor, DriverSupervisor, Admin, Master")]
 
 
@@ -99,7 +100,32 @@
                     }
                 </div>
             </div>
-        
+
+            <!-- Motor Mate -->
+            <div>
+                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    Motor Mate
+                </label>
+                <Autocomplete TItem="MotorMate"
+                    SearchFunc="SearchMotorMates"
+                    SelectedChanged="OnMotorMateSelected"
+                    Placeholder="Search motor mate by name or phone..."
+                    InitialText="@selectedMotorMateName">
+                    <OptionTemplate Context="motorMate">
+                        <div>
+                            <div>@motorMate.Name</div>
+                            <div class="text-xs text-gray-400">@motorMate.PhoneNo</div>
+                        </div>
+                    </OptionTemplate>
+                </Autocomplete>
+                @if (errors.ContainsKey("CurrentMotorMateId"))
+                {
+                    <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["CurrentMotorMateId"]</p>
+                }
+                <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    Optional. Not listed? <a href="/motormates/add" target="_blank" class="text-blue-600 dark:text-blue-400 hover:underline">Add a new motor mate</a> first.
+                </p>
+            </div>
 
             <div>
                 <FileUploadView OnFilesUploaded="@OnUploadComplete"/>
@@ -171,30 +197,45 @@
 
 
     private Dictionary<string, string> errors = new();
+    private string? selectedMotorMateName;
 
     protected override async Task OnInitializedAsync()
     {
         // Load driver
         AppState.IsBusy = true;
-        if (Id.HasValue)        
+        if (Id.HasValue)
         {
             CurrentDriver = await DriverService.GetAsync(Id.Value, AppState.GetCancellationToken());
             EditMode = true;
+            selectedMotorMateName = CurrentDriver.CurrentMotorMate?.ToString();
         }
         AppState.IsBusy = false;
     }
 
+    private async Task<List<MotorMate>> SearchMotorMates(string query, int page, CancellationToken ct)
+    {
+        var request = new GridDataRequest { SearchTerm = query, Page = page, PageSize = 10 };
+        var response = await MotorMateService.GetPagedAsync(request, ct);
+        return response?.Data ?? [];
+    }
+
+    private void OnMotorMateSelected(MotorMate? motorMate)
+    {
+        CurrentDriver.CurrentMotorMateId = motorMate?.Id;
+        errors.Remove("CurrentMotorMateId");
+    }
+
     private string GetInputClass(string fieldName)
     {
-        var baseClass = $"bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 {(fieldName.Contains("PhoneNo") ? "pl-10" : "")}";
-        
+        var baseClass = $"bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 {(fieldName == "PhoneNo" ? "pl-10" : "")}";
+
         if (errors.ContainsKey(fieldName))
         {
-            baseClass += $" border-red-500 bg-red-50 dark:bg-red-900 dark:border-red-700 {(fieldName.Contains("PhoneNo") ? "pl-10" : "")}";
+            baseClass += $" border-red-500 bg-red-50 dark:bg-red-900 dark:border-red-700 {(fieldName == "PhoneNo" ? "pl-10" : "")}";
         }
         else
         {
-            baseClass += $" border-gray-300 {(fieldName.Contains("PhoneNo") ? "pl-10" : "")}";
+            baseClass += $" border-gray-300 {(fieldName == "PhoneNo" ? "pl-10" : "")}";
         }
         
         return baseClass;
@@ -238,6 +279,14 @@
             errors["ExpiryDate"] = "Expiry date cannot be in the past";
         }
 
+        if (!errors.ContainsKey("PhoneNo") && !string.IsNullOrWhiteSpace(CurrentDriver.PhoneNo))
+        {
+            var matchedId = await DriverService.ValidatePhoneAsync(CurrentDriver.PhoneNo, Id, AppState.GetCancellationToken());
+            if (matchedId.HasValue)
+            {
+                errors["PhoneNo"] = "Another driver is already registered with this phone number";
+            }
+        }
 
         if (errors!.Any())
         {
