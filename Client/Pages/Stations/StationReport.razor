@@ -1,7 +1,7 @@
 @page "/stations/report"
 @inject IStationService StationService
 @inject ITripService TripService
-@attribute [Authorize(Roles = "Admin, Master, Supervisor")]
+@attribute [Authorize(Roles = "Admin, Master, Supervisor, Manager")]
 <PageTitle>Station Report</PageTitle>
 
 <div class="px-4 lg:px-12 py-6">

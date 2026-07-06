@@ -1,7 +1,7 @@
 @page "/view-trip/{id:guid}"
 @inject ITripService TripService
 @inject IJSRuntime JSRuntime
-@attribute [Authorize (Roles = "Admin, Master, Monitoring, Supervisor, Nrl, DriverSupervisor")]
+@attribute [Authorize (Roles = "Admin, Master, Monitoring, Supervisor, Nrl, DriverSupervisor, Manager")]
 
 <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-7 bg-gray-50 dark:bg-gray-900 min-h-screen">
     @if (AppState.IsBusy)
@@ -46,7 +46,7 @@
                     <div class="flex justify-between items-center">
                         <h3 class="text-4xl font-extrabold text-gray-900 dark:text-white border-b-2 border-blue-200 dark:border-blue-900 pb-3">Trip Details</h3>
                         <div class="flex gap-2">
-                            <AuthorizeView Roles="Admin, Master, Monitoring, Supervisor, DriverSupervisor" Context="auth">
+                            <AuthorizeView Roles="Admin, Master, Monitoring, Supervisor, DriverSupervisor, Manager" Context="auth">
                                 <Authorized>
                                     @if (Trip.Status != TripStatus.Completed)
                                     {
@@ -61,7 +61,7 @@
                                     }
                                 </Authorized>
                             </AuthorizeView>
-                            <AuthorizeView Roles="Admin, Master" Context="auth">
+                            <AuthorizeView Roles="Admin, Master, Manager" Context="auth">
                                 <Authorized>
                                     <button class="px-4 py-2 bg-red-600 text-white rounded-lg shadow-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-all duration-200 text-sm font-medium"
                                             @onclick="() => showDeleteModal = true"

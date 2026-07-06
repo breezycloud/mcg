@@ -1,5 +1,5 @@
 @page "/edit-trip/{id:guid}"
-@attribute [Authorize (Roles = "Admin, Master, Monitoring, Supervisor, DriverSupervisor")]
+@attribute [Authorize (Roles = "Admin, Master, Monitoring, Supervisor, DriverSupervisor, Manager")]
 @inject ITripService TripService
 @inject IStationService StationService
 @inject IDischargeService DischargeService

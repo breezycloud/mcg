@@ -2,7 +2,7 @@
 @using Shared.Dtos
 @inject ITruckService TruckService
 @inject IDriverService DriverService
-@attribute [Authorize(Roles = "Supervisor, Admin, Master, Nrl, DriverSupervisor")]
+@attribute [Authorize(Roles = "Supervisor, Admin, Master, Nrl, DriverSupervisor, Manager")]
 <PageTitle>Trucks</PageTitle>
 
 
@@ -51,7 +51,7 @@
                         </svg>
                         Report
                     </a>
-                    <AuthorizeView Roles="Supervisor, Admin, Master" Context="auth">
+                    <AuthorizeView Roles="Supervisor, Admin, Master, Manager" Context="auth">
                         <button 
                             @onclick="AddTruck" 
                             type="button" 
@@ -130,7 +130,7 @@
                                             <button @onclick="() => ViewTruck(truck.Id)" class="font-medium text-green-600 dark:text-green-500 hover:underline">
                                                 View
                                             </button>
-                                            <AuthorizeView Roles="Supervisor, Admin, Master, DriverSupervisor" Context="auth">
+                                            <AuthorizeView Roles="Supervisor, Admin, Master, DriverSupervisor, Manager" Context="auth">
                                                 <button
                                                     @onclick="() => OpenDriverAssignmentModal(truck)"
                                                     class="font-medium text-indigo-600 dark:text-indigo-400 hover:underline">

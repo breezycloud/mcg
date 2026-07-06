@@ -232,7 +232,7 @@ public class DriversController : ControllerBase
     // POST: api/Drivers/import/preview — parses + resolves the CSV against
     // current DB state, but writes nothing. Same code path as commit, so the
     // review grid the user confirms matches exactly what commit will do.
-    [Authorize(Roles = "Supervisor, Admin, Master, DriverSupervisor")]
+    [Authorize(Roles = "Supervisor, Admin, Master, DriverSupervisor, Manager")]
     [HttpPost("import/preview")]
     public async Task<ActionResult<DriverImportPreviewResponse>> PreviewImport(IFormFile file, CancellationToken cancellationToken)
     {
@@ -248,7 +248,7 @@ public class DriversController : ControllerBase
     }
 
     // POST: api/Drivers/import/commit
-    [Authorize(Roles = "Supervisor, Admin, Master, DriverSupervisor")]
+    [Authorize(Roles = "Supervisor, Admin, Master, DriverSupervisor, Manager")]
     [HttpPost("import/commit")]
     public async Task<ActionResult<DriverImportCommitResponse>> CommitImport(IFormFile file, CancellationToken cancellationToken)
     {

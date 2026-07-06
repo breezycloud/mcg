@@ -1,7 +1,7 @@
 @page "/trucks/{Action}/{Id:guid?}"
 @inject ITruckService TruckService
 @inject IDriverService DriverService
-@attribute [Authorize(Roles = "Supervisor, Admin, Master")]
+@attribute [Authorize(Roles = "Supervisor, Admin, Master, Manager")]
 
 
 <div class="max-w-2xl mx-auto p-4 sm:p-6">

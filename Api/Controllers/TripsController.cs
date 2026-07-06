@@ -732,7 +732,7 @@ public class TripsController : ControllerBase
     }
 
     [HttpPost("download-loading-files")]
-    [Authorize(Roles = "Admin, Master")]
+    [Authorize(Roles = "Admin, Master, Manager")]
     public async Task<IActionResult> DownloadLoadingFilesAsync(
         [FromBody] ReportFilter filter,
         CancellationToken cancellationToken)    
@@ -970,7 +970,7 @@ public class TripsController : ControllerBase
 
     private async Task<string?> ValidateDispatchDateAsync(Trip trip, CancellationToken cancellationToken)
     {
-        if (User.IsInRole(UserRole.Admin) || User.IsInRole(UserRole.Master))
+        if (User.IsInRole(UserRole.Admin) || User.IsInRole(UserRole.Master) || User.IsInRole(UserRole.Manager))
         {
             return null;
         }

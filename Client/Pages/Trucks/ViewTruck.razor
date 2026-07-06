@@ -1,5 +1,5 @@
 @* TruckDetailsView.razor *@
-@attribute [Authorize(Roles = "Supervisor, Admin, Master, Nrl, DriverSupervisor")]
+@attribute [Authorize(Roles = "Supervisor, Admin, Master, Nrl, DriverSupervisor, Manager")]
 @page "/view-truck/{Id:guid?}"
 @inject ITruckService TruckService
 
@@ -18,7 +18,7 @@
                     <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Complete information for truck @Truck.TruckNo</p>
                 </div>
                 <div class="flex gap-3">
-                <AuthorizeView Roles="Supervisor, Admin, Master, DriverSupervisor" Context="auth">
+                <AuthorizeView Roles="Supervisor, Admin, Master, DriverSupervisor, Manager" Context="auth">
                     <button @onclick="NavigateToEdit" 
                                 class="px-4 py-2 text-sm font-medium text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800 flex items-center">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

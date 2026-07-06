@@ -1,6 +1,6 @@
 @page "/motormates/{Action}/{Id:guid?}"
 @inject IMotorMateService MotorMateService
-@attribute [Authorize(Roles = "Supervisor, DriverSupervisor, Admin, Master")]
+@attribute [Authorize(Roles = "Supervisor, DriverSupervisor, Admin, Master, Manager")]
 
 
 <div class="max-w-2xl mx-auto p-4 sm:p-6">

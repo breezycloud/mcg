@@ -1,6 +1,6 @@
 @page "/drivers"
 @inject IDriverService DriverService
-@attribute [Authorize(Roles = "Supervisor, Admin, Master, Nrl, DriverSupervisor")]
+@attribute [Authorize(Roles = "Supervisor, Admin, Master, Nrl, DriverSupervisor, Manager")]
 <PageTitle>Drivers</PageTitle>
 
 
@@ -25,7 +25,7 @@
                             @bind-value="@request.SearchTerm" @bind-value:event="oninput" @onkeyup="async () => await HandleSearch(request.SearchTerm!)" />
                     </div>
                 </div>
-                <AuthorizeView Roles="Supervisor, Admin, Master, DriverSupervisor" Context="auth">
+                <AuthorizeView Roles="Supervisor, Admin, Master, DriverSupervisor, Manager" Context="auth">
                     <Authorized>
                         <div class="flex flex-col items-stretch justify-end flex-shrink-0 w-full space-y-2 md:w-auto md:flex-row md:space-y-0 md:items-center md:space-x-3">
                             <a 
@@ -37,7 +37,7 @@
                                 </svg>
                                 Report
                             </a>
-                            <AuthorizeView Roles="Supervisor, Admin, Master">
+                            <AuthorizeView Roles="Supervisor, Admin, Master, Manager">
                                 <div class="relative">
                                     <button
                                         @onclick="ToggleActionMenu"
@@ -121,7 +121,7 @@
                                                 class="font-medium text-green-600 dark:text-green-500 hover:underline">
                                                 View
                                             </button>
-                                            <AuthorizeView Roles="Supervisor, DriverSupervisor, Admin, Master">
+                                            <AuthorizeView Roles="Supervisor, DriverSupervisor, Admin, Master, Manager">
                                                 <Authorized>
                                                     <button 
                                                         @onclick="() => EditDriver(driver.Id)" 

@@ -86,7 +86,7 @@ public class MotorMatesController : ControllerBase
     }
 
     // PUT: api/MotorMates/5
-    [Authorize(Roles = "Supervisor, Admin, Master, DriverSupervisor")]
+    [Authorize(Roles = "Supervisor, Admin, Master, DriverSupervisor, Manager")]
     [HttpPut("{id}")]
     public async Task<IActionResult> PutMotorMate(Guid id, MotorMate motorMate)
     {
@@ -115,7 +115,7 @@ public class MotorMatesController : ControllerBase
     }
 
     // POST: api/MotorMates
-    [Authorize(Roles = "Supervisor, Admin, Master, DriverSupervisor")]
+    [Authorize(Roles = "Supervisor, Admin, Master, DriverSupervisor, Manager")]
     [HttpPost]
     public async Task<ActionResult<MotorMate>> PostMotorMate(MotorMate motorMate)
     {
@@ -126,7 +126,7 @@ public class MotorMatesController : ControllerBase
     }
 
     // DELETE: api/MotorMates/5
-    [Authorize(Roles = "Supervisor, Admin, Master, DriverSupervisor")]
+    [Authorize(Roles = "Supervisor, Admin, Master, DriverSupervisor, Manager")]
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteMotorMate(Guid id)
     {

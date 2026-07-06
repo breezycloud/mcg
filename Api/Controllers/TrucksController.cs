@@ -207,7 +207,7 @@ public class TrucksController : ControllerBase
         return NoContent();
     }
 
-    [Authorize(Roles = "Supervisor, Admin, Master, DriverSupervisor")]
+    [Authorize(Roles = "Supervisor, Admin, Master, DriverSupervisor, Manager")]
     [HttpPut("{id}/driver")]
     public async Task<IActionResult> AssignDriver(Guid id, TruckDriverAssignmentDto model, CancellationToken cancellationToken)
     {

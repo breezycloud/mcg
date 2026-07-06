@@ -2,7 +2,7 @@
 @using Shared.Enums
 @inject ITripService TripService
 @inject IDestinationService DestinationService
-@attribute [Authorize(Roles = "Monitoring, Admin, Master, Supervisor, Nrl, DriverSupervisor")]
+@attribute [Authorize(Roles = "Monitoring, Admin, Master, Supervisor, Nrl, DriverSupervisor, Manager")]
 <PageTitle>Trips</PageTitle>
 
 <section class="bg-gray-50 dark:bg-gray-900 rounded-lg">
@@ -134,7 +134,7 @@
                                             @("Export Loading Info")
                                         }
                                     </button>
-                                    <AuthorizeView Roles="Admin, Master" Context="auth">
+                                    <AuthorizeView Roles="Admin, Master, Manager" Context="auth">
                                         <Authorized>
                                             <button 
                                                 @onclick="DownloadLoadingFiles"
@@ -159,7 +159,7 @@
                                             </button>
                                         </Authorized>
                                     </AuthorizeView>
-                                    <AuthorizeView Roles="Master, Admin, Supervisor, DriverSupervisor" Context="auth">
+                                    <AuthorizeView Roles="Master, Admin, Supervisor, DriverSupervisor, Manager" Context="auth">
                                         <Authorized>
                                             <button 
                                                 @onclick="@(() => nav.NavigateTo("/trips/batch-dispatch"))" 
@@ -284,7 +284,7 @@
                                             <button @onclick="() => ViewTrip(trip)"  class="font-medium text-green-600 dark:text-green-500 hover:underline">
                                                     View
                                                 </button>
-                                                <AuthorizeView Roles="Monitoring, Admin, Master, Supervisor, DriverSupervisor">
+                                                <AuthorizeView Roles="Monitoring, Admin, Master, Supervisor, DriverSupervisor, Manager">
                                                     @if (trip.Status != TripStatus.Completed)
                                                     {
                                                         <button 
