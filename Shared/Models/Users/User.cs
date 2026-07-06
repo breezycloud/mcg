@@ -10,6 +10,8 @@ public class User
     [Key]
     public Guid Id { get; set; }
     public Guid? MaintenanceSiteId { get; set; }
+    public Guid? SupervisorId { get; set; }
+    public User? Supervisor { get; set; }
     [Required]
     public string? FirstName { get; set; }
     [Required]

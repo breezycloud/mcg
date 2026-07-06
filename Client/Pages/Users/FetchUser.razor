@@ -260,9 +260,9 @@
             if (result)
                 ToastService.ShowSuccess($"User successfully {(EditMode ? "updated" : "added")}", 5);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            ToastService.ShowError("error occurred");
+            ToastService.ShowError(ex.Message);
         }
         finally
         {

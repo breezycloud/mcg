@@ -38,18 +38,17 @@ public class DailyReportsController : ControllerBase
         var currentUserId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var currentRole = User.FindFirstValue(ClaimTypes.Role);
         bool isAdminOrMaster = currentRole is "Admin" or "Master";
-        bool isSupervisor    = currentRole == "Supervisor";
 
         var query = _context.DailyReports
             .AsNoTracking()
             .AsQueryable();
 
-        // Role-based scoping:
+        // Visibility scoping:
         //   Admin/Master  → all reports
-        //   Supervisor    → all reports (they oversee their team)
-        //   Everyone else → only their own
-        if (!isAdminOrMaster && !isSupervisor)
-            query = query.Where(x => x.EmployeeId == currentUserId);
+        //   Everyone else → their own reports, plus reports of users who have them as Supervisor
+        //                    (role-agnostic — determined by User.SupervisorId, not the caller's role)
+        if (!isAdminOrMaster)
+            query = query.Where(x => x.EmployeeId == currentUserId || x.Employee!.SupervisorId == currentUserId);
 
         // Date filter (month + year)
         if (request.Date is not null)
@@ -121,7 +120,6 @@ public class DailyReportsController : ControllerBase
         var currentUserId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var currentRole = User.FindFirstValue(ClaimTypes.Role);
         bool isAdminOrMaster = currentRole is "Admin" or "Master";
-        bool isSupervisor    = currentRole == "Supervisor";
 
         var report = await _context.DailyReports
             .AsNoTracking()
@@ -131,8 +129,9 @@ public class DailyReportsController : ControllerBase
 
         if (report is null) return NotFound();
 
-        // Non-admin, non-supervisor users can only access their own reports
-        if (!isAdminOrMaster && !isSupervisor && report.EmployeeId != currentUserId)
+        // Non-admin/master users can only access their own reports, or reports of
+        // users who have them set as Supervisor.
+        if (!isAdminOrMaster && report.EmployeeId != currentUserId && report.Employee?.SupervisorId != currentUserId)
             return Forbid();
 
         return Ok(report);
@@ -148,14 +147,13 @@ public class DailyReportsController : ControllerBase
         var currentUserId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var currentRole = User.FindFirstValue(ClaimTypes.Role);
         bool isAdminOrMaster = currentRole is "Admin" or "Master";
-        bool isSupervisor    = currentRole == "Supervisor";
 
         var query = _context.DailyReports
             .AsNoTracking()
             .Where(x => x.ReportDate.Month == month.Month && x.ReportDate.Year == month.Year);
 
-        if (!isAdminOrMaster && !isSupervisor)
-            query = query.Where(x => x.EmployeeId == currentUserId);
+        if (!isAdminOrMaster)
+            query = query.Where(x => x.EmployeeId == currentUserId || x.Employee!.SupervisorId == currentUserId);
 
         var counts = await query
             .GroupBy(_ => 1)
@@ -410,12 +408,30 @@ public class DailyReportsController : ControllerBase
 
         await _context.SaveChangesAsync(cancellationToken);
 
-        // Broadcast to all connected managers (Admin/Master/Supervisor) so their nav badge increments
+        // Notify Admin/Master (unrestricted visibility) via the broadcast group, plus the
+        // submitter's own Supervisor directly if one is set — matches the same visibility
+        // rule as GetPendingReviewCountAsync so nobody's badge increments for a report they
+        // can't actually see.
+        var payload = new { ReportNo = report.ReportNo, ReportId = report.Id };
         await _hubContext.Clients
             .Group(AppHub.ManagersGroup)
-            .SendAsync("ReceiveReportSubmitted",
-                new { ReportNo = report.ReportNo, ReportId = report.Id },
-                cancellationToken);
+            .SendAsync("ReceiveReportSubmitted", payload, cancellationToken);
+
+        var supervisor = await _context.Users
+            .AsNoTracking()
+            .Where(u => u.Id == report.EmployeeId)
+            .Select(u => new { u.SupervisorId, SupervisorRole = u.Supervisor!.Role })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        // Skip if the supervisor is Admin/Master — they already got this via the group
+        // broadcast above, and a second targeted send would double-increment their badge.
+        if (supervisor?.SupervisorId is Guid supervisorId
+            && supervisor.SupervisorRole is not (UserRole.Admin or UserRole.Master))
+        {
+            await _hubContext.Clients
+                .User(supervisorId.ToString())
+                .SendAsync("ReceiveReportSubmitted", payload, cancellationToken);
+        }
 
         return NoContent();
     }
@@ -423,19 +439,24 @@ public class DailyReportsController : ControllerBase
     // ─── REVIEW: Save manager feedback ────────────────────────────────────────
 
     [HttpPut("{id:guid}/review")]
-    [Authorize(Roles = "Admin,Master,Supervisor")]
     public async Task<IActionResult> ReviewAsync(
         Guid id,
         [FromBody] string comment,
         CancellationToken cancellationToken = default)
     {
         var currentUserId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var currentRole = User.FindFirstValue(ClaimTypes.Role);
+        bool isAdminOrMaster = currentRole is "Admin" or "Master";
 
-        var report = await _context.DailyReports.FindAsync([id], cancellationToken);
+        var report = await _context.DailyReports
+            .Include(x => x.Employee)
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
         if (report is null) return NotFound();
 
-        // Can comment on any report that belongs to a subordinate
-        // (no ownership restriction for managers — they review others' reports)
+        // Only Admin/Master, or the report owner's Supervisor, can review it.
+        if (!isAdminOrMaster && report.Employee?.SupervisorId != currentUserId)
+            return Forbid();
+
         report.ManagerComment = comment?.Trim();
         report.ReviewedById = currentUserId;
         report.ReviewedAt = DateTimeOffset.UtcNow;
@@ -516,26 +537,35 @@ public class DailyReportsController : ControllerBase
     // Used by the nav badge to show unreviewed report count to managers.
 
     [HttpGet("pending-review-count")]
-    [Authorize(Roles = "Admin,Master,Supervisor")]
     public async Task<ActionResult<int>> GetPendingReviewCountAsync(CancellationToken cancellationToken = default)
     {
-        var count = await _context.DailyReports
-            .AsNoTracking()
-            .CountAsync(x => x.Status == DailyReportStatus.Submitted
-                          && (x.ManagerComment == null || x.ManagerComment == string.Empty),
-                        cancellationToken);
+        var currentUserId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var currentRole = User.FindFirstValue(ClaimTypes.Role);
+        bool isAdminOrMaster = currentRole is "Admin" or "Master";
 
-        return Ok(count);
+        var query = _context.DailyReports
+            .AsNoTracking()
+            .Where(x => x.Status == DailyReportStatus.Submitted
+                     && (x.ManagerComment == null || x.ManagerComment == string.Empty));
+
+        // Everyone but Admin/Master only counts reports from users who have them as Supervisor.
+        if (!isAdminOrMaster)
+            query = query.Where(x => x.Employee!.SupervisorId == currentUserId);
+
+        return Ok(await query.CountAsync(cancellationToken));
     }
 
     // ─── CSV EXPORT ───────────────────────────────────────────────────────────
 
     [HttpPost("report")]
-    [Authorize(Roles = "Admin,Master,Supervisor,Monitoring")]
     public async Task<IActionResult> ExportReport(
         [FromBody] DailyReportFilter request,
         CancellationToken cancellationToken = default)
     {
+        var currentUserId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var currentRole = User.FindFirstValue(ClaimTypes.Role);
+        bool isAdminOrMaster = currentRole is "Admin" or "Master";
+
         var startDateTime = request.StartDate.ToDateTime(TimeOnly.MinValue);
         var endDate = request.EndDate ?? request.StartDate;
         var endDateTime = endDate.ToDateTime(TimeOnly.MaxValue);
@@ -545,6 +575,10 @@ public class DailyReportsController : ControllerBase
             .Include(x => x.Employee)
             .Where(x => x.ReportDate >= DateOnly.FromDateTime(startDateTime)
                      && x.ReportDate <= DateOnly.FromDateTime(endDateTime));
+
+        // Everyone but Admin/Master is limited to their own reports plus their direct reports'.
+        if (!isAdminOrMaster)
+            query = query.Where(x => x.EmployeeId == currentUserId || x.Employee!.SupervisorId == currentUserId);
 
         if (request.EmployeeId.HasValue)
             query = query.Where(x => x.EmployeeId == request.EmployeeId.Value);

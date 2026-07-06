@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Api.Context;
@@ -139,6 +140,11 @@ public class UsersController : ControllerBase
             return BadRequest();
         }
 
+        if (user.SupervisorId.HasValue && await WouldCreateSupervisorCycleAsync(user.Id, user.SupervisorId.Value))
+        {
+            return BadRequest("This supervisor assignment would create a cycle (directly or transitively supervising themselves).");
+        }
+
         _context.Entry(user).State = EntityState.Modified;
 
         try
@@ -163,6 +169,7 @@ public class UsersController : ControllerBase
     // POST: api/Users
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     [HttpPost]
+    [Authorize(Roles = "Admin,Master")]
     public async Task<ActionResult<User>> PostUser(User user)
     {
         var password = Security.GenerateRandomPassword();
@@ -190,6 +197,7 @@ public class UsersController : ControllerBase
 
     // DELETE: api/Users/5
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin,Master")]
     public async Task<IActionResult> DeleteUser(Guid id)
     {
         var user = await _context.Users.FindAsync(id);
@@ -207,5 +215,32 @@ public class UsersController : ControllerBase
     private bool UserExists(Guid id)
     {
         return _context.Users.Any(e => e.Id == id);
+    }
+
+    // Walks the proposed supervisor's chain upward looking for userId — catches both a direct
+    // self-assignment and a transitive cycle (A supervises B, B supervises A). The visited-set
+    // guard also stops the walk if it encounters an already-existing cycle elsewhere in the data
+    // rather than looping forever.
+    private async Task<bool> WouldCreateSupervisorCycleAsync(Guid userId, Guid supervisorId)
+    {
+        var visited = new HashSet<Guid>();
+        Guid? currentId = supervisorId;
+
+        while (currentId.HasValue)
+        {
+            if (currentId.Value == userId)
+                return true;
+
+            if (!visited.Add(currentId.Value))
+                break;
+
+            currentId = await _context.Users
+                .AsNoTracking()
+                .Where(u => u.Id == currentId.Value)
+                .Select(u => u.SupervisorId)
+                .FirstOrDefaultAsync();
+        }
+
+        return false;
     }
 }

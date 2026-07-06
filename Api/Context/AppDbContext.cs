@@ -51,9 +51,20 @@ public class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<User>()
-            .HasIndex(x => x.Email)
-            .IsUnique();
+        modelBuilder.Entity<User>(entity =>
+        {
+            entity.HasIndex(x => x.Email)
+                  .IsUnique();
+
+            // Self-referencing FK: who this user reports to. Restrict delete — an employee
+            // record shouldn't vanish out from under their reports if the supervisor is
+            // deleted; the supervisor must be reassigned/cleared first.
+            entity.HasOne(x => x.Supervisor)
+                  .WithMany()
+                  .HasForeignKey(x => x.SupervisorId)
+                  .OnDelete(DeleteBehavior.Restrict)
+                  .IsRequired(false);
+        });
 
         // Enforce constraints on Trip.DispatchId to avoid duplicate dispatches at the database level.
         // Use a varchar(30) length and a unique index (filtered to non-null values) as a final safety net.

@@ -7,19 +7,22 @@ namespace Shared.Hubs;
 /// <summary>
 /// Application-level SignalR hub.
 /// Authenticated — JWT is required to connect.
-/// On connect, places the user in a role-based group so the server
-/// can broadcast to all managers without querying the DB each time.
+/// On connect, places Admin/Master in a broadcast group so the server can notify
+/// them of every report submission without querying the DB each time. Everyone
+/// else's report-submission notifications are role-agnostic and targeted directly
+/// at whoever is set as the submitter's Supervisor (see DailyReportsController),
+/// since visibility is driven by User.SupervisorId, not by role name.
 /// </summary>
 [Authorize]
 public class AppHub : Hub
 {
-    // Group name for all roles that should receive report-submission notifications
+    // Group name for the roles with unrestricted report visibility
     public const string ManagersGroup = "Managers";
 
     public override async Task OnConnectedAsync()
     {
         var role = Context.User?.FindFirst(ClaimTypes.Role)?.Value;
-        if (role is "Admin" or "Master" or "Supervisor")
+        if (role is "Admin" or "Master")
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, ManagersGroup);
         }

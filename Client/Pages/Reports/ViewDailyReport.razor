@@ -267,25 +267,25 @@
                             </div>
                         }
 
-                        <!-- Managers can add/edit the feedback -->
-                        <AuthorizeView Roles="Admin,Master,Supervisor" Context="reviewAuth">
-                            <Authorized>
-                                <textarea @bind="_reviewComment"
-                                    class="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-                                    rows="3"
-                                    placeholder="Add feedback for this report..."
-                                    maxlength="2000" />
-                                <div class="mt-2 flex items-center justify-between">
-                                    <span class="text-xs text-gray-400">@(_reviewComment?.Length ?? 0) / 2000</span>
-                                    <button type="button" @onclick="SaveReview"
-                                        disabled="@(_isReviewing || string.IsNullOrWhiteSpace(_reviewComment))"
-                                        class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center gap-1.5">
-                                        @if (_isReviewing) { <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> }
-                                        Save Feedback
-                                    </button>
-                                </div>
-                            </Authorized>
-                        </AuthorizeView>
+                        <!-- Admin/Master, or this report owner's Supervisor, can add/edit the feedback.
+                             Role-agnostic — driven by User.SupervisorId, not a fixed role list. -->
+                        @if (_canReview)
+                        {
+                            <textarea @bind="_reviewComment"
+                                class="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                                rows="3"
+                                placeholder="Add feedback for this report..."
+                                maxlength="2000" />
+                            <div class="mt-2 flex items-center justify-between">
+                                <span class="text-xs text-gray-400">@(_reviewComment?.Length ?? 0) / 2000</span>
+                                <button type="button" @onclick="SaveReview"
+                                    disabled="@(_isReviewing || string.IsNullOrWhiteSpace(_reviewComment))"
+                                    class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center gap-1.5">
+                                    @if (_isReviewing) { <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> }
+                                    Save Feedback
+                                </button>
+                            </div>
+                        }
                     </div>
                 </div>
             </div>
@@ -420,6 +420,7 @@
     private bool _isReverting;
     private bool _isTogglingTask;
     private bool _isOwnerOrManager;
+    private bool _canReview;
     private bool _showDeleteModal;
     private string? _reviewComment;
 
@@ -438,10 +439,15 @@
             var role = claims.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
             var currentUserIdStr = claims.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             bool isManager = role is "Admin" or "Master" or "Supervisor";
-            bool isOwner   = _report is not null
-                          && Guid.TryParse(currentUserIdStr, out var uid)
-                          && _report.EmployeeId == uid;
+            Guid.TryParse(currentUserIdStr, out var uid);
+            bool isOwner   = _report is not null && _report.EmployeeId == uid;
             _isOwnerOrManager = isOwner || isManager;
+
+            // Review capability mirrors the API's rule exactly: Admin/Master, or whoever
+            // this report's employee has set as their Supervisor — role-agnostic.
+            bool isAdminOrMaster = role is "Admin" or "Master";
+            bool isReportSupervisor = _report?.Employee?.SupervisorId == uid;
+            _canReview = isAdminOrMaster || isReportSupervisor;
         }
         catch
         {
