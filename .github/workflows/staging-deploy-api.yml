@@ -30,7 +30,7 @@ jobs:
               dotnet publish Api \
                   -c Release \
                   -o ./publish \
-                  /p:EnvironmentName=Production
+                  /p:EnvironmentName=Staging
 
           - name: Copy .env to Publish Directory
             run: |
