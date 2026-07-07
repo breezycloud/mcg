@@ -3,6 +3,23 @@ html, body {
     font-family: 'Montserrat', sans-serif;
     height: 100vh;
 }
+
+@media print {
+    /* MainLayout's <main> gets an inline margin-left:16rem style whenever the sidebar
+       is open (see MainLayout.razor) — nothing resets it for print, which shoves the
+       whole page into a narrow strip and forces content onto extra pages. Inline
+       styles need !important here to actually be overridden. */
+    main {
+        margin-left: 0 !important;
+        padding-top: 0 !important;
+    }
+    nav, aside { display: none !important; }
+
+    @page {
+        size: A4;
+        margin: 12mm;
+    }
+}
 #blazor-error-ui {
     color-scheme: light only;
     background: lightyellow;

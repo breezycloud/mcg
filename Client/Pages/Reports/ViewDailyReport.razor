@@ -104,7 +104,7 @@
                 </div>
 
                 <!-- Company + Employee Info -->
-                <div class="px-6 py-3 bg-gray-50 dark:bg-gray-750 border-b border-gray-200 dark:border-gray-700 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+                <div class="px-6 py-3 bg-gray-50 dark:bg-gray-750 border-b border-gray-200 dark:border-gray-700 grid grid-cols-1 sm:grid-cols-4 gap-3 text-sm">
                     <div>
                         <span class="text-gray-500 dark:text-gray-400">Company:</span>
                         <span class="ml-1 font-medium text-gray-900 dark:text-white">@(Configuration["CompanyName"] ?? "Atlantic Co., Ltd.")</span>
@@ -115,22 +115,20 @@
                             @(_report.Employee is not null ? $"{_report.Employee.FirstName} {_report.Employee.LastName}".Trim() : "—")
                         </span>
                     </div>
-                    <div class="flex gap-4">
-                        @if (_report.Department.HasValue)
-                        {
-                            <div>
-                                <span class="text-gray-500 dark:text-gray-400">Dept:</span>
-                                <span class="ml-1 font-medium text-gray-900 dark:text-white">@_report.Department</span>
-                            </div>
-                        }
-                        @if (_report.Employee is not null)
-                        {
-                            <div>
-                                <span class="text-gray-500 dark:text-gray-400">Title:</span>
-                                <span class="ml-1 font-medium text-gray-900 dark:text-white">@_report.Employee.Role</span>
-                            </div>
-                        }
-                    </div>
+                    @if (_report.Department.HasValue)
+                    {
+                        <div>
+                            <span class="text-gray-500 dark:text-gray-400">Dept:</span>
+                            <span class="ml-1 font-medium text-gray-900 dark:text-white">@_report.Department</span>
+                        </div>
+                    }
+                    @if (_report.Employee is not null)
+                    {
+                        <div>
+                            <span class="text-gray-500 dark:text-gray-400">Title:</span>
+                            <span class="ml-1 font-medium text-gray-900 dark:text-white">@_report.Employee.Role</span>
+                        </div>
+                    }
                 </div>
 
                 <!-- Work Tasks Table -->
@@ -139,9 +137,8 @@
                         <thead>
                             <tr class="bg-gray-100 dark:bg-gray-700">
                                 <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left text-gray-700 dark:text-gray-300 w-8">#</th>
-                                <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left text-gray-700 dark:text-gray-300">Planned Work Tasks / Temporary Assignments</th>
-                                <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left text-gray-700 dark:text-gray-300">Actual Job Responsibilities</th>
-                                <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center text-gray-700 dark:text-gray-300 w-28 no-print">Status</th>
+                                <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left text-gray-700 dark:text-gray-300 w-[46%]">Planned Work Tasks / Temporary Assignments</th>
+                                <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left text-gray-700 dark:text-gray-300 w-[46%]">Actual Job Responsibilities</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -152,7 +149,6 @@
                             {
                                 if (string.IsNullOrWhiteSpace(task.Text) && string.IsNullOrWhiteSpace(task.ActualNote)) continue;
                                 workRowNum++;
-                                var capturedTask = task;
                                 <tr class="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750">
                                     <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-gray-500 text-center">@workRowNum.</td>
                                     <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-gray-700 dark:text-gray-300">
@@ -161,21 +157,11 @@
                                     <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-gray-700 dark:text-gray-300">
                                         @task.ActualNote
                                     </td>
-                                    <!-- Interactive status chip (no-print: hide on print, show inline element) -->
-                                    <td class="border border-gray-300 dark:border-gray-600 px-2 py-2 text-center no-print">
-                                        <button type="button"
-                                            @onclick="async () => await ToggleWorkTaskStatus(capturedTask)"
-                                            disabled="@(_isTogglingTask || !_isOwnerOrManager)"
-                                            title="@(_isOwnerOrManager ? "Click to change status" : "Only the assigned employee or a manager can update task status")"
-                                            class="px-2.5 py-1 rounded-full text-xs font-semibold transition-colors disabled:cursor-default @GetTaskStatusCss(capturedTask.Status)">
-                                            @capturedTask.Status
-                                        </button>
-                                    </td>                                    
                                 </tr>
                             }
                             @if (workRowNum == 0)
                             {
-                                <tr><td colspan="5" class="px-4 py-3 text-center text-xs text-gray-400">No tasks recorded</td></tr>
+                                <tr><td colspan="4" class="px-4 py-3 text-center text-xs text-gray-400">No tasks recorded</td></tr>
                             }
                         </tbody>
                     </table>
@@ -200,9 +186,8 @@
                             <thead>
                                 <tr class="bg-gray-100 dark:bg-gray-700">
                                     <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left text-gray-700 dark:text-gray-300 w-8">#</th>
-                                    <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left text-gray-700 dark:text-gray-300">Tomorrow's Work Plan</th>
-                                    <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left text-gray-700 dark:text-gray-300">Recommendations</th>
-                                    <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center text-gray-700 dark:text-gray-300 w-28 no-print">Status</th>
+                                    <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left text-gray-700 dark:text-gray-300 w-[46%]">Tomorrow's Work Plan</th>
+                                    <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left text-gray-700 dark:text-gray-300 w-[46%]">Recommendations</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -213,20 +198,10 @@
                                 {
                                     if (string.IsNullOrWhiteSpace(task.Text) && string.IsNullOrWhiteSpace(task.ActualNote)) continue;
                                     tmrRowNum++;
-                                    var capturedTask = task;
                                     <tr class="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750">
                                         <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-gray-500 text-center">@tmrRowNum.</td>
                                         <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-gray-700 dark:text-gray-300">@task.Text</td>
                                         <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-gray-700 dark:text-gray-300">@task.ActualNote</td>
-                                        <td class="border border-gray-300 dark:border-gray-600 px-2 py-2 text-center no-print">
-                                            <button type="button"
-                                                @onclick="async () => await ToggleTomorrowTaskStatus(capturedTask)"
-                                                disabled="@(_isTogglingTask || !_isOwnerOrManager)"
-                                                title="@(_isOwnerOrManager ? "Click to change status" : "Only the assigned employee or a manager can update task status")"
-                                                class="px-2.5 py-1 rounded-full text-xs font-semibold transition-colors disabled:cursor-default @GetTaskStatusCss(capturedTask.Status)">
-                                                @capturedTask.Status
-                                            </button>
-                                        </td>
                                     </tr>
                                 }
                             </tbody>
@@ -322,7 +297,19 @@
         .no-print, nav, aside, header, footer,
         aside, .no-print { display: none !important; }
         body, html { background: white !important; margin: 0; padding: 0; }
-        section { background: white !important; padding: 0 !important; }
+        section {
+            background: white !important;
+            padding: 0 !important;
+            min-height: 0 !important;
+        }
+
+        /* The screen layout centers the report in a max-w-4xl column with side padding —
+           on print that just wastes the A4 page's usable width. Let it fill the page. */
+        section > div {
+            max-width: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
 
         /* Full-width printable container — remove rounded corners and shadows */
         .report-container {
@@ -356,10 +343,6 @@
         /* Column widths: narrow S/N, equal split for task columns */
         .tasks-table th:first-child,
         .tasks-table td:first-child { width: 24px; text-align: center; }
-
-        /* Hide interactive status column, show plain-text status column */
-        .no-print { display: none !important; }
-        .print-only { display: table-cell !important; }
 
         /* Header rows: light grey fill (matches Word template) */
         .tasks-table thead tr {
@@ -418,8 +401,6 @@
     private bool _isDeleting;
     private bool _isReviewing;
     private bool _isReverting;
-    private bool _isTogglingTask;
-    private bool _isOwnerOrManager;
     private bool _canReview;
     private bool _showDeleteModal;
     private string? _reviewComment;
@@ -432,16 +413,11 @@
             _report = await DailyReportService.GetAsync(Id, default);
             _reviewComment = _report?.ManagerComment;
 
-            // Determine if the current user can toggle task statuses:
-            // only the assigned employee or Admin/Master/Supervisor
             var authState = await CustomAuthenticationProvider.GetAuthenticationStateAsync();
             var claims = authState.User;
             var role = claims.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
             var currentUserIdStr = claims.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            bool isManager = role is "Admin" or "Master" or "Supervisor";
             Guid.TryParse(currentUserIdStr, out var uid);
-            bool isOwner   = _report is not null && _report.EmployeeId == uid;
-            _isOwnerOrManager = isOwner || isManager;
 
             // Review capability mirrors the API's rule exactly: Admin/Master, or whoever
             // this report's employee has set as their Supervisor — role-agnostic.
@@ -500,61 +476,6 @@
         }
         StateHasChanged();
     }
-
-    // ─── Task status toggling ────────────────────────────────────────────────
-
-    private async Task ToggleWorkTaskStatus(ReportTask task)
-    {
-        if (_report is null || _isTogglingTask) return;
-        CycleStatus(task);
-        await SaveTasksAsync();
-    }
-
-    private async Task ToggleTomorrowTaskStatus(ReportTask task)
-    {
-        if (_report is null || _isTogglingTask) return;
-        CycleStatus(task);
-        await SaveTasksAsync();
-    }
-
-    private static void CycleStatus(ReportTask task)
-    {
-        task.Status = task.Status switch
-        {
-            TaskItemStatus.Pending    => TaskItemStatus.InProgress,
-            TaskItemStatus.InProgress => TaskItemStatus.Done,
-            _                         => TaskItemStatus.Pending
-        };
-    }
-
-    private async Task SaveTasksAsync()
-    {
-        if (_report is null) return;
-        _isTogglingTask = true;
-        try
-        {
-            await DailyReportService.UpdateTasksAsync(_report.Id, _report, default);
-        }
-        catch (Exception ex)
-        {
-            ToastService.ShowError($"Failed to save task status: {ex.Message}");
-        }
-        finally
-        {
-            _isTogglingTask = false;
-        }
-        StateHasChanged();
-    }
-
-    private static string GetTaskStatusCss(TaskItemStatus status) => status switch
-    {
-        TaskItemStatus.Pending    => "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600",
-        TaskItemStatus.InProgress => "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800/50",
-        TaskItemStatus.Done       => "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-800/50",
-        _                         => "bg-gray-100 text-gray-600"
-    };
-
-    // ─────────────────────────────────────────────────────────────────────────
 
     private async Task SaveReview()
     {
