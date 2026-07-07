@@ -32,6 +32,11 @@ jobs:
                   -o ./publish \
                   /p:EnvironmentName=Production
 
+          - name: Copy .env to Publish Directory
+            run: |
+              cp Api/.env ./publish/
+              echo "✅ Copied .env to publish directory"
+
           - name: Upload Api via SSH
             uses: appleboy/scp-action@v0.1.7
             with:
