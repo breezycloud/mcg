@@ -27,20 +27,13 @@ public class Auth : ControllerBase
     private LoginResponse? _result;
     private readonly EmailPublisherService? _mailPublisher;
 
-#if RELEASE
+
     public Auth(IConfiguration configuration, AppDbContext context, EmailPublisherService mailPublisher)
     {
         _context = context;
         Configuration = configuration;
         _mailPublisher = mailPublisher;
     }
-#else
-    public Auth(IConfiguration configuration, AppDbContext context)
-    {
-        _context = context;
-        Configuration = configuration;
-    }
-#endif
 
     [HttpPost("login")]
     public async Task<ActionResult<LoginResponse?>> Login(LoginModel user)
@@ -124,12 +117,10 @@ public class Auth : ControllerBase
         user.PasswordResetTokenExpiry = DateTimeOffset.UtcNow.AddHours(1);
         await _context.SaveChangesAsync();
 
-#if RELEASE
         if (_mailPublisher != null)
         {
             var portalUrl = Configuration.GetValue<string>("Portal:Url") ?? "https://demo-mcc.onrender.com";
             var resetUrl = $"{portalUrl}/reset-password?userId={user.Id}&token={Uri.EscapeDataString(token)}";
-
             var message = new EmailQueueMessage
             {
                 To = user.Email,
@@ -146,7 +137,6 @@ public class Auth : ControllerBase
 
             _mailPublisher.QueueEmailAsync(message);
         }
-#endif
 
         return Ok(true);
     }

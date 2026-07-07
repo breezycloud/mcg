@@ -20,19 +20,20 @@ public class EmailConsumerService : BackgroundService
     private readonly ILogger<EmailConsumerService> _logger;
 
     public EmailConsumerService(
-        IOptions<MessageBrokerSetting> rabbitConfig,
+        IOptions<MessageBrokerSetting> config,
         IFluentEmail fluentEmail,
         ILogger<EmailConsumerService> logger)
     {
         _fluentEmail = fluentEmail;
         _logger = logger;
 
+
         var factory = new ConnectionFactory
         {
-            HostName = rabbitConfig.Value.HostName,
-            UserName = rabbitConfig.Value.UserName,
-            Password = rabbitConfig.Value.Password,
-            Port = rabbitConfig.Value.Port
+            HostName = config.Value.HostName,
+            UserName = config.Value.UserName,
+            Password = config.Value.Password,
+            Port = config.Value.Port
         };        
         _connection = factory.CreateConnection();
         _channel = _connection.CreateModel();

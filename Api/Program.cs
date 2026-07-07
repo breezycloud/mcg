@@ -254,11 +254,14 @@ builder.Services.AddHttpClient();
 builder.Services.AddSingleton<ILoggerProvider, ApplicationLoggerProvider>();
 builder.Services.AddTransient<IDashboardService, DashboardService>();
 
-if (!builder.Environment.IsDevelopment())
-{
-    builder.Services.AddScoped<EmailPublisherService>();
-    builder.Services.AddHostedService<EmailConsumerService>();
-}
+// if (!builder.Environment.IsDevelopment())
+// {
+//     builder.Services.AddScoped<EmailPublisherService>();
+//     builder.Services.AddHostedService<EmailConsumerService>();
+// }
+
+builder.Services.AddScoped<EmailPublisherService>();
+builder.Services.AddHostedService<EmailConsumerService>();
 
 builder.Services.AddSingleton(sp =>
 {
