@@ -26,10 +26,11 @@ using Shared.Helpers;
 using Shared.Interfaces.Dashboards;
 using Shared.Models.MessageBroker;
 
-static void LoadEnvFile(string path)
+static IReadOnlyDictionary<string, string> LoadEnvFile(string path)
 {
+    var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
     if (!File.Exists(path))
-        return;
+        return result;
 
     foreach (var line in File.ReadAllLines(path))
     {
@@ -46,49 +47,76 @@ static void LoadEnvFile(string path)
         if (string.IsNullOrEmpty(key))
             continue;
 
-        // Only set if not already present (CLI args > .env)
-        if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable(key)))
-        {
-            Environment.SetEnvironmentVariable(key, value);
-        }
+        result[key] = value;
     }
+    return result;
 }
 
-// Load .env files so local non-Docker runs can find secrets.
-// Docker Compose does this automatically; `dotnet run` does not.
+// --- Idempotent .env loading ------------------------------------------------
+// Read .env into a local dictionary so we never mutate global state.
 var envDir = Directory.GetCurrentDirectory();
-LoadEnvFile(Path.Combine(envDir, ".env"));
-LoadEnvFile(Path.Combine(envDir, ".env.local"));
-
-// Map .env variable names to .NET configuration names so Configuration[] picks them up.
-static void MapEnvToConfig(string envName, string configSectionKey)
+var envVars = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+foreach (var envPath in new[] { Path.Combine(envDir, ".env"), Path.Combine(envDir, ".env.local") })
 {
-    var envValue = Environment.GetEnvironmentVariable(envName);
-    if (!string.IsNullOrEmpty(envValue) && string.IsNullOrEmpty(Environment.GetEnvironmentVariable(configSectionKey)))
+    foreach (var kvp in LoadEnvFile(envPath))
     {
-        Environment.SetEnvironmentVariable(configSectionKey, envValue);
+        envVars.TryAdd(kvp.Key, kvp.Value);
     }
 }
-
-MapEnvToConfig("APP_KEY", "App__Key");
-MapEnvToConfig("EXTERNAL_API_KEY", "ExternalApiKeys__ValidKeys__0");
-MapEnvToConfig("BREVO_MAKULLI", "Brevo__Makulli");
-MapEnvToConfig("BREVO_EMAIL", "SMTP__Email");
-MapEnvToConfig("BREVO_SMTP_KEY", "SMTP__Password");
-MapEnvToConfig("POSTGRES_PASSWORD", "ConnectionStrings__PostgresPassword");
 
 var builder = WebApplication.CreateBuilder(args);
 
-
-brevo_csharp.Client.Configuration.Default.ApiKey.Add("api-key", builder.Configuration["Brevo:Makulli"]!);
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.Configure<MessageBrokerSetting>(builder.Configuration?.GetSection("RabbitMQ"));
-var jwtKey = builder.Configuration["App:Key"];
-if (string.IsNullOrWhiteSpace(jwtKey))
+// --- Idempotent config helper -----------------------------------------------
+// Hierarchy ( strongest -> weakest ):
+//   1. .NET Configuration (appsettings, CLI args, user secrets)
+//   2. Raw environment variable
+//   3. .env file (local fallback for non-Docker runs)
+string? GetConfig(string dotNetKey, string? envFallbackName = null)
 {
-    throw new InvalidOperationException("JWT signing key is not configured. Please set 'App:Key' in appsettings or via the 'App__Key' environment variable.");
+    // 1. Check .NET Configuration
+    var value = builder.Configuration[dotNetKey];
+    if (!string.IsNullOrWhiteSpace(value))
+        return value;
+
+    // 2. Check standard environment variable (Docker, systemd, etc.)
+    if (!string.IsNullOrEmpty(envFallbackName))
+    {
+        value = Environment.GetEnvironmentVariable(envFallbackName);
+        if (!string.IsNullOrWhiteSpace(value))
+            return value;
+    }
+
+    // 3. Check .env file
+    if (!string.IsNullOrEmpty(envFallbackName))
+    {
+        if (envVars.TryGetValue(envFallbackName, out var envValue) && !string.IsNullOrWhiteSpace(envValue))
+            return envValue;
+    }
+
+    return null;
 }
+
+string RequireConfig(string dotNetKey, string? envFallbackName = null)
+{
+    var value = GetConfig(dotNetKey, envFallbackName);
+    if (!string.IsNullOrWhiteSpace(value))
+        return value;
+
+    throw new InvalidOperationException(
+        $"Configuration '{dotNetKey}' is not configured. " +
+        $"Please set it in appsettings, user secrets, via the '{envFallbackName}' environment variable, or in the .env file.");
+}
+
+var brevoKey = GetConfig("Brevo:Makulli", "BREVO_MAKULLI");
+if (!string.IsNullOrWhiteSpace(brevoKey))
+{
+    brevo_csharp.Client.Configuration.Default.ApiKey.Add("api-key", brevoKey);
+}
+
+builder.Services.Configure<MessageBrokerSetting>(builder.Configuration?.GetSection("RabbitMQ"));
+
+// JWT key — idempotent: will use whatever is already configured, falling back to .env
+var jwtKey = RequireConfig("App:Key", "APP_KEY");
 var key = Encoding.ASCII.GetBytes(jwtKey);
 string MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
