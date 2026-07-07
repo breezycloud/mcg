@@ -47,8 +47,7 @@ public class Auth : ControllerBase
     {
         int TotalDays = 30;
         var hashedPassword = Security.Encrypt(user.HashedPassword!);
-        var Email = $"%{user!.Email}%";
-        var credential = await _context.Users.SingleOrDefaultAsync(i => EF.Functions.ILike(i.Email!, Email) && i.HashedPassword == hashedPassword);
+        var credential = await _context.Users.FirstOrDefaultAsync(i => EF.Functions.ILike(i.Email!, user.Email!) && i.HashedPassword == hashedPassword);
 
         if (credential is null)
         {
@@ -84,12 +83,18 @@ public class Auth : ControllerBase
             new("managed_products", _result.ManagedProducts is not null ? string.Join(",", _result.ManagedProducts.Select(p => p)) : string.Empty)
         };
 
+        var jwtKey = Configuration["App:Key"];
+        if (string.IsNullOrWhiteSpace(jwtKey))
+        {
+            throw new InvalidOperationException("JWT signing key is not configured. Please set 'App:Key' in appsettings or via the 'App__Key' environment variable.");
+        }
+
         var token = new JwtSecurityToken(
             null,
             null,
             claim,
             expires: DateTime.Now.AddDays(TotalDays),
-            signingCredentials: new SigningCredentials(new SymmetricSecurityKey(Encoding.ASCII.GetBytes(Configuration["App:Key"]!)),
+            signingCredentials: new SigningCredentials(new SymmetricSecurityKey(Encoding.ASCII.GetBytes(jwtKey)),
             SecurityAlgorithms.HmacSha512Signature));
 
         var jwt = new JwtSecurityTokenHandler().WriteToken(token);
@@ -107,7 +112,7 @@ public class Auth : ControllerBase
         }
 
         var emailPattern = $"%{model.Email}%";
-        var user = await _context.Users.SingleOrDefaultAsync(i => EF.Functions.ILike(i.Email!, emailPattern));
+        var user = await _context.Users.FirstOrDefaultAsync(i => EF.Functions.ILike(i.Email!, emailPattern));
 
         if (user == null)
         {

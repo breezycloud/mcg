@@ -26,6 +26,57 @@ using Shared.Helpers;
 using Shared.Interfaces.Dashboards;
 using Shared.Models.MessageBroker;
 
+static void LoadEnvFile(string path)
+{
+    if (!File.Exists(path))
+        return;
+
+    foreach (var line in File.ReadAllLines(path))
+    {
+        var trimmed = line.Trim();
+        if (string.IsNullOrEmpty(trimmed) || trimmed.StartsWith('#'))
+            continue;
+
+        var eqIndex = trimmed.IndexOf('=');
+        if (eqIndex < 0)
+            continue;
+
+        var key = trimmed[..eqIndex].TrimEnd();
+        var value = trimmed[(eqIndex + 1)..].TrimStart();
+        if (string.IsNullOrEmpty(key))
+            continue;
+
+        // Only set if not already present (CLI args > .env)
+        if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable(key)))
+        {
+            Environment.SetEnvironmentVariable(key, value);
+        }
+    }
+}
+
+// Load .env files so local non-Docker runs can find secrets.
+// Docker Compose does this automatically; `dotnet run` does not.
+var envDir = Directory.GetCurrentDirectory();
+LoadEnvFile(Path.Combine(envDir, ".env"));
+LoadEnvFile(Path.Combine(envDir, ".env.local"));
+
+// Map .env variable names to .NET configuration names so Configuration[] picks them up.
+static void MapEnvToConfig(string envName, string configSectionKey)
+{
+    var envValue = Environment.GetEnvironmentVariable(envName);
+    if (!string.IsNullOrEmpty(envValue) && string.IsNullOrEmpty(Environment.GetEnvironmentVariable(configSectionKey)))
+    {
+        Environment.SetEnvironmentVariable(configSectionKey, envValue);
+    }
+}
+
+MapEnvToConfig("APP_KEY", "App__Key");
+MapEnvToConfig("EXTERNAL_API_KEY", "ExternalApiKeys__ValidKeys__0");
+MapEnvToConfig("BREVO_MAKULLI", "Brevo__Makulli");
+MapEnvToConfig("BREVO_EMAIL", "SMTP__Email");
+MapEnvToConfig("BREVO_SMTP_KEY", "SMTP__Password");
+MapEnvToConfig("POSTGRES_PASSWORD", "ConnectionStrings__PostgresPassword");
+
 var builder = WebApplication.CreateBuilder(args);
 
 
@@ -33,7 +84,12 @@ brevo_csharp.Client.Configuration.Default.ApiKey.Add("api-key", builder.Configur
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.Configure<MessageBrokerSetting>(builder.Configuration?.GetSection("RabbitMQ"));
-var key = Encoding.ASCII.GetBytes(builder.Configuration["App:Key"]!);
+var jwtKey = builder.Configuration["App:Key"];
+if (string.IsNullOrWhiteSpace(jwtKey))
+{
+    throw new InvalidOperationException("JWT signing key is not configured. Please set 'App:Key' in appsettings or via the 'App__Key' environment variable.");
+}
+var key = Encoding.ASCII.GetBytes(jwtKey);
 string MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 builder.Services.AddCors(options =>
