@@ -56,12 +56,15 @@ static IReadOnlyDictionary<string, string> LoadEnvFile(string path)
 // Read .env into a local dictionary so we never mutate global state.
 var envDir = Directory.GetCurrentDirectory();
 var envVars = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-foreach (var envPath in new[] { Path.Combine(envDir, ".env"), Path.Combine(envDir, ".env.local") })
+
+#if DEBUG
+var envPath = Path.Combine(envDir, ".env.local");
+#else
+var envPath = Path.Combine(envDir, ".env");
+#endif
+foreach (var kvp in LoadEnvFile(envPath))
 {
-    foreach (var kvp in LoadEnvFile(envPath))
-    {
-        envVars.TryAdd(kvp.Key, kvp.Value);
-    }
+    envVars.TryAdd(kvp.Key, kvp.Value);
 }
 
 var builder = WebApplication.CreateBuilder(args);
