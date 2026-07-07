@@ -512,7 +512,14 @@
         _isDeleting = true;
         try
         {
-            await DailyReportService.DeleteAsync(_report.Id, default);            ToastService.ShowSuccess("Report deleted");
+            await DailyReportService.DeleteAsync(_report.Id, default);
+            ToastService.ShowSuccess("Report deleted");
+
+            // Deleting a report can remove one that was still counted as pending review —
+            // re-fetch from the server rather than assume, since AppState is shared and
+            // other tabs/managers may have changed the underlying count too.
+            AppState.DailyReportBadgeCount = await DailyReportService.GetPendingReviewCountAsync(default);
+
             nav.NavigateTo("/daily-reports");
         }
         catch

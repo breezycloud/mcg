@@ -454,6 +454,12 @@
             ToastService.ShowSuccess("Report deleted");
             _reportToDelete = null;
             await LoadReports();
+
+            // Deleting a report can remove one that was still counted as pending review —
+            // re-fetch from the server rather than guess client-side (the list's Select
+            // projection doesn't include ManagerComment, so we can't tell locally whether
+            // this report was actually contributing to the badge).
+            AppState.DailyReportBadgeCount = await DailyReportService.GetPendingReviewCountAsync(default);
         }
         catch
         {
