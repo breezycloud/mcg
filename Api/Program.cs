@@ -65,6 +65,7 @@ var envPath = Path.Combine(envDir, ".env");
 foreach (var kvp in LoadEnvFile(envPath))
 {
     envVars.TryAdd(kvp.Key, kvp.Value);
+    Console.WriteLine($"✅ Loaded .env variable: {kvp.Key}={kvp.Value}");
 }
 
 var builder = WebApplication.CreateBuilder(args);
