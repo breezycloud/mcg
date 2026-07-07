@@ -53,20 +53,41 @@ static IReadOnlyDictionary<string, string> LoadEnvFile(string path)
 }
 
 // --- Idempotent .env loading ------------------------------------------------
-// Read .env into a local dictionary so we never mutate global state.
 var envDir = Directory.GetCurrentDirectory();
-var envVars = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
 #if DEBUG
 var envPath = Path.Combine(envDir, ".env.local");
 #else
 var envPath = Path.Combine(envDir, ".env");
 #endif
-foreach (var kvp in LoadEnvFile(envPath))
+var envVars = LoadEnvFile(envPath);
+
+// Map .env variable names to .NET configuration names so Configuration[] picks them up.
+// This is idempotent: if the env var is already set (systemd, Docker, etc.), we do nothing.
+static void MapEnvToConfig(string envName, IReadOnlyDictionary<string, string> env, string dotNetKey)
 {
-    envVars.TryAdd(kvp.Key, kvp.Value);
-    Console.WriteLine($"✅ Loaded .env variable: {kvp.Key}={kvp.Value}");
+    if (string.IsNullOrEmpty(envName) || env == null)
+        return;
+
+    if (!env.TryGetValue(envName, out var value) || string.IsNullOrWhiteSpace(value))
+        return;
+
+    // Only set if not already present so higher-priority sources (systemd, Docker) win
+    if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable(dotNetKey)))
+    {
+        Environment.SetEnvironmentVariable(dotNetKey, value);
+    }
 }
+
+MapEnvToConfig("APP_KEY", envVars, "App__Key");
+MapEnvToConfig("EXTERNAL_API_KEY", envVars, "ExternalApiKeys__ValidKeys__0");
+MapEnvToConfig("BREVO_MAKULLI", envVars, "Brevo__Makulli");
+MapEnvToConfig("BREVO_EMAIL", envVars, "SMTP__Email");
+MapEnvToConfig("BREVO_SMTP_KEY", envVars, "SMTP__Password");
+MapEnvToConfig("POSTGRES_PASSWORD", envVars, "ConnectionStrings__PostgresPassword");
+MapEnvToConfig("RABBITMQ_USER", envVars, "RabbitMQ__UserName");
+MapEnvToConfig("RABBITMQ_PASSWORD", envVars, "RabbitMQ__Password");
+MapEnvToConfig("RABBITMQ_HOST", envVars, "RabbitMQ__HostName");
 
 var builder = WebApplication.CreateBuilder(args);
 
