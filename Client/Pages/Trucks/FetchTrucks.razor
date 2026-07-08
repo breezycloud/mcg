@@ -77,7 +77,6 @@
                             <th scope="col" class="px-6 py-3">Driver</th>
                             <th scope="col" class="px-6 py-3">Deployment</th>
                             <th scope="col" class="px-6 py-3">Maintenance</th>
-                            <th scope="col" class="px-6 py-3">Created</th>
                             @* <th scope="col" class="px-6 py-3">Updated</th> *@
                             <th scope="col" class="px-6 py-3 text-right">Actions</th>
                         </tr>
@@ -117,7 +116,6 @@
                                             @(IsUnderMaintenance(truck) ? "Under Maintenance" : "Clear")
                                         </span>
                                     </td>
-                                    <td class="px-6 py-4">@truck.CreatedAt.ToString("MMM dd, yyyy")</td>
                                     @* <td class="px-6 py-4">@(truck.UpdatedAt?.ToString("MMM dd, yyyy") ?? "Never")</td> *@
                                     <td class="px-6 py-4 text-right">
                                         <div class="relative inline-block text-left">
@@ -153,7 +151,7 @@
                         else
                         {
                             <tr>
-                                <td colspan="9" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                                <td colspan="8" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
                                     @if (AppState.IsBusy)
                                     {
                                         <div class="flex justify-center items-center">
