@@ -67,6 +67,12 @@
     </style>
 </head>
 <body>
+    @if (Model.IsTestEnvironment)
+    {
+        <div style="background-color:#fff3cd; color:#856404; padding:12px 20px; text-align:center; font-weight:bold; border:1px solid #f0ad4e; border-radius:8px; margin-bottom:15px;">
+            &#9888; TEST ENVIRONMENT &mdash; This email was sent from a staging/test system, not the live production system. No action is needed if you weren't expecting this.
+        </div>
+    }
     <div class="container">
         <div class="header">
             <h2>Welcome to MCC</h2>

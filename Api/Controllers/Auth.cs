@@ -25,19 +25,22 @@ public class Auth : ControllerBase
     private readonly AppDbContext _context;
     private IConfiguration Configuration { get; }
     private readonly EmailPublisherService? _mailPublisher;
+    private readonly IWebHostEnvironment _env;
 
 #if RELEASE
-    public Auth(IConfiguration configuration, AppDbContext context, EmailPublisherService mailPublisher)
+    public Auth(IConfiguration configuration, AppDbContext context, EmailPublisherService mailPublisher, IWebHostEnvironment env)
     {
         _context = context;
         Configuration = configuration;
         _mailPublisher = mailPublisher;
+        _env = env;
     }
 #else
-    public Auth(IConfiguration configuration, AppDbContext context)
+    public Auth(IConfiguration configuration, AppDbContext context, IWebHostEnvironment env)
     {
         _context = context;
         Configuration = configuration;
+        _env = env;
     }
 #endif
 
@@ -180,7 +183,8 @@ public class Auth : ControllerBase
                     Email = user.Email,
                     Name = user.ToString(),
                     PortalUrl = portalUrl,
-                    ResetUrl = resetUrl
+                    ResetUrl = resetUrl,
+                    IsTestEnvironment = !_env.IsProduction()
                 }
             };
 

@@ -17,22 +17,25 @@ public class UsersController : ControllerBase
     private readonly AppDbContext _context;
     private readonly EmailPublisherService? _mailPublisher;
     private readonly IConfiguration _configuration;
+    private readonly IWebHostEnvironment _env;
 
     #if RELEASE
 
-        public UsersController(AppDbContext context, EmailPublisherService mailPublisher, IConfiguration configuration)
+        public UsersController(AppDbContext context, EmailPublisherService mailPublisher, IConfiguration configuration, IWebHostEnvironment env)
         {
             _context = context;
             _mailPublisher = mailPublisher;
             _configuration = configuration;
+            _env = env;
         }
     #endif
 
      #if DEBUG
-        public UsersController(AppDbContext context, IConfiguration configuration)
+        public UsersController(AppDbContext context, IConfiguration configuration, IWebHostEnvironment env)
         {
             _context = context;
             _configuration = configuration;
+            _env = env;
         }
      #endif
     
@@ -194,7 +197,8 @@ public class UsersController : ControllerBase
                     Email = user.Email,
                     Name = user.ToString(),
                     Password = password,
-                    PortalUrl = portalUrl
+                    PortalUrl = portalUrl,
+                    IsTestEnvironment = !_env.IsProduction()
                 }
             };
             _mailPublisher.QueueEmailAsync(emailMessage);
