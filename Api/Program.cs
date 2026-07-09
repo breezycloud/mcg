@@ -182,7 +182,11 @@ var client = new SmtpClientOptions()
 builder.Services.AddSingleton<ISender>(x => new MailKitSender(client));
 
 builder.Services.AddTransient<IFluentEmailFactory, FluentEmailFactory>();
-builder.Services.AddFluentEmail("mustapha.aliyu@mcg.com.cn")
+// Brevo only relays mail from a verified sender — must match the domain-authenticated
+// address configured in the Brevo dashboard, not an arbitrary address.
+var senderEmail = builder.Configuration["Brevo:SenderEmail"] ?? "mis@atlanticlogistics-atv.com.ng";
+var senderName = builder.Configuration["Brevo:SenderName"];
+builder.Services.AddFluentEmail(senderEmail, senderName)
     .AddRazorRenderer()
     .AddMailKitSender(client);
 
