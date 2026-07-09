@@ -106,8 +106,7 @@
             {                
                 await CustomAuthenticationProvider.SetTokenAsync(response);
 
-                var userRole = response.Role;
-                var path = Path(userRole);                
+                var path = response.MustChangePassword ? "/change-password" : Path(response.Role);
                 nav.NavigateTo(path, true);
             }
         }

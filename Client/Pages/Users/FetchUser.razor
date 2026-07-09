@@ -257,13 +257,9 @@
 
             if (!EditMode)
             {
+                // Login-credentials email is now sent server-side by UsersController.PostUser
+                // itself (via the RabbitMQ/FluentEmail pipeline) — no separate client call needed.
                 result = await UserService.AddAsync(user, AppState.GetCancellationToken());
-                if (result)
-                {
-                    var emailRequest = new EmailRequest { Email = user.Email!, Name = user.LastName!, templateId = 1};
-                    await UserService.SendEmailAsync(emailRequest, AppState.GetCancellationToken());
-                }
-                
             }
             else
             {

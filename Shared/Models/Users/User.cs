@@ -24,6 +24,7 @@ public class User
     public string? HashedPassword { get; set; }
     public string? PasswordResetToken { get; set; }
     public DateTimeOffset? PasswordResetTokenExpiry { get; set; }
+    public bool MustChangePassword { get; set; }
     public UserRole Role { get; set; } = UserRole.Admin;
     [Column(TypeName = "jsonb")]
     public List<Product> ManagedProducts { get; set; } = new();

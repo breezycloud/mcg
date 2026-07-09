@@ -53,4 +53,11 @@ public class AuthService(IHttpClientFactory _httpClient, IJSRuntime js) : IAuthS
             throw;
         }
     }
+
+    public async Task<LoginResponse?> ChangePassword(ChangePasswordModel model, CancellationToken cancellationToken)
+    {
+        using var response = await _httpClient.CreateClient(Constants.Url).PostAsJsonAsync("auth/change-password", model, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<LoginResponse?>();
+    }
 }

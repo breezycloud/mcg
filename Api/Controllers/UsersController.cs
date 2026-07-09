@@ -15,21 +15,24 @@ namespace Api.Controllers;
 public class UsersController : ControllerBase
 {
     private readonly AppDbContext _context;
-    private readonly EmailPublisherService _mailPublisher;
+    private readonly EmailPublisherService? _mailPublisher;
+    private readonly IConfiguration _configuration;
 
-    #if RELEASE        
+    #if RELEASE
 
-        public UsersController(AppDbContext context, EmailPublisherService mailPublisher)
+        public UsersController(AppDbContext context, EmailPublisherService mailPublisher, IConfiguration configuration)
         {
             _context = context;
             _mailPublisher = mailPublisher;
+            _configuration = configuration;
         }
-    #endif    
+    #endif
 
      #if DEBUG
-        public UsersController(AppDbContext context)
+        public UsersController(AppDbContext context, IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
         }
      #endif
     
@@ -173,25 +176,30 @@ public class UsersController : ControllerBase
     public async Task<ActionResult<User>> PostUser(User user)
     {
         var password = Security.GenerateRandomPassword();
-        var hashedPassword = Security.Encrypt("12345678");
-        user.HashedPassword = hashedPassword;
+        user.HashedPassword = Security.Encrypt(password);
+        user.MustChangePassword = true;
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
-        // Optionally, you can send a welcome email after user creation
-        var emailMessage = new EmailQueueMessage
+
+        if (_mailPublisher != null)
         {
-            To = user.Email,
-            Subject = "Your login credentials",
-            Template = "AccountDetails",
-            TemplateModel = new AccountDetailBody
+            var portalUrl = _configuration.GetValue<string>("Portal:Url") ?? "https://demo-mcc.onrender.com";
+            var emailMessage = new EmailQueueMessage
             {
-                Email = user.Email,
-                Name = user.ToString(),
-                Password = password,
-                PortalUrl = "https://demo-mcc.onrender.com" // Replace with your actual portal URL
-            }
-        };
-        //_mailPublisher.QueueEmailAsync(emailMessage);
+                To = user.Email,
+                Subject = "Your login credentials",
+                Template = "AccountDetails",
+                TemplateModel = new AccountDetailBody
+                {
+                    Email = user.Email,
+                    Name = user.ToString(),
+                    Password = password,
+                    PortalUrl = portalUrl
+                }
+            };
+            _mailPublisher.QueueEmailAsync(emailMessage);
+        }
+
         return CreatedAtAction("GetUser", new { id = user.Id }, user);
     }
 

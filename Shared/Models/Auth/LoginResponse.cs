@@ -16,6 +16,7 @@ public class LoginResponse
     public string? Token { get; set; }
     public UserRole Role { get; set; }
     public bool? IsVerified { get; set; }
+    public bool MustChangePassword { get; set; }
     public List<Product>? ManagedProducts { get; set; }
     public string? Message { get; set;  }
 }
