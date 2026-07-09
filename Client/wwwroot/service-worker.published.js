@@ -25,6 +25,11 @@ async function onInstall(event) {
         .filter(asset => !offlineAssetsExclude.some(pattern => pattern.test(asset.url)))
         .map(asset => new Request(asset.url, { integrity: asset.hash, cache: 'no-cache' }));
     await caches.open(cacheName).then(cache => cache.addAll(assetsRequests));
+
+    // Take over from any previously-installed worker immediately instead of staying
+    // "waiting" until every open tab for this origin is closed — without this, a tab
+    // left open across a deploy keeps running the old cached app bundle indefinitely.
+    self.skipWaiting();
 }
 
 async function onActivate(event) {
@@ -35,6 +40,10 @@ async function onActivate(event) {
     await Promise.all(cacheKeys
         .filter(key => key.startsWith(cacheNamePrefix) && key !== cacheName)
         .map(key => caches.delete(key)));
+
+    // Start controlling already-open tabs right away, pairing with skipWaiting() above
+    // so a deploy takes effect on next navigation/refresh instead of next tab reopen.
+    await self.clients.claim();
 }
 
 async function onFetch(event) {
