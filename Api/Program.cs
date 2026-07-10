@@ -8,14 +8,17 @@ using Api.Hubs;
 using Api.Interceptors;
 using Shared.Hubs;
 using Api.Logging;
+using Api.Services.ControlRoom;
 using Api.Services.Dashboards;
 using Api.Services.Messages;
+using Api.Services.Trucks;
 using Api.Util;
 using FluentEmail.Core;
 using FluentEmail.Core.Interfaces;
 using FluentEmail.MailKitSmtp;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
@@ -23,7 +26,9 @@ using Microsoft.IdentityModel.Tokens;
 using Npgsql;
 using RazorLight;
 using Shared.Helpers;
+using Shared.Interfaces.ControlRoom;
 using Shared.Interfaces.Dashboards;
+using Shared.Interfaces.Trucks;
 using Shared.Models.MessageBroker;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -94,11 +99,13 @@ var dataSourceBuilder = new NpgsqlDataSourceBuilder(ConnectionString);
 dataSourceBuilder.EnableDynamicJson();
 await using var dataSource = dataSourceBuilder.Build();
 builder.Services.AddSingleton<AuditInterceptor>();
+builder.Services.AddSingleton<DashboardChangeNotifierInterceptor>();
 builder.Services.AddDbContextFactory<AppDbContext>((sp, options) =>
 {
     var auditInterceptor = sp.GetRequiredService<AuditInterceptor>();
+    var dashboardNotifier = sp.GetRequiredService<DashboardChangeNotifierInterceptor>();
     options.UseNpgsql(dataSource, o => { o.SetPostgresVersion(16, 4); o.EnableRetryOnFailure(); })
-           .AddInterceptors(auditInterceptor);
+           .AddInterceptors(auditInterceptor, dashboardNotifier);
 });
 builder.Services.AddAuthentication(x =>
 {
@@ -144,6 +151,8 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddHttpClient();
 builder.Services.AddSingleton<ILoggerProvider, ApplicationLoggerProvider>();
 builder.Services.AddTransient<IDashboardService, DashboardService>();
+builder.Services.AddTransient<IControlRoomService, ControlRoomService>();
+builder.Services.AddTransient<ITruckReportService, TruckReportService>();
 
 if (!builder.Environment.IsDevelopment())
 {
@@ -194,6 +203,11 @@ builder.Services.AddFluentEmail(senderEmail, senderName)
 
 
 var app = builder.Build();
+
+// Resolved once, here — a normal top-level resolution, not nested inside anything else. See
+// DashboardChangeNotifierInterceptor's doc comment for why it can't safely resolve this itself.
+DashboardChangeNotifierInterceptor.HubContext = app.Services.GetRequiredService<IHubContext<DashboardHub>>();
+
 await SeedData.EnsureSeeded(app.Services);
 
 //app.UseResponseCompression();
