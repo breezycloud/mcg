@@ -17,7 +17,4 @@ public interface ITruckService
     Task<Truck[]?> GetTrucksAvailableAsync(string product= "", CancellationToken cancellationToken = default);
     Task<GridDataResponse<Truck>?> GetPagedAsync(GridDataRequest request, CancellationToken cancellationToken);
     ValueTask<bool> ValidateEntry(string type, string value, CancellationToken cancellationToken);
-
-    Task ExportToExcel<T>(List<T> data, string fileName);
-    Task ExportToPdf<T>(List<T> data, string fileName);
 }
