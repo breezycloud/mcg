@@ -1,0 +1,489 @@
+@page "/control-room"
+@layout ControlRoomLayout
+@using ApexCharts
+@using Shared.Interfaces.ControlRoom
+@using Shared.Models.ControlRoom
+@inject IControlRoomService ControlRoomService
+@inject NavigationManager NavigationManager
+@inject IConfiguration Configuration
+@implements IAsyncDisposable
+@attribute [Authorize(Roles = "Admin,Master,Manager,Monitoring,Management")]
+
+<div class="h-screen w-full overflow-hidden flex flex-col p-4 gap-3 box-border">
+    <!-- Header -->
+    <div class="flex flex-wrap justify-between items-center gap-3 shrink-0">
+        <div class="flex items-center gap-3">
+            <img src="favicon.png" alt="logo" class="h-8 w-8" />
+            <h1 class="text-2xl font-bold tracking-tight">Atlantic Co. Ltd Control Room</h1>
+            <span class="text-sm text-gray-400">@Now.ToString("ddd, MMM d yyyy · HH:mm:ss")</span>
+            @if (IsStaging)
+            {
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide bg-yellow-400 text-yellow-900">Staging</span>
+            }
+        </div>
+
+        <div class="flex items-center gap-4">
+            <!-- Period toggle -->
+            <div class="flex rounded-lg overflow-hidden border border-gray-700 text-sm">
+                <button @onclick="@(() => SetPeriod(PeriodFilter.ThisMonth))"
+                        class="px-3 py-1.5 font-medium @(Period == PeriodFilter.ThisMonth ? "bg-blue-600 text-white" : "bg-gray-900 text-gray-400 hover:bg-gray-800")">
+                    This Month
+                </button>
+                <button @onclick="@(() => SetPeriod(PeriodFilter.AllTime))"
+                        class="px-3 py-1.5 font-medium @(Period == PeriodFilter.AllTime ? "bg-blue-600 text-white" : "bg-gray-900 text-gray-400 hover:bg-gray-800")">
+                    All Time
+                </button>
+            </div>
+
+            <div class="text-right text-xs text-gray-400">
+                <div>Updated @LastUpdated.ToString("HH:mm:ss")</div>
+                <div class="@(IsLoading ? "text-yellow-400" : IsPushConnected ? "text-green-400" : "text-gray-500")">
+                    @(IsLoading ? "● Refreshing" : IsPushConnected ? "● Live" : "● Polling")
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (Metrics is null)
+    {
+        <div class="flex-1 flex justify-center items-center">
+            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
+        </div>
+    }
+    else
+    {
+        <!-- KPI cards -->
+        <div class="grid grid-cols-4 lg:grid-cols-8 gap-2 shrink-0">
+            <KpiCard Label="Deployed Trucks" SubValue="@($"{Metrics.TrucksLoadedInPeriod} loaded · {Metrics.TruckUtilizationRate:F0}% util.")">
+                <ValueContent><AnimatedNumber Value="@Metrics.TotalDeployedTrucks" />/<AnimatedNumber Value="@Metrics.TotalTrucksInFleet" /></ValueContent>
+            </KpiCard>
+            <KpiCard Label="Active Trips" SubValue="@($"{Metrics.TripsToday} today")">
+                <ValueContent><AnimatedNumber Value="@Metrics.ActiveTrips" /></ValueContent>
+            </KpiCard>
+            <KpiCard Label="@CompletionLabel" SubValue="@($"{Metrics.TripsInPeriod} trips")">
+                <ValueContent><AnimatedNumber Value="@Metrics.TripCompletionRate" Decimals="0" Suffix="%" /></ValueContent>
+            </KpiCard>
+            <KpiCard Label="Avg Duration" SubValue="@PeriodLabel">
+                <ValueContent><AnimatedNumber Value="@Metrics.AvgTripDurationDays" Decimals="1" Suffix="d" /></ValueContent>
+            </KpiCard>
+            <KpiCard Label="Shortage Rate" Accent="@(Metrics.ShortageRate > 20 ? "text-red-400" : "text-white")" SubValue="@PeriodLabel">
+                <ValueContent><AnimatedNumber Value="@Metrics.ShortageRate" Decimals="1" Suffix="%" /></ValueContent>
+            </KpiCard>
+            <KpiCard Label="On-Time Delivery" Accent="@(Metrics.OnTimeDeliveryRate < 70 ? "text-red-400" : "text-white")" SubValue="@PeriodLabel">
+                <ValueContent><AnimatedNumber Value="@Metrics.OnTimeDeliveryRate" Decimals="0" Suffix="%" /></ValueContent>
+            </KpiCard>
+            <KpiCard Label="Open Incidents" SubValue="@($"{Metrics.IncidentRate:F1}% rate")" Accent="@(Metrics.OpenIncidents > 0 ? "text-orange-400" : "text-white")">
+                <ValueContent><AnimatedNumber Value="@Metrics.OpenIncidents" /></ValueContent>
+            </KpiCard>
+            <KpiCard Label="Open Service Req." SubValue="@($"{Metrics.AvgMaintenanceTatDays:F1}d avg TAT")">
+                <ValueContent><AnimatedNumber Value="@Metrics.OpenServiceRequests" /></ValueContent>
+            </KpiCard>
+        </div>
+
+        <!-- Main content: three equal columns, each capped so nothing needs to scroll -->
+        <div class="flex-1 min-h-0 grid grid-cols-3 gap-3">
+            <!-- Product breakdown (trip count) + quantity loaded, stacked in one column -->
+            <div class="flex flex-col gap-3 h-full min-h-0">
+                <div class="bg-gray-900 rounded-xl border border-gray-800 p-4 flex-1 min-h-0 flex flex-col overflow-hidden">
+                    <h2 class="text-sm font-semibold mb-2 text-gray-300">Product Breakdown &middot; @PeriodLabel</h2>
+                    @if (ProductBreakdown.Count == 0)
+                    {
+                        <p class="text-gray-500 text-sm">No trips in this period.</p>
+                    }
+                    <!-- Kept mounted even with zero rows (just hidden) instead of being conditionally
+                         removed — unmounting/remounting the chart on every toggle invalidates its
+                         component reference, and calling UpdateSeriesAsync() on the stale reference
+                         in LoadDataAsync throws. -->
+                    <div class="flex-1 min-h-0 @(ProductBreakdown.Count == 0 ? "hidden" : "")">
+                        <ApexChart @ref="chart" TItem="ProductBreakdownDto" Options="chartOptions" Height="220">
+                            <ApexPointSeries TItem="ProductBreakdownDto"
+                                             Items="ProductBreakdown"
+                                             SeriesType="SeriesType.Bar"
+                                             Name="Trips"
+                                             XValue="@(e => e.Product)"
+                                             YValue="@(e => (decimal)e.TripCount)"
+                                             ShowDataLabels="true" />
+                        </ApexChart>
+                    </div>
+                </div>
+
+                <div class="bg-gray-900 rounded-xl border border-gray-800 p-4 flex-1 min-h-0 flex flex-col overflow-hidden">
+                    <h2 class="text-sm font-semibold mb-2 text-gray-300">Quantity Loaded by Product &middot; @PeriodLabel</h2>
+                    @if (ProductBreakdown.Count == 0)
+                    {
+                        <p class="text-gray-500 text-sm">No trips in this period.</p>
+                    }
+                    else
+                    {
+                        <div class="flex-1 min-h-0 overflow-y-auto space-y-1.5">
+                            @foreach (var entry in QuantityByProduct)
+                            {
+                                <!-- @key: QuantityByProduct is sorted by quantity, so rank can reorder between
+                                     refreshes — without a stable key, Blazor would reuse a row's AnimatedNumber
+                                     for a different product and animate between two unrelated values. -->
+                                <div @key="entry.Product" class="flex items-center justify-between text-xs py-1 border-b border-gray-800/60 last:border-0">
+                                    <div class="flex items-center gap-2 min-w-0">
+                                        <span class="h-2.5 w-2.5 rounded-full flex-shrink-0 @GetProductColorClass(entry.Product)" style="@GetProductColorStyle(entry.Product)"></span>
+                                        <span class="text-gray-300 font-medium truncate">@FormatProduct(entry.Product)</span>
+                                        <span class="text-gray-500 flex-shrink-0">(@entry.TripCount trips)</span>
+                                    </div>
+                                    <span class="font-semibold text-white flex-shrink-0 pl-2">
+                                        <AnimatedNumber Value="@entry.TotalQuantity" Suffix="@($" {GetUnitForProduct(entry.Product)}")" />
+                                    </span>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Product leaders + shortage breakdown, stacked in one column -->
+            <div class="flex flex-col gap-3 h-full min-h-0">
+                <div class="bg-gray-900 rounded-xl border border-gray-800 p-4 flex-1 min-h-0 flex flex-col overflow-hidden">
+                    <h2 class="text-sm font-semibold mb-2 text-gray-300">Product Leaders &middot; @PeriodLabel</h2>
+                    @if (ProductLeaders.Count == 0)
+                    {
+                        <p class="text-gray-500 text-sm">No trips in this period.</p>
+                    }
+                    else
+                    {
+                        <div class="flex-1 min-h-0 overflow-hidden">
+                            <table class="w-full text-xs text-left">
+                                <thead class="uppercase text-gray-500 border-b border-gray-800">
+                                    <tr>
+                                        <th class="py-1.5 pr-2">Product</th>
+                                        <th class="py-1.5 pr-2">Truck</th>
+                                        <th class="py-1.5 pr-2">Trips</th>
+                                        <th class="py-1.5 pr-2">Volume</th>
+                                        <th class="py-1.5 pr-2">Shortage</th>
+                                        <th class="py-1.5 pr-2">Avg Days</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var entry in ProductLeaders)
+                                    {
+                                        <tr class="border-b border-gray-800/60 last:border-0">
+                                            <td class="py-1.5 pr-2 font-medium">@FormatProduct(entry.Product)</td>
+                                            <td class="py-1.5 pr-2">@entry.TruckNo</td>
+                                            <td class="py-1.5 pr-2">@entry.TripCount</td>
+                                            <td class="py-1.5 pr-2">@entry.TotalQuantityDispatched.ToString("N0")</td>
+                                            <td class="py-1.5 pr-2 @(entry.ShortageRate > 20 ? "text-red-400" : "")">@entry.ShortageRate.ToString("F0")%</td>
+                                            <td class="py-1.5 pr-2">@entry.AvgTripDurationDays.ToString("F1")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+
+                <div class="bg-gray-900 rounded-xl border border-gray-800 p-4 flex-1 min-h-0 flex flex-col overflow-hidden">
+                    <div class="flex items-center justify-between mb-2">
+                        <h2 class="text-sm font-semibold text-gray-300">Shortage by Product &middot; @PeriodLabel</h2>
+                        @if (ShortageBreakdown.Count > 0)
+                        {
+                            <span class="text-xs text-gray-500">Total: <span class="font-semibold text-white">@TotalShortageUnits.ToString("N0")</span></span>
+                        }
+                    </div>
+                    @if (ShortageBreakdown.Count == 0)
+                    {
+                        <p class="text-gray-500 text-sm">No shortages in this period.</p>
+                    }
+                    <!-- Same always-mounted pattern as the Product Breakdown chart above — see the
+                         comment on that chart for why it must not be conditionally unmounted. -->
+                    <div class="flex-1 min-h-0 @(ShortageBreakdown.Count == 0 ? "hidden" : "")">
+                        <ApexChart @ref="shortageChart" TItem="ProductBreakdownDto" Options="shortageChartOptions" Height="220">
+                            <ApexPointSeries TItem="ProductBreakdownDto"
+                                             Items="ShortageBreakdown"
+                                             SeriesType="SeriesType.Pie"
+                                             Name="Shortage"
+                                             XValue="@(e => FormatProduct(e.Product))"
+                                             YValue="@(e => e.TotalShortageQuantity)"
+                                             ShowDataLabels="true" />
+                        </ApexChart>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent incidents -->
+            <div class="bg-gray-900 rounded-xl border border-gray-800 p-4 h-full min-h-0 flex flex-col overflow-hidden">
+                <h2 class="text-sm font-semibold mb-2 text-gray-300">Recent Incidents</h2>
+                @if (RecentIncidents.Count == 0)
+                {
+                    <p class="text-gray-500 text-sm">No recent incidents.</p>
+                }
+                else
+                {
+                    <ul class="flex-1 min-h-0 overflow-hidden space-y-2">
+                        @foreach (var incident in RecentIncidents)
+                        {
+                            <li class="flex justify-between items-start border-b border-gray-800 pb-2 last:border-0 text-xs">
+                                <div>
+                                    <div class="font-medium">@incident.TruckNo</div>
+                                    <div class="text-gray-400">@incident.IncidentType</div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="px-2 py-0.5 rounded-full bg-gray-800 inline-block">@incident.Status</div>
+                                    <div class="text-gray-500 mt-1">@incident.CreatedAt.LocalDateTime.ToString("MMM d, HH:mm")</div>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private enum PeriodFilter { ThisMonth, AllTime }
+
+    // Push (SignalR) is now the primary refresh path — Trip/Discharge/Incident/ServiceRequest
+    // saves broadcast instantly (with a ~2-5s server+client debounce). This poll is only a
+    // fallback for a dropped/missed connection, so it can be slow.
+    private const int RefreshIntervalSeconds = 180;
+    private const int IncidentsCount = 6;
+
+    private PeriodFilter Period = PeriodFilter.ThisMonth;
+
+    private ControlRoomMetricsDto? Metrics;
+    private List<ProductBreakdownDto> ProductBreakdown = [];
+    private List<ProductLeaderDto> ProductLeaders = [];
+    private List<RecentIncidentDto> RecentIncidents = [];
+
+    private ApexChart<ProductBreakdownDto>? chart;
+    private ApexChartOptions<ProductBreakdownDto> chartOptions = new();
+
+    private ApexChart<ProductBreakdownDto>? shortageChart;
+    private ApexChartOptions<ProductBreakdownDto> shortageChartOptions = new();
+    private List<ProductBreakdownDto> ShortageBreakdown => ProductBreakdown.Where(p => p.TotalShortageQuantity > 0).ToList();
+    // Sums across products with different units (LTR/KG/SCM) — an approximate cumulative figure,
+    // same basis the pie's own slice proportions are already computed on.
+    private decimal TotalShortageUnits => ShortageBreakdown.Sum(p => p.TotalShortageQuantity);
+    private List<ProductBreakdownDto> QuantityByProduct => ProductBreakdown.OrderByDescending(p => p.TotalQuantity).ToList();
+
+    private bool IsLoading;
+    private bool IsPushConnected;
+    private HubConnection? hubConnection;
+    private DateTime LastUpdated = DateTime.Now;
+    private DateTime Now = DateTime.Now;
+    private bool IsStaging => new Uri(NavigationManager.BaseUri).Host.Contains("staging");
+
+    private string PeriodLabel => Period == PeriodFilter.ThisMonth ? "This Month" : "All Time";
+    private string CompletionLabel => "Completion Rate";
+
+    private DateOnly? StartDateParam => Period == PeriodFilter.ThisMonth
+        ? new DateOnly(DateTime.Today.Year, DateTime.Today.Month, 1)
+        : null;
+
+    private static string FormatProduct(string product) => product switch
+    {
+        "CngAbuja" => "CNG-Abuja",
+        "CngLagos" => "CNG-Lagos",
+        _ => product
+    };
+
+    // Matches Dashboard's ProductShipments.razor so the same product reads the same color everywhere.
+    private static string GetProductColorClass(string product) => product switch
+    {
+        "PMS" => "bg-blue-500",
+        "ATK" => "bg-black",
+        "AGO" => "", // blue base + yellow top stripe applied via inline style instead
+        "LPG" => "bg-blue-900",
+        "CngLagos" => "", // purple base + white top stripe applied via inline style instead
+        "CngAbuja" => "bg-purple-500",
+        _ => "bg-gray-500"
+    };
+
+    private static string GetProductColorStyle(string product) => product switch
+    {
+        "AGO" => TopStripeGradient(baseColor: "#0ea5e9", stripeColor: "#eab308"),
+        "CngLagos" => TopStripeGradient(baseColor: "#a855f7", stripeColor: "#eab308"),
+        _ => ""
+    };
+
+    private static string TopStripeGradient(string baseColor, string stripeColor)
+        => $"background: linear-gradient(to bottom, {stripeColor} 0%, {stripeColor} 30%, {baseColor} 30%, {baseColor} 100%);";
+
+    private static string GetUnitForProduct(string product) => product switch
+    {
+        "CngAbuja" or "CngLagos" => "SCM",
+        "LPG" => "KG",
+        _ => "LTR"
+    };
+
+    private PeriodicTimer? timer;
+    private PeriodicTimer? clockTimer;
+    private CancellationTokenSource? cts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        chartOptions = new ApexChartOptions<ProductBreakdownDto>
+        {
+            Theme = new Theme { Mode = Mode.Dark },
+            PlotOptions = new PlotOptions { Bar = new PlotOptionsBar { Horizontal = false, ColumnWidth = "55%", BorderRadius = 4 } },
+            Colors = ["#3b82f6"],
+            Grid = new Grid { BorderColor = "#374151", StrokeDashArray = 4 },
+            Chart = new Chart { Toolbar = new Toolbar { Show = false } }
+        };
+
+        shortageChartOptions = new ApexChartOptions<ProductBreakdownDto>
+        {
+            Theme = new Theme { Mode = Mode.Dark },
+            Colors = ["#22c55e", "#f59e0b", "#ef4444", "#3b82f6", "#a855f7", "#eab308"],
+            Legend = new Legend { Position = LegendPosition.Bottom },
+            Chart = new Chart { Toolbar = new Toolbar { Show = false } },
+            // Pie/donut dataLabels' `val` is already the slice's % of the whole — pull the raw
+            // unit total back out of series/seriesIndex so each slice shows both.
+            DataLabels = new DataLabels
+            {
+                Enabled = true,
+                Style = new DataLabelsStyle { FontSize = "10px" },
+                Formatter = "function (val, opts) { var raw = opts.w.config.series[opts.seriesIndex]; return raw.toLocaleString() + ' (' + val.toFixed(1) + '%)'; }"
+            }
+        };
+
+        await LoadDataAsync();
+
+        AppState.DashboardDataChanged += OnDashboardDataChanged;
+        await InitializeSignalR();
+
+        cts = new CancellationTokenSource();
+        _ = RefreshLoopAsync(cts.Token);
+        _ = ClockLoopAsync(cts.Token);
+    }
+
+    private async Task InitializeSignalR()
+    {
+        // Page-scoped connection, same pattern as Dashboards/Home.razor — the hub is mapped on
+        // the Api, not the Client, and each page that wants push updates opens its own connection.
+        var apiBaseAddress = new Client.Handlers.Constants(NavigationManager, Configuration).BaseAddress();
+        var hubUrl = new Uri(new Uri(apiBaseAddress), "/hubs/dashboard");
+
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(hubUrl)
+            .WithAutomaticReconnect()
+            .Build();
+
+        hubConnection.On<string>("DashboardDataChanged", entityType => AppState.OnDashboardDataChanged(entityType));
+        hubConnection.Reconnected += _ => { IsPushConnected = true; return InvokeAsync(StateHasChanged); };
+        hubConnection.Closed += _ => { IsPushConnected = false; return InvokeAsync(StateHasChanged); };
+
+        try
+        {
+            await hubConnection.StartAsync();
+            IsPushConnected = true;
+        }
+        catch
+        {
+            IsPushConnected = false;
+        }
+    }
+
+    // Control Room's numbers are aggregates over the whole fleet/period, so unlike the per-widget
+    // Dashboard components, every entity type this event can carry (Trip, Discharge, Incident,
+    // ServiceRequest) is potentially relevant to something on this page — just reload everything
+    // rather than filtering by entityType.
+    private async void OnDashboardDataChanged(object? sender, string entityType)
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task ClockLoopAsync(CancellationToken token)
+    {
+        clockTimer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+        try
+        {
+            while (await clockTimer.WaitForNextTickAsync(token))
+            {
+                Now = DateTime.Now;
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected on Dispose — the page is navigating away.
+        }
+    }
+
+    private async Task SetPeriod(PeriodFilter period)
+    {
+        if (Period == period)
+            return;
+
+        Period = period;
+        await LoadDataAsync();
+    }
+
+    private async Task RefreshLoopAsync(CancellationToken token)
+    {
+        timer = new PeriodicTimer(TimeSpan.FromSeconds(RefreshIntervalSeconds));
+        try
+        {
+            while (await timer.WaitForNextTickAsync(token))
+            {
+                await LoadDataAsync();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected on Dispose — the page is navigating away.
+        }
+    }
+
+    private async Task LoadDataAsync()
+    {
+        IsLoading = true;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            var startDate = StartDateParam;
+            Metrics = await ControlRoomService.GetMetricsAsync(startDate);
+            ProductBreakdown = await ControlRoomService.GetProductBreakdownAsync(startDate);
+            ProductLeaders = await ControlRoomService.GetProductLeadersAsync(startDate);
+            RecentIncidents = await ControlRoomService.GetRecentIncidentsAsync(IncidentsCount);
+            LastUpdated = DateTime.Now;
+        }
+        catch (Exception ex)
+        {
+            // Swallow here rather than letting it bubble — an uncaught exception here would kill
+            // the fallback poll loop permanently (it only catches OperationCanceledException),
+            // and this method is also invoked directly from the SignalR push handler, so a
+            // control-room screen needs to keep working indefinitely even after a transient
+            // network/auth blip. Stale data stays on screen until the next successful call.
+            ToastService.ShowError($"Control room refresh failed: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+            // Render first so the ApexPointSeries child picks up the new ProductBreakdown via its
+            // Items parameter — calling UpdateSeriesAsync() before this render pushes the chart's
+            // *previous* series into the JS chart, which visually lags the toggle by one click.
+            await InvokeAsync(StateHasChanged);
+            if (ProductBreakdown.Count > 0 && chart is not null)
+                await chart.UpdateSeriesAsync();
+            if (ShortageBreakdown.Count > 0 && shortageChart is not null)
+            {
+                // Pie/donut slice labels live in Options.Labels, not the series values —
+                // UpdateSeriesAsync() alone doesn't refresh them, so when the product count
+                // changes between toggles the newly-added slices fall back to "series-N".
+                // UpdateOptionsAsync() forces the labels to be recomputed from the current
+                // ShortageBreakdown before the series values are pushed.
+                await shortageChart.UpdateOptionsAsync(true, true, true);
+                await shortageChart.UpdateSeriesAsync();
+            }
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        AppState.DashboardDataChanged -= OnDashboardDataChanged;
+        cts?.Cancel();
+        cts?.Dispose();
+        timer?.Dispose();
+        clockTimer?.Dispose();
+
+        if (hubConnection is not null)
+            await hubConnection.DisposeAsync();
+    }
+}

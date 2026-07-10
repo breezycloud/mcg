@@ -1,0 +1,25 @@
+<div class="bg-gray-900 rounded-xl border border-gray-800 px-3 py-2">
+    <div class="text-[10px] uppercase tracking-wide text-gray-500 truncate">@Label</div>
+    <div class="text-xl font-bold mt-0.5 @Accent">
+        @if (ValueContent is not null)
+        {
+            @ValueContent
+        }
+        else
+        {
+            @Value
+        }
+    </div>
+    @if (!string.IsNullOrEmpty(SubValue))
+    {
+        <div class="text-[10px] text-gray-500 mt-0.5 truncate">@SubValue</div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
+    [Parameter] public string Value { get; set; } = string.Empty;
+    [Parameter] public RenderFragment? ValueContent { get; set; }
+    [Parameter] public string? SubValue { get; set; }
+    [Parameter] public string Accent { get; set; } = "text-white";
+}
