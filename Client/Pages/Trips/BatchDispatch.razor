@@ -267,42 +267,64 @@
             return;
         }
 
-        try
+        var currentUserId = await localStorage.GetItemAsync<Guid?>("uid");
+        if (currentUserId == null)
         {
-            var currentUserId = await localStorage.GetItemAsync<Guid?>("uid");
-            if (currentUserId == null)
-            {
-                ToastService.ShowError("User not authenticated");
-                AppState.IsProcessing = false;            
-                StateHasChanged();
-                return;                
-            }
-            foreach (var truck in Trucks.Where(t => t.IsSelected))
-            {
-                var trip = new Trip
-                {
-                    TruckId = truck.Id,
-                    LoadingDepotId = SelectedStation!.Id,                    
-                    Date = batchDispatch.DispatchDate!.Value,
-                    DriverId = truck.DriverId,
-                    Status = TripStatus.Dispatched,
-                    CreatedAt = DateTimeOffset.UtcNow,
-                    CreatedById = currentUserId.Value
-                };
-                await TripService.AddAsync(trip, AppState.GetCancellationToken());
-            }
+            ToastService.ShowError("User not authenticated");
+            AppState.IsProcessing = false;
+            StateHasChanged();
+            return;
+        }
 
-            ToastService.ShowSuccess("Trucks dispatched successfully", 5);
+        // Continue past a per-truck rejection (e.g. it already has an open trip — a real
+        // possibility now that this is enforced server-side) instead of aborting the whole batch
+        // on the first failure, which used to leave already-dispatched trucks silently committed
+        // and every truck after the failure silently never attempted.
+        var succeeded = new List<string>();
+        var failed = new List<(string TruckNo, string Reason)>();
+
+        foreach (var truck in Trucks.Where(t => t.IsSelected))
+        {
+            var trip = new Trip
+            {
+                TruckId = truck.Id,
+                LoadingDepotId = SelectedStation!.Id,
+                Date = batchDispatch.DispatchDate!.Value,
+                DriverId = truck.DriverId,
+                Status = TripStatus.Dispatched,
+                CreatedAt = DateTimeOffset.UtcNow,
+                CreatedById = currentUserId.Value
+            };
+
+            try
+            {
+                await TripService.AddAsync(trip, AppState.GetCancellationToken());
+                succeeded.Add(truck.TruckNo);
+            }
+            catch (Exception ex)
+            {
+                failed.Add((truck.TruckNo, ex.Message));
+            }
+        }
+
+        if (failed.Count == 0)
+        {
+            ToastService.ShowSuccess($"{succeeded.Count} truck(s) dispatched successfully", 5);
             nav.NavigateTo("/trips");
         }
-        catch (Exception ex)
+        else if (succeeded.Count == 0)
         {
-            ToastService.ShowError(ex.Message);
+            ToastService.ShowError($"No trucks were dispatched. {failed.Count} failed:\n" +
+                string.Join("\n", failed.Select(f => $"{f.TruckNo}: {f.Reason}")), 8);
         }
-        finally
+        else
         {
-            AppState.IsProcessing = false;
+            ToastService.ShowSuccess($"{succeeded.Count} truck(s) dispatched successfully", 5);
+            ToastService.ShowError($"{failed.Count} truck(s) failed:\n" +
+                string.Join("\n", failed.Select(f => $"{f.TruckNo}: {f.Reason}")), 8);
         }
+
+        AppState.IsProcessing = false;
     }
 
     private void Cancel() => nav.NavigateTo("/trips");

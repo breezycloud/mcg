@@ -267,8 +267,10 @@ public class TrucksController : ControllerBase
 
     private IQueryable<Truck> GetDispatchEligibleTrucksQuery()
     {
+        // Must match TripsController.ValidateNoOpenTripAsync's definition of "open" — a truck
+        // sitting in Overdue still has an undispatched trip, it's just running long.
         var trucksWithUnavailableTrips = _context.Trips
-            .Where(t => t.Status == TripStatus.Active || t.Status == TripStatus.Dispatched)
+            .Where(t => t.Status == TripStatus.Active || t.Status == TripStatus.Dispatched || t.Status == TripStatus.Overdue)
             .Select(t => t.TruckId)
             .Distinct();
 

@@ -77,6 +77,22 @@ public class AppDbContext : DbContext
                   .IsUnique()
                   .HasDatabaseName("IX_Trips_DispatchId")
                   .HasFilter("\"DispatchId\" IS NOT NULL");
+
+            // Explicit plain FK index — without this, adding the filtered unique index below makes
+            // EF Core treat it as the FK index's replacement and drop it. A partial index can't
+            // serve ordinary "WHERE TruckId = x" lookups (used throughout Control Room/Dashboard/
+            // Truck Report), so both must exist side by side. Two HasIndex() calls on the exact
+            // same property are otherwise treated as the same index (identity is the property
+            // list, not the chained .HasDatabaseName()) — passing the name directly here is what
+            // makes EF Core keep them as genuinely separate indexes.
+            entity.HasIndex(new[] { nameof(Trip.TruckId) }, "IX_Trips_TruckId");
+
+            // A truck can only have one open trip (Active=0, Overdue=2, Dispatched=4) at a time.
+            // Backs the app-level check in TripsController.ValidateNoOpenTripAsync as the final
+            // safety net against two near-simultaneous dispatch requests both racing past it.
+            entity.HasIndex(new[] { nameof(Trip.TruckId) }, "UX_Trips_TruckId_OpenStatus")
+                  .IsUnique()
+                  .HasFilter("\"Status\" IN (0, 2, 4)");
         });
 
         modelBuilder.Entity<DailyReport>(entity =>

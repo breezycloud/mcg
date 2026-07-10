@@ -874,8 +874,18 @@ public class TripsController : ControllerBase
     // POST: api/Trips
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     [HttpPost]
+    [Authorize(Roles = "Master, Admin, Supervisor, DriverSupervisor, Manager")]
     public async Task<ActionResult<Trip>> PostTrip(Trip trip, CancellationToken cancellationToken)
     {
+        // Unconditional — a truck with an open trip can never be dispatched again through this
+        // endpoint, not even by Admin/Master. There is deliberately no role override here: the
+        // override is only for backdating (ValidateDispatchDateAsync below), never for this.
+        var openTripError = await ValidateNoOpenTripAsync(trip, cancellationToken);
+        if (openTripError is not null)
+        {
+            return Conflict(openTripError);
+        }
+
         var dispatchValidationError = await ValidateDispatchDateAsync(trip, cancellationToken);
         if (dispatchValidationError is not null)
         {
@@ -911,6 +921,16 @@ public class TripsController : ControllerBase
             {
                 await _context.SaveChangesAsync(cancellationToken);
                 return CreatedAtAction("GetTrip", new { id = trip.Id }, trip);
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is PostgresException pg && pg.SqlState == "23505" && pg.ConstraintName == "UX_Trips_TruckId_OpenStatus")
+            {
+                // Last-resort race guard: two near-simultaneous requests both passed
+                // ValidateNoOpenTripAsync before either committed. The DB constraint is what
+                // actually stops the second one — this is not retryable, the truck genuinely
+                // already has an open trip now.
+                _context.ChangeTracker.Clear();
+                _logger?.LogWarning(ex, "Blocked duplicate open trip for truck {TruckId} (race past app-level check).", trip.TruckId);
+                return Conflict(new { error = "This truck already has an open trip. Please refresh and try again." });
             }
             catch (DbUpdateException ex) when (ex.InnerException is PostgresException pg && pg.SqlState == "23505")
             {
@@ -968,9 +988,34 @@ public class TripsController : ControllerBase
         return null;
     }
 
+    // A truck already out on an open trip (Active, Dispatched, or Overdue — anything not yet
+    // Closed/Completed) can never be dispatched again until that trip is closed. Deliberately no
+    // role bypass: this is the hard rule that stops a truck from being dispatched multiple times
+    // at once, which the date-ordering check alone never guarded against. Backed by a filtered
+    // unique index (see AppDbContext) as a last-resort guard against two near-simultaneous
+    // requests both passing this check before either commits.
+    private async Task<string?> ValidateNoOpenTripAsync(Trip trip, CancellationToken cancellationToken)
+    {
+        var openTrip = await _context.Trips
+            .AsNoTracking()
+            .Where(x => x.TruckId == trip.TruckId && x.Id != trip.Id &&
+                        (x.Status == TripStatus.Active || x.Status == TripStatus.Dispatched || x.Status == TripStatus.Overdue))
+            .OrderByDescending(x => x.Date)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (openTrip is null)
+            return null;
+
+        return $"This truck already has an open trip (dispatched {openTrip.Date:MMM dd, yyyy}, {openTrip.Status}). " +
+               "It must be closed before the truck can be dispatched again.";
+    }
+
     private async Task<string?> ValidateDispatchDateAsync(Trip trip, CancellationToken cancellationToken)
     {
-        if (User.IsInRole(UserRole.Admin) || User.IsInRole(UserRole.Master) || User.IsInRole(UserRole.Manager))
+        // Only Admin/Master can back-date a dispatch (e.g. to record a trip that happened but was
+        // never entered) — deliberately narrower than the open-trip check above, which has no
+        // override for anyone.
+        if (User.IsInRole(UserRole.Admin) || User.IsInRole(UserRole.Master))
         {
             return null;
         }
