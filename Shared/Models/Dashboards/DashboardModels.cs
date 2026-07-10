@@ -12,12 +12,17 @@ class DashboardModels
 
 public class DashboardMetricsDto
 {
-    public int TotalTrips { get; set; }          // Total trips (open + closed)
+    public int TotalTrips { get; set; }          // Total trips (open + closed), by dispatch date (Trip.Date)
     public int ActiveTrips { get; set; }         // Trips in progress
     public int ClosedTrips { get; set; }      // Trips with status = Closed
     public decimal AvgTripDurationDays { get; set; }  // Avg. trip duration
     public decimal TotalDispatchedQuantity { get; set; }  // Sum of all dispatched goods
     public decimal TotalShortage { get; set; }   // Sum of all shortages
+    public int TotalLoadings { get; set; }       // Trips whose actual loading date (LoadingInfo.LoadingDate) falls in the filter — distinct from TotalTrips, which is by dispatch date
+    public int TotalTrucksInFleet { get; set; }  // All trucks, regardless of Truck.IsActive — not period-filtered
+    public int TotalDeployedTrucks { get; set; } // Fleet-wide count of Truck.IsActive trucks, not period-filtered
+    public int TrucksLoadedInPeriod { get; set; } // Distinct trucks with >=1 loading in the filter — the numerator behind TruckUtilizationRate
+    public decimal TruckUtilizationRate { get; set; } // TrucksLoadedInPeriod / TotalDeployedTrucks * 100
 }
 
 public class TripStatusDistributionDto

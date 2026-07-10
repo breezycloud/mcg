@@ -53,15 +53,26 @@ else
 
     private bool IsLoading = false;
 
+    protected override void OnInitialized()
+    {
+        AppState.DashboardDataChanged += OnDashboardDataChanged;
+    }
+
     protected override async Task OnParametersSetAsync()
     {
-        AppState.FilterChanged += OnFilterChanged!;        
+        AppState.FilterChanged += OnFilterChanged!;
         await LoadData();
     }
 
     private async void OnFilterChanged(object sender, EventArgs args)
     {
         await LoadData();
+    }
+
+    private async void OnDashboardDataChanged(object? sender, string entityType)
+    {
+        if (entityType == "Trip")
+            await LoadData();
     }
 
     private async Task LoadData()
@@ -85,5 +96,6 @@ else
     public void Dispose()
     {
         AppState.FilterChanged -= OnFilterChanged!;
+        AppState.DashboardDataChanged -= OnDashboardDataChanged;
     }
 }

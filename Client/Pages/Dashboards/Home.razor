@@ -76,9 +76,11 @@
             .WithUrl(hubUrl)
             .Build();
 
-        hubConnection.On<string>("ReceiveTripUpdate", message =>
+        hubConnection.On<string>("DashboardDataChanged", entityType =>
         {
-            InvokeAsync(StateHasChanged); // Refresh UI on updates
+            // Debounced in AppState — each subscribed component decides whether the changed
+            // entity type is relevant to it before re-fetching its own data.
+            AppState.OnDashboardDataChanged(entityType);
         });
 
         try

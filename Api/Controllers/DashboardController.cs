@@ -240,9 +240,9 @@ public class DashboardController : ControllerBase
 
     [HttpPost("notify-update")]
     [ProducesResponseType(200)]
-    public async Task<IActionResult> SendManualUpdate([FromBody] string message)
+    public async Task<IActionResult> SendManualUpdate([FromQuery] string entityType = "Trip")
     {
-        await _hubContext.Clients.All.SendAsync("ReceiveTripUpdate", new { Message = message });
+        await _hubContext.Clients.All.SendAsync("DashboardDataChanged", entityType);
         return Ok();
     }
 

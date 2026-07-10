@@ -62,7 +62,11 @@ public static class TripMapper
             : "N/A",
 
             DischargeSummary = dischargeSummary,
-            DurationDays = trip.CalculateTripDuration(trip.Date, trip.CloseInfo.ReturnDateTime),
+            // A trip can't close before it was dispatched — a negative value means bad data (e.g.
+            // a mistyped ReturnDateTime), not a real duration. Clamped rather than filtered since
+            // this is a per-row export field, not an aggregate; Date/ReturnDate stay visible above
+            // for auditing the underlying record.
+            DurationDays = Math.Max(0, trip.CalculateTripDuration(trip.Date, trip.CloseInfo.ReturnDateTime)),
             Notes = trip.CloseInfo.TripRemark ?? "N/A"
         };
     }

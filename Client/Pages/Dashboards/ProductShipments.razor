@@ -1,6 +1,7 @@
 @using Shared.Extensions
 @using Shared.Enums
 @inject IDashboardService DashboardService
+@implements IDisposable
 
 @if (IsLoading)
 {
@@ -109,9 +110,20 @@ else
 
     private bool IsLoading = false;
 
+    protected override void OnInitialized()
+    {
+        AppState.DashboardDataChanged += OnDashboardDataChanged;
+    }
+
     protected override async Task OnParametersSetAsync()
     {
         await LoadData();
+    }
+
+    private async void OnDashboardDataChanged(object? sender, string entityType)
+    {
+        if (entityType == "Trip")
+            await LoadData();
     }
 
     private async Task LoadData()
@@ -120,6 +132,11 @@ else
         shipments = await DashboardService.GetProductShipmentsAsync(StartDate, EndDate, Product.ToString());
         IsLoading = false;
         StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        AppState.DashboardDataChanged -= OnDashboardDataChanged;
     }
 
     private string GetTimeRangeLabel()

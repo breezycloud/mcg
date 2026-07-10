@@ -1,8 +1,9 @@
 @inject IDashboardService DashboardService
+@implements IDisposable
 
 @if (IsLoading)
 {
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <!-- Card 1 -->
         <div class="skeleton-card">
             <div class="skeleton w-40 h-6 skeleton-text"></div>
@@ -23,6 +24,13 @@
             <div class="skeleton w-32 h-10 mt-2 rounded"></div>
             <div class="skeleton w-28 h-4 mt-2 rounded"></div>
         </div>
+
+        <!-- Card 4 -->
+        <div class="skeleton-card">
+            <div class="skeleton w-40 h-6 skeleton-text"></div>
+            <div class="skeleton w-32 h-10 mt-2 rounded"></div>
+            <div class="skeleton w-28 h-4 mt-2 rounded"></div>
+        </div>
     </div>
 }
 else
@@ -37,11 +45,30 @@ else
                 </div>
                 <i class="fas fa-truck text-blue-500 text-xl"></i>
             </div>
-            <p class="text-3xl font-bold mt-2 text-gray-900 dark:text-white">@metrics?.TotalTrips</p>
+            <p class="text-3xl font-bold mt-2 text-gray-900 dark:text-white">
+                @metrics?.TotalTrips
+                <span class="text-base font-normal text-gray-500 dark:text-gray-400">(Loadings: @metrics?.TotalLoadings)</span>
+            </p>
             <div class="mt-2 text-sm @GetTrendClass(trends?.TotalTripsTrend)">
                 <i class="@GetTrendIcon(trends?.TotalTripsTrend) mr-1"></i>
                 @* @trends?.TotalTripsTrend% *@
             </div>
+        </div>
+
+        <!-- Deployed Trucks Card -->
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-gray-500 dark:text-gray-300 font-medium">Deployed Trucks</h3>
+                    <p class="text-xs text-gray-400 dark:text-gray-400 mt-1">@TimeRangeLabel</p>
+                </div>
+                <i class="fas fa-truck-loading text-teal-500 text-xl"></i>
+            </div>
+            <p class="text-3xl font-bold mt-2 text-gray-900 dark:text-white">
+                @metrics?.TotalDeployedTrucks<span class="text-lg font-normal text-gray-400">/@metrics?.TotalTrucksInFleet</span>
+                <span class="text-base font-normal text-gray-500 dark:text-gray-400">(Loaded: @metrics?.TrucksLoadedInPeriod)</span>
+            </p>
+            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">@(metrics?.TruckUtilizationRate.ToString("0.0")) % utilization</p>
         </div>
 
         <!-- Active Trips Card -->
@@ -110,11 +137,23 @@ else
     private DashboardMetricsDto? metrics;
     private MetricsTrendDto? trends;
     private string TimeRangeLabel => GetTimeRangeLabel();
-    private string GridCols => Product == ProductFilter.All ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4";        
+    private string GridCols => Product == ProductFilter.All ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4";
     private bool IsLoading = false;
+
+    protected override void OnInitialized()
+    {
+        AppState.DashboardDataChanged += OnDashboardDataChanged;
+    }
+
     protected override async Task OnParametersSetAsync()
     {
         await LoadData();
+    }
+
+    private async void OnDashboardDataChanged(object? sender, string entityType)
+    {
+        if (entityType == "Trip")
+            await LoadData();
     }
 
     private async Task LoadData()
@@ -124,6 +163,11 @@ else
         trends = await DashboardService.GetMetricsTrendsAsync(StartDate, EndDate, Product.ToString());
         IsLoading = false;
         StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        AppState.DashboardDataChanged -= OnDashboardDataChanged;
     }
 
     private string GetTimeRangeLabel()

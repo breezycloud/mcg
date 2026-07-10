@@ -106,4 +106,41 @@ public partial class AppState
     }
 
     public event EventHandler? DailyReportBadgeChanged;
+
+    // ─── Live dashboard refresh ────────────────────────────────────────────────
+
+    /// <summary>
+    /// Raised when a Trip or Discharge changed server-side (pushed via DashboardHub) — the
+    /// payload is the entity type ("Trip"/"Discharge") so subscribers can ignore events that
+    /// don't affect what they render. Debounced per entity type so a burst of rapid server
+    /// broadcasts collapses into a single refresh per listener instead of one per event.
+    /// </summary>
+    public event EventHandler<string>? DashboardDataChanged;
+
+    private readonly Dictionary<string, CancellationTokenSource> _dashboardDebounceTokens = new();
+    private static readonly TimeSpan DashboardDebounceDelay = TimeSpan.FromSeconds(2);
+
+    public void OnDashboardDataChanged(string entityType)
+    {
+        if (_dashboardDebounceTokens.TryGetValue(entityType, out var existingCts))
+            existingCts.Cancel();
+
+        var cts = new CancellationTokenSource();
+        _dashboardDebounceTokens[entityType] = cts;
+
+        _ = DebounceAndRaiseDashboardChangedAsync(entityType, cts.Token);
+    }
+
+    private async Task DebounceAndRaiseDashboardChangedAsync(string entityType, CancellationToken token)
+    {
+        try
+        {
+            await Task.Delay(DashboardDebounceDelay, token);
+            DashboardDataChanged?.Invoke(this, entityType);
+        }
+        catch (TaskCanceledException)
+        {
+            // Superseded by a newer event for the same entity type before the delay elapsed.
+        }
+    }
 }
