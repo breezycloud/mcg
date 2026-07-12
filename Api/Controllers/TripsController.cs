@@ -15,6 +15,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 using Api.Context;
+using Api.Filters;
 using Api.Util;
 using Api.Services.Discharges;
 using Shared.Models.Trips;
@@ -30,6 +31,11 @@ namespace Api.Controllers;
 [Authorize]
 public class TripsController : ControllerBase
 {
+    // Alphanumeric + dash only, 1-30 chars — same shape as DispatchCheckController's, used by
+    // GetDispatchDetail (the get-dispatch action, the other endpoint external callers hit).
+    private static readonly Regex DispatchIdRegex =
+        new(@"^[a-zA-Z0-9\-]{1,30}$", RegexOptions.Compiled, TimeSpan.FromMilliseconds(100));
+
     private readonly AppDbContext _context;
     private readonly ShortageNotificationService _shortageNotificationService;
     private readonly ILogger<TripsController> _logger;
@@ -810,13 +816,22 @@ public class TripsController : ControllerBase
     //     return CreatedAtAction("GetTrip", new { id = trip.Id }, trip);
     // }
 
+    // Called by the external Atlantic Dispatch app, which has no user JWT — API-key gated
+    // the same way DispatchCheckController is, rather than the class-level [Authorize]
+    // (JWT) every other action here uses. [AllowAnonymous] is required to actually bypass
+    // that class-level [Authorize]; ApiKeyAuthFilter is what enforces the real check.
     [HttpGet("get-dispatch")]
+    [AllowAnonymous]
+    [ServiceFilter(typeof(ApiKeyAuthFilter))]
     public async Task<ActionResult<DispatchDetail>> GetDispatchDetail(string id, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrEmpty(id))
+        // Same shape as DispatchCheckController.DispatchIdRegex — validated here too now that
+        // this endpoint is reachable by an external, API-key-authenticated caller rather than
+        // only logged-in internal users.
+        if (string.IsNullOrWhiteSpace(id) || id.Length > 30 || !DispatchIdRegex.IsMatch(id))
         {
             return BadRequest("Invalid dispatch ID format.");
-        }        
+        }
         var dispatch = await _context.Trips
             .AsNoTracking()
             .Where(t => t.DispatchId.Trim() == id.Trim())
