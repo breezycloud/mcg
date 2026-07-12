@@ -424,6 +424,128 @@ public class TripsController : ControllerBase
         return report;
     }
 
+    // POST: api/Trips/truck-report — every trip made by the given truck. See
+    // TruckTripReportDto for why DischargedQuantity here is the trip-wide total
+    // rather than scoped to one station (unlike station-report).
+    [HttpPost("truck-report")]
+    public async Task<ActionResult<List<TruckTripReportDto>>> GetTruckReport([FromBody] TruckTripReportFilter filter, CancellationToken cancellationToken = default)
+    {
+        var query = _context.Trips
+            .Include(x => x.Driver)
+            .Include(x => x.Truck)
+            .Include(x => x.LoadingDepot)
+            .Include(x => x.Discharges).ThenInclude(d => d.Station)
+            .AsSplitQuery()
+            .Where(x => x.TruckId == filter.TruckId)
+            .AsQueryable();
+
+        if (filter.StartDate.HasValue)
+        {
+            var start = filter.StartDate.Value.ToDateTime(TimeOnly.MinValue);
+            query = query.Where(x => x.Date >= start);
+        }
+        if (filter.EndDate.HasValue)
+        {
+            var end = filter.EndDate.Value.ToDateTime(TimeOnly.MaxValue);
+            query = query.Where(x => x.Date <= end);
+        }
+
+        var trips = await query.OrderByDescending(x => x.Date).ToListAsync(cancellationToken);
+
+        var report = trips.Select(trip =>
+        {
+            var totalDischarged = trip.Discharges?.Sum(d => d.QuantityDischarged) ?? 0;
+            var loaded = trip.LoadingInfo?.Quantity ?? 0;
+            var stationNames = trip.Discharges?
+                .Where(d => d.Station != null)
+                .Select(d => d.Station!.Name)
+                .Distinct()
+                .ToList() ?? [];
+
+            return new TruckTripReportDto
+            {
+                TripId = trip.Id,
+                Date = trip.Date,
+                StationNames = stationNames.Count > 0 ? string.Join(", ", stationNames) : null,
+                Product = trip.Truck?.Product?.ToDisplay(),
+                DriverName = trip.Driver?.ToString(),
+                DriverPhone = trip.Driver?.PhoneNo,
+                LoadingDepot = trip.LoadingDepot?.Name,
+                LoadingDate = trip.LoadingInfo?.LoadingDate.HasValue == true
+                    ? trip.LoadingInfo.LoadingDate.Value.ToString("dd/MM/yyyy")
+                    : null,
+                DispatchQuantity = loaded,
+                DischargedQuantity = totalDischarged,
+                ShortageAmount = loaded - totalDischarged,
+                Unit = trip.GetUnit(),
+                Status = trip.Status.ToString(),
+            };
+        }).ToList();
+
+        return report;
+    }
+
+    // POST: api/Trips/driver-report — every trip made by the given driver. See
+    // DriverTripReportDto for why DischargedQuantity here is the trip-wide total
+    // rather than scoped to one station (unlike station-report).
+    [HttpPost("driver-report")]
+    public async Task<ActionResult<List<DriverTripReportDto>>> GetDriverReport([FromBody] DriverTripReportFilter filter, CancellationToken cancellationToken = default)
+    {
+        var query = _context.Trips
+            .Include(x => x.Driver)
+            .Include(x => x.Truck)
+            .Include(x => x.LoadingDepot)
+            .Include(x => x.Discharges).ThenInclude(d => d.Station)
+            .AsSplitQuery()
+            .Where(x => x.DriverId == filter.DriverId)
+            .AsQueryable();
+
+        if (filter.StartDate.HasValue)
+        {
+            var start = filter.StartDate.Value.ToDateTime(TimeOnly.MinValue);
+            query = query.Where(x => x.Date >= start);
+        }
+        if (filter.EndDate.HasValue)
+        {
+            var end = filter.EndDate.Value.ToDateTime(TimeOnly.MaxValue);
+            query = query.Where(x => x.Date <= end);
+        }
+
+        var trips = await query.OrderByDescending(x => x.Date).ToListAsync(cancellationToken);
+
+        var report = trips.Select(trip =>
+        {
+            var totalDischarged = trip.Discharges?.Sum(d => d.QuantityDischarged) ?? 0;
+            var loaded = trip.LoadingInfo?.Quantity ?? 0;
+            var stationNames = trip.Discharges?
+                .Where(d => d.Station != null)
+                .Select(d => d.Station!.Name)
+                .Distinct()
+                .ToList() ?? [];
+
+            return new DriverTripReportDto
+            {
+                TripId = trip.Id,
+                Date = trip.Date,
+                TruckNo = trip.Truck?.TruckNo,
+                TruckPlate = trip.Truck?.LicensePlate,
+                StationNames = stationNames.Count > 0 ? string.Join(", ", stationNames) : null,
+                Product = trip.Truck?.Product?.ToDisplay(),
+                LoadingDepot = trip.LoadingDepot?.Name,
+                LoadingDate = trip.LoadingInfo?.LoadingDate.HasValue == true
+                    ? trip.LoadingInfo.LoadingDate.Value.ToString("dd/MM/yyyy")
+                    : null,
+                DispatchQuantity = loaded,
+                DischargedQuantity = totalDischarged,
+                ShortageAmount = loaded - totalDischarged,
+                Unit = trip.GetUnit(),
+                Status = trip.Status.ToString(),
+            };
+        }).ToList();
+
+        return report;
+    }
+
     // private string EscapeCsv(string? value)
     // {
     //     if (string.IsNullOrEmpty(value)) return "";

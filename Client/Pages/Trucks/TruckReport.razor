@@ -45,6 +45,11 @@
                 </svg>
                 @(IsExporting ? "Exporting..." : "Export CSV")
             </button>
+
+            <button type="button" @onclick="() => GoToDrilldown()"
+                class="px-4 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600">
+                Truck Drill-down
+            </button>
         </div>
     </div>
 
@@ -173,7 +178,7 @@
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
             <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Truck Performance &middot; @PeriodLabel</h3>
-                <span class="text-sm text-gray-500 dark:text-gray-400">@TruckPerformance.Count trucks</span>
+                <span class="text-sm text-gray-500 dark:text-gray-400">@TruckPerformance.Count trucks &middot; click a row to drill in</span>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
@@ -195,7 +200,8 @@
                     <tbody>
                         @foreach (var row in TruckPerformance)
                         {
-                            <tr @key="row.TruckId" class="bg-white dark:bg-gray-800 border-b dark:border-gray-700 @(row.NeedsAttention ? "border-l-4 border-l-red-500" : "")">
+                            <tr @key="row.TruckId" @onclick="() => GoToDrilldown(row.TruckId)"
+                                class="bg-white dark:bg-gray-800 border-b dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 @(row.NeedsAttention ? "border-l-4 border-l-red-500" : "")">
                                 <td class="px-2 text-center">
                                     @if (row.NeedsAttention)
                                     {
@@ -519,5 +525,10 @@
         }
 
         return value;
+    }
+
+    private void GoToDrilldown(Guid? truckId = null)
+    {
+        nav.NavigateTo(truckId.HasValue ? $"/trucks/report/drilldown/{truckId}" : "/trucks/report/drilldown");
     }
 }
