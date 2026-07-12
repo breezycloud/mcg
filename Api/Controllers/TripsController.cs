@@ -559,7 +559,7 @@ public class TripsController : ControllerBase
     // PUT: api/Trips/5
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     [HttpPut("{id}")]
-    [Authorize(Roles = "Master, Admin, Supervisor, DriverSupervisor, Manager")]
+    [Authorize(Roles = "Master, Admin, Supervisor, DriverSupervisor, Manager, Monitoring")]
     public async Task<IActionResult> PutTrip(Guid id, Trip trip, CancellationToken cancellationToken)
     {
         if (id != trip.Id)
@@ -906,7 +906,7 @@ public class TripsController : ControllerBase
     // POST: api/Trips
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     [HttpPost]
-    [Authorize(Roles = "Master, Admin, Supervisor, DriverSupervisor, Manager")]
+    [Authorize(Roles = "Master, Admin, Supervisor, DriverSupervisor, Manager, Monitoring")]
     public async Task<ActionResult<Trip>> PostTrip(Trip trip, CancellationToken cancellationToken)
     {
         // Unconditional — a truck with an open trip can never be dispatched again through this
