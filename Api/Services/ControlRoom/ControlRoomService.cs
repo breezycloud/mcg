@@ -126,14 +126,49 @@ public class ControlRoomService : IControlRoomService
 
     public async Task<List<ProductLeaderDto>> GetProductLeadersAsync(DateOnly? startDate = null, CancellationToken cancellationToken = default)
     {
+        var perTruckRows = await GetPerTruckProductRowsAsync(startDate, cancellationToken);
+
+        return perTruckRows
+            .GroupBy(x => x.Product)
+            // Leader = most trips; ties broken by lowest shortage rate, then shortest avg turnaround.
+            .Select(g => g
+                .OrderByDescending(x => x.TripCount)
+                .ThenBy(x => x.ShortageRate)
+                .ThenBy(x => x.AvgTripDurationDays)
+                .First())
+            .OrderBy(x => x.Product)
+            .ToList();
+    }
+
+    public async Task<List<ProductLeaderDto>> GetProductLaggardsAsync(DateOnly? startDate = null, CancellationToken cancellationToken = default)
+    {
+        var perTruckRows = await GetPerTruckProductRowsAsync(startDate, cancellationToken);
+
+        return perTruckRows
+            .GroupBy(x => x.Product)
+            // Laggard = highest shortage rate — the metric that actually signals a problem truck,
+            // not simply "fewest trips" (a lightly-used truck isn't a bad one). Ties broken by
+            // most trips, so a recurring issue ranks above a single unlucky delivery.
+            .Select(g => g
+                .OrderByDescending(x => x.ShortageRate)
+                .ThenByDescending(x => x.TripCount)
+                .First())
+            .OrderBy(x => x.Product)
+            .ToList();
+    }
+
+    // Shared by GetProductLeadersAsync/GetProductLaggardsAsync — one row per (product, truck)
+    // pair for the selected period; each method then picks the best/worst row per product.
+    private async Task<List<ProductLeaderDto>> GetPerTruckProductRowsAsync(DateOnly? startDate, CancellationToken cancellationToken)
+    {
         var periodTrips = await GetTripsInWindowAsync(ToWindowStart(startDate), cancellationToken);
 
         return periodTrips
-            // Only closed trips count toward the leaderboard — an in-progress trip hasn't
-            // actually demonstrated completeness or turnaround yet.
+            // Only closed trips count — an in-progress trip hasn't actually demonstrated
+            // completeness, turnaround, or a real shortage outcome yet.
             .Where(t => t.Truck?.Product is not null && (t.Status == TripStatus.Closed || t.Status == TripStatus.Completed))
             .GroupBy(t => t.Truck!.Product!.Value)
-            .Select(productGroup => productGroup
+            .SelectMany(productGroup => productGroup
                 // Group by TruckId, not the Truck navigation entity — with AsNoTracking(), EF Core
                 // materializes a fresh Truck instance per row even for the same truck, so grouping
                 // by the entity itself (reference equality) put every trip in its own group of one.
@@ -158,13 +193,7 @@ public class ControlRoomService : IControlRoomService
                         ShortageRate = CalculateShortageRate(dischargedInGroup),
                         AvgTripDurationDays = groupDurations.Count > 0 ? (decimal)groupDurations.Average() : 0
                     };
-                })
-                // Leader = most trips; ties broken by lowest shortage rate, then shortest avg turnaround.
-                .OrderByDescending(x => x.TripCount)
-                .ThenBy(x => x.ShortageRate)
-                .ThenBy(x => x.AvgTripDurationDays)
-                .First())
-            .OrderBy(x => x.Product)
+                }))
             .ToList();
     }
 

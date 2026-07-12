@@ -176,15 +176,19 @@
     private async Task Loadrefuelling()
     {
         AppState.IsBusy = true;
-        try 
+        try
         {
             refuelling = await RefuellingService.GetPagedAsync(request, AppState.GetCancellationToken());
+        }
+        catch
+        {
+            ToastService.ShowError("Failed to load refuel records");
         }
         finally
         {
             AppState.IsBusy = false;
         }
-        
+
     }
 
     private void AddInfo()

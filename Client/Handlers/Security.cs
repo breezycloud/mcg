@@ -1,21 +1,16 @@
 using System;
 using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
 using Shared.Enums;
 
 namespace Client.Handlers;
 
 public static class Security
 {
-    public static string Encrypt(string password)
-    {
-        var provider = SHA512.Create();
-        string salt = "ThisSaltIsUncr@ble@-2300&^%$#@!";
-        byte[] bytes = provider.ComputeHash(Encoding.UTF32.GetBytes(salt + password));
-        var pass = BitConverter.ToString(bytes).Replace("-", "").ToLower();
-        return pass;
-    }
+    // Password hashing happens server-side only now (Api/Util/Security.HashPassword) — this used
+    // to duplicate the server's hash function here with a hardcoded salt baked into the WASM
+    // bundle every browser downloads, which let anyone forge a valid hash for any chosen
+    // password offline. See Client/Pages/Users/MyProfile.razor's HandlePasswordChange, which now
+    // sends the plaintext new password to Auth/change-password instead.
 
     public static string GenerateRandomPassword(int length = 12)
     {

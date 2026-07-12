@@ -14,6 +14,7 @@ public class LoginResponse
     public Guid? ShopId { get; set; }
     public string? Email { get; set; }
     public string? Token { get; set; }
+    public string? RefreshToken { get; set; }
     public UserRole Role { get; set; }
     public bool? IsVerified { get; set; }
     public bool MustChangePassword { get; set; }

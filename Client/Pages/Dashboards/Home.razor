@@ -74,6 +74,7 @@
 
         hubConnection = new HubConnectionBuilder()
             .WithUrl(hubUrl)
+            .WithAutomaticReconnect()
             .Build();
 
         hubConnection.On<string>("DashboardDataChanged", entityType =>
@@ -82,6 +83,13 @@
             // entity type is relevant to it before re-fetching its own data.
             AppState.OnDashboardDataChanged(entityType);
         });
+
+        // Without these, isConnected was set once after the first successful connect and never
+        // re-evaluated — a dropped connection (server restart, idle timeout) left the "● Live"
+        // badge showing green forever while every widget silently stopped receiving updates.
+        hubConnection.Reconnected += _ => { isConnected = true; return InvokeAsync(StateHasChanged); };
+        hubConnection.Reconnecting += _ => { isConnected = false; return InvokeAsync(StateHasChanged); };
+        hubConnection.Closed += _ => { isConnected = false; return InvokeAsync(StateHasChanged); };
 
         try
         {

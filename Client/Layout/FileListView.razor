@@ -1,3 +1,4 @@
+@using Client.Pages.Modals
 @if (Files == null || !Files.Any())
 {
     <div class="text-center py-8">
@@ -64,7 +65,7 @@ else
                     @if (file.PreviewUrl != null)
                     {
                         <div class="border-t border-gray-200 dark:border-gray-700 p-2 bg-gray-50 dark:bg-gray-900">
-                            <img src="@file.PreviewUrl" alt="Preview" class="w-full h-20 object-cover rounded cursor-pointer" @onclick="() => ViewFile(file)" />
+                            <img src="@WithToken(file.PreviewUrl)" alt="Preview" class="w-full h-20 object-cover rounded cursor-pointer" @onclick="() => ViewFile(file)" />
                         </div>
                     }
                 </li>
@@ -96,7 +97,7 @@ else
             <div class="bg-white rounded-lg shadow-2xl overflow-hidden flex flex-col">
                 @if (IsImage(currentViewFile.ContentType))
                 {
-                    <img src="@currentViewFile.PreviewUrl"
+                    <img src="@WithToken(currentViewFile.PreviewUrl)"
                          alt="@currentViewFile.FileName"
                          class="max-w-full h-auto object-contain p-4"
                          loading="lazy"
@@ -104,14 +105,14 @@ else
                 }
                 else if (IsPdf(currentViewFile.ContentType))
                 {
-                    <embed src="@currentViewFile.PreviewUrl"
+                    <embed src="@WithToken(currentViewFile.PreviewUrl)"
                            type="application/pdf"
                            class="w-full h-full flex-1"
                            aria-label="PDF preview" />
                 }
                 else
                 {
-                    <iframe src="@currentViewFile.PreviewUrl"
+                    <iframe src="@WithToken(currentViewFile.PreviewUrl)"
                             class="w-full h-full flex-1 bg-white border-0"
                             title="@currentViewFile.FileName"
                             sandbox="allow-scripts allow-same-origin"
@@ -128,6 +129,10 @@ else
     </div>
 }
 
+<ConfirmationModal @ref="deleteModal" Title="Delete File"
+                    Message="@($"Are you sure you want to delete '{_fileToDelete?.FileName}'?")"
+                    OnClose="HandleDeleteModalClose" />
+
 @code {
     // Parameters
     [Parameter] public List<UploadResult> Files { get; set; } = new();
@@ -136,6 +141,24 @@ else
 
     // State
     private UploadResult? currentViewFile;
+    private string? _token;
+    private ConfirmationModal deleteModal = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _token = await CustomAuthenticationProvider.GetTokenAsync();
+    }
+
+    // The uploads path requires auth like every other endpoint now, but a plain <img>/<embed>/
+    // <iframe> src can't carry an Authorization header — the server accepts the same token via
+    // ?access_token= instead (see Api/Program.cs's OnMessageReceived), same pattern already used
+    // for the SignalR hub connections.
+    private string? WithToken(string? url)
+    {
+        if (string.IsNullOrEmpty(url) || string.IsNullOrEmpty(_token)) return url;
+        var separator = url.Contains('?') ? '&' : '?';
+        return $"{url}{separator}access_token={Uri.EscapeDataString(_token)}";
+    }
 
     // Check if file can be previewed in modal
     private bool CanPreview(UploadResult file) => IsImage(file.ContentType) || IsPdf(file.ContentType);
@@ -161,7 +184,7 @@ else
     {
         try
         {
-            await _js.InvokeVoidAsync("downloadFile", file.PreviewUrl, file.FileName);
+            await _js.InvokeVoidAsync("downloadFile", WithToken(file.PreviewUrl), file.FileName);
         }
         catch (Exception ex)
         {
@@ -171,20 +194,21 @@ else
     }
 
     // Delete file
-    private async Task DeleteFile(UploadResult file)
+    private UploadResult? _fileToDelete;
+
+    private void DeleteFile(UploadResult file)
     {
-        try
+        _fileToDelete = file;
+        deleteModal.Show();
+    }
+
+    private async Task HandleDeleteModalClose(bool confirmed)
+    {
+        if (confirmed && _fileToDelete is not null)
         {
-            var confirmed = await _js.InvokeAsync<bool>("confirm", $"Are you sure you want to delete '{file.FileName}'?");
-            if (confirmed)
-            {
-                await OnDelete.InvokeAsync(file);
-            }
+            await OnDelete.InvokeAsync(_fileToDelete);
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Delete confirmation failed: {ex.Message}");
-        }
+        _fileToDelete = null;
     }
 
     // Format file size (e.g., 2.3 MB)

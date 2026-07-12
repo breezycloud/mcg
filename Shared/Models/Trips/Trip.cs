@@ -44,6 +44,7 @@ public class Trip
     public virtual ICollection<ServiceRequest> ServiceRequests { get; set; } = [];
     public virtual ICollection<Incident> Incidents { get; set; } = [];
     public virtual ICollection<Discharge> Discharges { get; set; } = [];
+    public virtual ICollection<ShortageRecommendation> ShortageRecommendations { get; set; } = [];
     [ForeignKey(nameof(LoadingDepotId))]
     public Station? LoadingDepot { get; set; }
 
@@ -88,9 +89,9 @@ public class Trip
 
     public string CalculateShortageOverage(decimal? Quantity, decimal? SumQuantity)
     {
-        if (SumQuantity - Quantity != 0)
+        if (SumQuantity - Quantity > 0)
             return "Overage";
-        else if (SumQuantity - Quantity != 0)
+        else if (SumQuantity - Quantity < 0)
             return "Shortage";
         else
             return "Nil";

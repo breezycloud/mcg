@@ -61,14 +61,36 @@
             </MetricCard>
             <MetricCard Label="Fleet Availability" Large="true" SubValue="Deployed trucks not under repair"
                         Accent="@((Metrics?.FleetAvailabilityRate ?? 100) < 90 ? "text-red-500" : "text-gray-900 dark:text-white")">
-                <ValueContent><AnimatedNumber Value="@(Metrics?.FleetAvailabilityRate ?? 0)" Decimals="0" Suffix="%" /></ValueContent>
+                <ValueContent>
+                    <span class="inline-flex items-center gap-1">
+                        <AnimatedNumber Value="@(Metrics?.FleetAvailabilityRate ?? 0)" Decimals="0" Suffix="%" />
+                        @if ((Metrics?.FleetAvailabilityRate ?? 100) < 90)
+                        {
+                            <svg class="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                            <span class="sr-only">— below the 90% threshold</span>
+                        }
+                    </span>
+                </ValueContent>
             </MetricCard>
             <MetricCard Label="Avg Turnaround" Large="true" SubValue="@PeriodLabel">
                 <ValueContent><AnimatedNumber Value="@(Metrics?.AvgTurnaroundDays ?? 0)" Decimals="1" Suffix="d" /></ValueContent>
             </MetricCard>
             <MetricCard Label="Shortage Rate" Large="true" SubValue="@PeriodLabel"
                         Accent="@((Metrics?.ShortageRate ?? 0) > 20 ? "text-red-500" : "text-gray-900 dark:text-white")">
-                <ValueContent><AnimatedNumber Value="@(Metrics?.ShortageRate ?? 0)" Decimals="1" Suffix="%" /></ValueContent>
+                <ValueContent>
+                    <span class="inline-flex items-center gap-1">
+                        <AnimatedNumber Value="@(Metrics?.ShortageRate ?? 0)" Decimals="1" Suffix="%" />
+                        @if ((Metrics?.ShortageRate ?? 0) > 20)
+                        {
+                            <svg class="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                            <span class="sr-only">— above the 20% threshold</span>
+                        }
+                    </span>
+                </ValueContent>
             </MetricCard>
         </div>
 
@@ -86,7 +108,18 @@
                 <ValueContent><AnimatedNumber Value="@(Metrics?.OpenServiceRequests ?? 0)" /></ValueContent>
             </MetricCard>
             <MetricCard Label="Open Incidents" Accent="@((Metrics?.OpenIncidents ?? 0) > 0 ? "text-orange-500" : "text-gray-900 dark:text-white")">
-                <ValueContent><AnimatedNumber Value="@(Metrics?.OpenIncidents ?? 0)" /></ValueContent>
+                <ValueContent>
+                    <span class="inline-flex items-center gap-1">
+                        <AnimatedNumber Value="@(Metrics?.OpenIncidents ?? 0)" />
+                        @if ((Metrics?.OpenIncidents ?? 0) > 0)
+                        {
+                            <svg class="w-4 h-4 text-orange-500" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                            <span class="sr-only">— incidents require attention</span>
+                        }
+                    </span>
+                </ValueContent>
             </MetricCard>
         </div>
 
@@ -332,7 +365,7 @@
             Colors = ["#3b82f6", "#ef4444"],
             Grid = new Grid { StrokeDashArray = 4 },
             Chart = new Chart { Toolbar = new Toolbar { Show = false } },
-            Yaxis = [new YAxis { Labels = new YAxisLabels { Formatter = "function (v) { return v.toFixed(0) + '%'; }" } }]
+            Yaxis = [new YAxis { Labels = new YAxisLabels { Formatter = "function (v) { return v.toFixed(2) + '%'; }" } }]
         };
 
         await LoadDataAsync();

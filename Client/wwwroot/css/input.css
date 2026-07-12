@@ -52,6 +52,33 @@
 
 }
 
+/* Respects the OS-level "reduce motion" setting — previously every fade/slide/shimmer
+   animation in the app (the fadeIn/slideUp/fadeUp keyframes above, Tailwind's animate-spin/
+   animate-pulse loading indicators, hover scale transitions) ran unconditionally regardless of
+   this preference. Kept near-instant rather than fully removed so animation-end-driven logic
+   (if any) still fires correctly. */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* A `disabled` button across most forms in this app only swaps its label text (e.g. to
+   "Processing...") without changing its actual appearance — the button keeps its full-opacity
+   background and a pointer cursor, so it visually reads as clickable even though it does
+   nothing. Rather than hand-add opacity/cursor utility classes to every button in ~30 files
+   (easy to miss on the next new form too), this applies uniformly to every disabled button in
+   the app in one place. Opacity layers on top of whatever background/text classes a button
+   already has, so this doesn't fight Tailwind's utilities on specificity. */
+button:disabled,
+button[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 /* Tailwind CSS equivalent styles for Rating.razor.css */
 
 .mcc-rating-root {

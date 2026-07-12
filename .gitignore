@@ -6,12 +6,22 @@
 # Local Claude Code guidance (kept local, not shared with team)
 CLAUDE.md
 
+# Local Claude Code settings — permission allowlist auto-records literal command lines,
+# including any credentials typed into them (e.g. curl -d '{"email":...,"password":...}'
+# during manual API testing). Must never be committed. See project memory for the recurring
+# secrets-in-git incident this caused.
+.claude/settings.local.json
+
 # Local secrets for docker-compose — copy .env.example to .env and fill in real values
 .env
 
 # Real operational data used for one-off local imports — never commit to this
 # public repo. See tools/import-trips/prod-runbook/ for the reusable tooling.
 Shared/Truck Loading Info.xlsx
+
+# One-off driver-dedupe cleanup scripts hardcode real driver names/phone numbers as manually
+# reviewed merge decisions — same "never commit real PII to this public repo" rule as above.
+tools/driver-dedupe/
 
 # User-specific files
 *.rsuser

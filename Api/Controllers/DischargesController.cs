@@ -3,23 +3,27 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Api.Context;
+using Api.Services.Discharges;
 using Shared.Models.Trips;
-using Shared.Helpers;
 
 namespace Api.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
+[Authorize]
 public class DischargesController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly ShortageNotificationService _shortageNotificationService;
 
-    public DischargesController(AppDbContext context)
+    public DischargesController(AppDbContext context, ShortageNotificationService shortageNotificationService)
     {
         _context = context;
+        _shortageNotificationService = shortageNotificationService;
     }
 
 
@@ -121,6 +125,11 @@ public class DischargesController : ControllerBase
             }
         }
 
+        if (trip.IsFinalDischarge)
+        {
+            await _shortageNotificationService.CheckAndNotifyAsync(trip.Id);
+        }
+
         return NoContent();
     }
 
@@ -131,6 +140,11 @@ public class DischargesController : ControllerBase
     {
         _context.Discharges.Add(trip);
         await _context.SaveChangesAsync();
+
+        if (trip.IsFinalDischarge)
+        {
+            await _shortageNotificationService.CheckAndNotifyAsync(trip.Id);
+        }
 
         return CreatedAtAction("GetDischarge", new { id = trip.Id }, trip);
     }

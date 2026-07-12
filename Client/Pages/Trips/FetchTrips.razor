@@ -280,31 +280,21 @@
                                         </td>
                                         <!-- Actions -->
                                         <td class="px-4 py-4 text-right">
-                                        <div class="relative inline-block text-left">
-                                            <button type="button" @onclick="() => ToggleRowMenu(trip.Id)"
-                                                class="p-1.5 rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white focus:outline-none">
-                                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                                                    <path d="M10 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4z" />
-                                                </svg>
+                                        <RowActionMenu IsOpen="openRowMenuId == trip.Id" OnToggle="() => ToggleRowMenu(trip.Id)" TriggerLabel="Trip actions">
+                                            <button type="button" role="menuitem" @onclick="() => { ToggleRowMenu(trip.Id); ViewTrip(trip); }"
+                                                class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                                View
                                             </button>
-                                            <div class="@(openRowMenuId == trip.Id ? "block" : "hidden") absolute right-0 mt-1 w-32 bg-white dark:bg-gray-800 rounded-lg shadow-lg z-20 border border-gray-200 dark:border-gray-700">
-                                                <div class="py-1">
-                                                    <button type="button" @onclick="() => { ToggleRowMenu(trip.Id); ViewTrip(trip); }"
+                                            <AuthorizeView Roles="Monitoring, Admin, Master, Supervisor, DriverSupervisor, Manager">
+                                                @if (trip.Status != TripStatus.Completed)
+                                                {
+                                                    <button type="button" role="menuitem" @onclick="() => { ToggleRowMenu(trip.Id); EditStatus(trip); }"
                                                         class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                                        View
+                                                        Update
                                                     </button>
-                                                    <AuthorizeView Roles="Monitoring, Admin, Master, Supervisor, DriverSupervisor, Manager">
-                                                        @if (trip.Status != TripStatus.Completed)
-                                                        {
-                                                            <button type="button" @onclick="() => { ToggleRowMenu(trip.Id); EditStatus(trip); }"
-                                                                class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                                                Update
-                                                            </button>
-                                                        }
-                                                    </AuthorizeView>
-                                                </div>
-                                            </div>
-                                        </div>
+                                                }
+                                            </AuthorizeView>
+                                        </RowActionMenu>
                                         </td>
                                     </tr>
                                 }

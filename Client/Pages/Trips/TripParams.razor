@@ -1,51 +1,39 @@
-<div class="relative overflow-x-auto shadow-md sm:rounded-lg">
-    <table class="w-full text-sm text-left rtl:text-right text-gray-500">
-        <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+<div class="overflow-x-auto rounded-lg border border-gray-100 dark:border-gray-700">
+    <table class="w-full text-sm text-left">
+        <thead class="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wide bg-gray-50 dark:bg-gray-900/40">
             <tr>
                 @if (Product == Product.LPG)
                 {
-                    <th scope="col" class="px-6 py-3">Tare</th>
-                    <th scope="col" class="px-6 py-3">Gross</th>    
-                    <th scope="col" class="px-6 py-3">Net</th>                                        
+                    <th scope="col" class="px-3 py-2">Tare</th>
+                    <th scope="col" class="px-3 py-2">Gross</th>
+                    <th scope="col" class="px-3 py-2">Net</th>
                 }
                 else
                 {
-                    <th scope="col" class="px-6 py-3">Item</th>
-                    <th scope="col" class="px-6 py-3">Ullage</th>
-                    <th scope="col" class="px-6 py-3">Liquid Height</th>
-                    <th scope="col" class="px-6 py-3">Overall</th>
-                }                                                            
+                    <th scope="col" class="px-3 py-2">Item</th>
+                    <th scope="col" class="px-3 py-2">Ullage</th>
+                    <th scope="col" class="px-3 py-2">Liquid Height</th>
+                    <th scope="col" class="px-3 py-2">Overall</th>
+                }
             </tr>
         </thead>
-        <tbody>
+        <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
             @foreach (var metric in MetricsList)
             {
-                <tr class="bg-white border-b hover:bg-gray-50">
+                <tr class="text-gray-700 dark:text-gray-200">
                     @if (Product == Product.LPG)
                     {
-                        <td class="px-6 py-4">
-                            <span>@metric.TareWeight kg</span><br />                                                        
-                        </td>
-                        <td class="px-6 py-4">
-                            <span>@metric.GrossWeight kg</span><br />
-                        </td>
-                        <td class="px-6 py-4">
-                            <span>@metric.NetWeight kg</span>
-                        </td>
+                        <td class="px-3 py-1.5">@metric.TareWeight?.ToString("N1") kg</td>
+                        <td class="px-3 py-1.5">@metric.GrossWeight?.ToString("N1") kg</td>
+                        <td class="px-3 py-1.5">@metric.NetWeight.ToString("N1") kg</td>
                     }
                     else
-                    {        
-                        <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">@metric.Compartment</td>
-                        <td class="px-6 py-4">
-                            <span>@metric.Ullage?.Quantity </span><br />                                                        
-                        </td>                 
-                        <td class="px-6 py-4">
-                            <span>@metric.LiquidHeight?.Quantity </span><br />
-                        </td>   
-                        <td class="px-6 py-4">
-                            <span>@metric.Overall</span>
-                        </td>
-                    }                        
+                    {
+                        <td class="px-3 py-1.5 font-medium text-gray-900 dark:text-white whitespace-nowrap">@metric.Compartment</td>
+                        <td class="px-3 py-1.5">@metric.Ullage?.Quantity?.ToString("N1")</td>
+                        <td class="px-3 py-1.5">@metric.LiquidHeight?.Quantity?.ToString("N1")</td>
+                        <td class="px-3 py-1.5 font-medium">@metric.Overall?.ToString("N1")</td>
+                    }
                 </tr>
             }
         </tbody>

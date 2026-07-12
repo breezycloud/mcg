@@ -3,11 +3,11 @@
 
 @if (Visible)
 {
-    <div class="fixed top-4 left-1/2 transform -translate-x-1/2 z-50">
+    <div class="fixed top-4 left-1/2 transform -translate-x-1/2 z-50" role="status" aria-live="@(Type == "error" ? "assertive" : "polite")" aria-atomic="true">
         <div class="@ToastCss">
             <div class="flex items-center justify-between">
                 <span>@Message</span>
-                <button @onclick="Hide" class="ml-4 text-white font-bold">×</button>
+                <button @onclick="Hide" type="button" aria-label="Dismiss notification" class="ml-4 -mr-1 p-1.5 text-white font-bold">×</button>
             </div>
         </div>
     </div>

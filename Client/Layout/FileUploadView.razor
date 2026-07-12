@@ -94,7 +94,10 @@
 @code {
     [Parameter] public FileUploadModel Model { get; set; } = new();
 
-    [Inject] public HttpClient Http { get; set; } = default!;
+    // Named "AppUrl" client carries the CustomAuthorizationHandler that attaches the bearer
+    // token — the plain injected HttpClient does not, so an upload sent through it would 401
+    // against this [Authorize]-protected endpoint.
+    [Inject] public IHttpClientFactory HttpClientFactory { get; set; } = default!;
 
     // Events
     [Parameter] public EventCallback<List<UploadedFile>> OnFilesSelected { get; set; }
@@ -201,7 +204,7 @@
 
                     formData.Add(fileContent, "file", uploadedFile.BrowserFile.Name);
 
-                    var response = await Http.PostAsync("filesave/upload", formData);
+                    var response = await HttpClientFactory.CreateClient("AppUrl").PostAsync("filesave/upload", formData);
 
                     if (response.IsSuccessStatusCode)
                     {

@@ -194,9 +194,13 @@
     private async Task LoadStations()
     {
         AppState.IsBusy = true;
-        try 
+        try
         {
             response = await StationService.GetPagedAsync(request, AppState.GetCancellationToken());
+        }
+        catch
+        {
+            ToastService.ShowError("Failed to load stations");
         }
         finally
         {

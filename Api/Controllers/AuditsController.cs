@@ -94,7 +94,12 @@ public class AuditsController : ControllerBase
 
     // PUT: api/Audits/5
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+    // Audit logs are otherwise written exclusively by AuditInterceptor (a SaveChanges
+    // interceptor) — this endpoint has no legitimate caller and exists only as leftover CRUD
+    // scaffolding. Restricted rather than removed, in case it's ever needed for a genuine
+    // correction, but any authenticated user editing the audit trail defeats its purpose.
     [HttpPut("{id}")]
+    [Authorize(Roles = "Admin, Master")]
     public async Task<IActionResult> PutAuditLog(Guid id, AuditLog auditLog)
     {
         if (id != auditLog.Id)
@@ -126,6 +131,7 @@ public class AuditsController : ControllerBase
     // POST: api/Audits
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     [HttpPost]
+    [Authorize(Roles = "Admin, Master")]
     public async Task<ActionResult<AuditLog>> PostAuditLog(AuditLog auditLog)
     {
         _context.AuditLogs.Add(auditLog);
@@ -136,6 +142,7 @@ public class AuditsController : ControllerBase
 
     // DELETE: api/Audits/5
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin, Master")]
     public async Task<IActionResult> DeleteAuditLog(Guid id)
     {
         var auditLog = await _context.AuditLogs.FindAsync(id);

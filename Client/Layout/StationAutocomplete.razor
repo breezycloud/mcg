@@ -1,8 +1,9 @@
 @inject IStationService StationService
 <div @ref="containerRef" class="relative w-full" @onfocusout="OnFocusOut">
-    <label class="block text-sm font-medium text-gray-700 mb-1">@Label @if (IsRequired) { <span class="text-red-500"> * </span> }</label>
+    <label for="@_inputId" class="block text-sm font-medium text-gray-700 mb-1">@Label @if (IsRequired) { <span class="text-red-500"> * </span> }</label>
     <div class="relative">
-        <input 
+        <input
+            id="@_inputId"
             @ref="inputRef"
             @bind="searchText"
             @bind:event="oninput"
@@ -13,11 +14,14 @@
             placeholder="@Placeholder"
             class="w-full px-4 py-2 pr-10 border @GetInputBorderColor() rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
             autocomplete="off"
+            role="combobox"
             aria-autocomplete="list"
-            aria-controls="station-list"
+            aria-controls="@_listId"
             aria-expanded="@IsOpen"
             required="@IsRequired"
-            aria-activedescendant="station-option-@highlightedIndex"
+            aria-activedescendant="@(highlightedIndex >= 0 ? $"{_optionIdPrefix}{highlightedIndex}" : null)"
+            aria-invalid="@(IsInvalid ? "true" : "false")"
+            aria-describedby="@ErrorId"
         />
 
         @if (Value != null && AllowClear)
@@ -41,14 +45,15 @@
 
     @if (IsOpen && filteredStations != null && filteredStations.Any())
     {
-        <ul id="station-list" 
+        <ul id="@_listId"
+            role="listbox"
             class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
             @for (int i = 0; i < filteredStations.Count; i++)
             {
                 var station = filteredStations[i];
                 var isActive = i == highlightedIndex;
 
-                <li id="station-option-@i"
+                <li id="@(_optionIdPrefix + i)"
                     @onclick="() => SelectStation(station)"
                     @onmouseenter="() => highlightedIndex = i"
                     class="px-4 py-2 cursor-pointer hover:bg-blue-50 @GetOptionClass(isActive)"
@@ -93,10 +98,16 @@
     [Parameter] public bool ShowDetails { get; set; } = true;
     [Parameter] public bool AllowClear { get; set; } = true;
     [Parameter] public bool IsRequired { get; set; } = false;
+    [Parameter] public bool IsInvalid { get; set; }
+    [Parameter] public string? ErrorId { get; set; }
 
 
     private ElementReference containerRef;
     private ElementReference inputRef;
+    private readonly string _instanceId = Guid.NewGuid().ToString("N");
+    private string _inputId => $"station-input-{_instanceId}";
+    private string _listId => $"station-list-{_instanceId}";
+    private string _optionIdPrefix => $"station-option-{_instanceId}-";
     private string searchText = string.Empty;
     private bool IsOpen { get; set; } = false;
     private bool isLoading = false;

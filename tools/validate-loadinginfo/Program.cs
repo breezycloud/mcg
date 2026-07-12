@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using Api.Context;
 using Api.Controllers;
+using Api.Services.Discharges;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting.Internal;
@@ -25,7 +26,14 @@ class Program
             .Build();
         var env = new HostingEnvironment { ContentRootPath = "/tmp" };
 
-        var controller = new TripsController(context, NullLogger<TripsController>.Instance, config, env);
+        // Only ValidateLoadingInfo (below) is exercised here, which never touches the shortage
+        // notification service — a bare instance just needs to satisfy the constructor.
+#if RELEASE
+        var shortageNotificationService = new ShortageNotificationService(context, null!, config, null!, NullLogger<ShortageNotificationService>.Instance);
+#else
+        var shortageNotificationService = new ShortageNotificationService(context, config, null!, NullLogger<ShortageNotificationService>.Instance);
+#endif
+        var controller = new TripsController(context, shortageNotificationService, NullLogger<TripsController>.Instance, config, env);
 
         var method = typeof(TripsController).GetMethod("ValidateLoadingInfo", BindingFlags.NonPublic | BindingFlags.Instance, null, [typeof(Trip)], null);
         if (method == null)

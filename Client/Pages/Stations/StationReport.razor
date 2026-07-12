@@ -1,234 +1,975 @@
 @page "/stations/report"
-@inject IStationService StationService
-@inject ITripService TripService
-@attribute [Authorize(Roles = "Admin, Master, Supervisor, Manager")]
+@using System.Text
+@using ApexCharts
+@using Shared.Interfaces.Stations
+@using Shared.Models.Stations
+@inject IStationReportService StationReportService
+@inject IExportService ExportService
+@attribute [Authorize(Roles = "Admin, Master, Supervisor, Nrl, DriverSupervisor, Manager")]
 <PageTitle>Station Report</PageTitle>
 
-<div class="px-4 lg:px-12 py-6">
-    <div class="bg-white dark:bg-gray-800 relative shadow-md sm:rounded-lg overflow-hidden p-6">
-        <div class="mb-6 flex items-center justify-between">
-            <div>
-                <h2 class="text-xl font-bold text-gray-900 dark:text-white">Station Report</h2>
-                <p class="text-sm text-gray-500 dark:text-gray-400">Pick a station to see all trips delivered there.</p>
+<div class="p-6 space-y-6">
+    <!-- Header -->
+    <div class="flex flex-wrap justify-between items-center gap-3">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Station Performance Report</h1>
+            <p class="text-sm text-gray-500 dark:text-gray-400">@TypeDescription</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3">
+            <select @bind="SelectedType" @bind:after="OnTypeChanged"
+                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <option value="@ReportType.DischargeStation">Discharge Station</option>
+                <option value="@ReportType.LoadingDepot">Loading Depot</option>
+                <option value="@ReportType.ReceivingDepot">Receiving Depot</option>
+                <option value="@ReportType.RefuellingStation">Refuelling Station</option>
+            </select>
+
+            <div class="flex rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600 text-sm">
+                <button @onclick="@(() => SetPeriod(PeriodFilter.ThisMonth))"
+                        class="px-3 py-2 font-medium @(Period == PeriodFilter.ThisMonth ? "bg-blue-600 text-white" : "bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600")">
+                    This Month
+                </button>
+                <button @onclick="@(() => SetPeriod(PeriodFilter.AllTime))"
+                        class="px-3 py-2 font-medium @(Period == PeriodFilter.AllTime ? "bg-blue-600 text-white" : "bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600")">
+                    All Time
+                </button>
             </div>
+
+            <button @onclick="ExportToCsv" disabled="@IsExporting"
+                    class="px-4 py-2.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                @(IsExporting ? "Exporting..." : "Export CSV")
+            </button>
+
+            @if (SelectedType == ReportType.DischargeStation)
+            {
+                <button type="button" @onclick="() => GoToDrilldown()"
+                    class="px-4 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600">
+                    Station Drill-down
+                </button>
+            }
+
             <button type="button" @onclick="GoToStations"
                 class="px-4 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600">
                 Back to Stations
             </button>
         </div>
+    </div>
 
-        <!-- Filters -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div>
-                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Station</label>
-                <Autocomplete TItem="Station"
-                    SearchFunc="SearchStations"
-                    SelectedChanged="OnStationSelected"
-                    Placeholder="Search station by name..."
-                    InitialText="@selectedStationName">
-                    <OptionTemplate Context="station">
-                        <span>@station.Name</span>
-                    </OptionTemplate>
-                </Autocomplete>
+    @if (IsLoading && Metrics is null && LoadingDepotMetrics is null)
+    {
+        <Loader />
+    }
+    else if (SelectedType == ReportType.DischargeStation)
+    {
+        <!-- North-star KPI -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <MetricCard Label="Shortage Rate" Large="true" SubValue="@PeriodLabel"
+                        Accent="@((Metrics?.ShortageRate ?? 0) > 20 ? "text-red-500" : "text-gray-900 dark:text-white")">
+                <ValueContent>
+                    <span class="inline-flex items-center gap-1">
+                        <AnimatedNumber Value="@(Metrics?.ShortageRate ?? 0)" Decimals="1" Suffix="%" />
+                        @if ((Metrics?.ShortageRate ?? 0) > 20)
+                        {
+                            <svg class="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                            <span class="sr-only">— above the 20% threshold</span>
+                        }
+                    </span>
+                </ValueContent>
+            </MetricCard>
+            <MetricCard Label="Total Stations" Value="@(Metrics?.TotalStations.ToString() ?? "0")" />
+            <MetricCard Label="Active Stations" Value="@($"{Metrics?.StationsActiveInPeriod}/{Metrics?.TotalStations}")" SubValue="@PeriodLabel" />
+            <MetricCard Label="Trips" SubValue="@PeriodLabel">
+                <ValueContent><AnimatedNumber Value="@(Metrics?.TripsInPeriod ?? 0)" /></ValueContent>
+            </MetricCard>
+        </div>
+
+        <!-- Top shortage stations + monthly trend -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Top Stations by Share of Total Shortage</h3>
+                @if (TopShortageStations.Count == 0)
+                {
+                    <p class="text-gray-500 dark:text-gray-400 text-sm">No stations match this filter.</p>
+                }
+                <div class="@(TopShortageStations.Count == 0 ? "hidden" : "")">
+                    <ApexChart @ref="shortageChart" TItem="StationPerformanceRowDto" Options="shortageChartOptions" Height="300">
+                        <ApexPointSeries TItem="StationPerformanceRowDto"
+                                         Items="TopShortageStations"
+                                         SeriesType="SeriesType.Bar"
+                                         Name="Share of Total Shortage %"
+                                         XValue="@(e => e.StationName)"
+                                         YValue="@(e => e.ShortageSharePercent)"
+                                         ShowDataLabels="true" />
+                    </ApexChart>
+                </div>
             </div>
-            <div>
-                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">From (optional)</label>
-                <InputDate @bind-Value="startDate" @bind-Value:after="LoadReport"
-                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"/>
-            </div>
-            <div>
-                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">To (optional)</label>
-                <InputDate @bind-Value="endDate" @bind-Value:after="LoadReport"
-                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"/>
+
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">6-Month Trend</h3>
+                @if (MonthlyTrend.Count == 0)
+                {
+                    <p class="text-gray-500 dark:text-gray-400 text-sm">Not enough data yet.</p>
+                }
+                <div class="@(MonthlyTrend.Count == 0 ? "hidden" : "")">
+                    <ApexChart @ref="trendChart" TItem="StationMonthlyTrendDto" Options="trendChartOptions" Height="300">
+                        <ApexPointSeries TItem="StationMonthlyTrendDto"
+                                         Items="MonthlyTrend"
+                                         SeriesType="SeriesType.Bar"
+                                         Name="Trips"
+                                         XValue="@(e => e.Format)"
+                                         YValue="@(e => (decimal)e.TripCount)" />
+                        <ApexPointSeries TItem="StationMonthlyTrendDto"
+                                         Items="MonthlyTrend"
+                                         SeriesType="SeriesType.Line"
+                                         Name="Shortage %"
+                                         XValue="@(e => e.Format)"
+                                         YValue="@(e => e.ShortageRate)" />
+                    </ApexChart>
+                </div>
             </div>
         </div>
 
-        @if (selectedStationId is null)
-        {
-            <div class="text-center py-10 text-gray-500 dark:text-gray-400">
-                Search for and select a station above to see its report.
+        <!-- Cross-station performance -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Station Performance &middot; @PeriodLabel</h3>
+                <span class="text-sm text-gray-500 dark:text-gray-400">@StationPerformance.Count stations &middot; click a row to drill in</span>
             </div>
-        }
-        else if (isLoading)
-        {
-            <div class="flex items-center gap-2 text-gray-500 py-10 justify-center">
-                <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                </svg>
-                Loading report...
-            </div>
-        }
-        else
-        {
-            <!-- Tabs -->
-            <div class="border-b border-gray-200 dark:border-gray-700 mb-4">
-                <nav class="flex gap-6 -mb-px">
-                    <button type="button" @onclick='() => activeTab = "all"'
-                        class="py-3 px-1 border-b-2 text-sm font-medium @(activeTab == "all" ? "border-blue-600 text-blue-600 dark:text-blue-400" : "border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300")">
-                        All Trips (@allRows.Count)
-                    </button>
-                    <button type="button" @onclick='() => activeTab = "complete"'
-                        class="py-3 px-1 border-b-2 text-sm font-medium @(activeTab == "complete" ? "border-blue-600 text-blue-600 dark:text-blue-400" : "border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300")">
-                        Complete Discharge (@completeRows.Count)
-                    </button>
-                    <button type="button" @onclick='() => activeTab = "shortage"'
-                        class="py-3 px-1 border-b-2 text-sm font-medium @(activeTab == "shortage" ? "border-blue-600 text-blue-600 dark:text-blue-400" : "border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300")">
-                        Shortage (@shortageRows.Count)
-                    </button>
-                </nav>
-            </div>
-
             <div class="overflow-x-auto">
                 <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                    <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-400">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                         <tr>
-                            <th class="px-4 py-2">Date</th>
-                            <th class="px-4 py-2">Truck</th>
-                            <th class="px-4 py-2">Product</th>
-                            <th class="px-4 py-2">Driver</th>
-                            <th class="px-4 py-2">Loading Depot</th>
-                            <th class="px-4 py-2">Loading Date</th>
-                            <th class="px-4 py-2 text-right">Dispatch Qty</th>
-                            <th class="px-4 py-2 text-right">Discharged Qty</th>
-                            <th class="px-4 py-2 text-right cursor-pointer select-none hover:text-gray-900 dark:hover:text-white" @onclick="ToggleShortageSort">
-                                <span class="inline-flex items-center gap-1">
-                                    Shortage
-                                    @if (shortageSort == SortDirection.Ascending)
-                                    {
-                                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" clip-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z"/></svg>
-                                    }
-                                    else if (shortageSort == SortDirection.Descending)
-                                    {
-                                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" clip-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
-                                    }
-                                    else
-                                    {
-                                        <svg class="w-3 h-3 text-gray-300 dark:text-gray-600" fill="currentColor" viewBox="0 0 20 20"><path d="M10 3l4 4H6l4-4zm0 14l-4-4h8l-4 4z"/></svg>
-                                    }
-                                </span>
-                            </th>
-                            <th class="px-4 py-2">Status</th>
+                            <th class="px-4 py-3"></th>
+                            <th class="px-4 py-3">Station</th>
+                            <th class="px-4 py-3 text-center">Trips</th>
+                            <th class="px-4 py-3 text-right">Dispatched</th>
+                            <th class="px-4 py-3 text-right">Discharged</th>
+                            <th class="px-4 py-3 text-center">Shortage</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @if (ActiveRows.Count == 0)
+                        @foreach (var row in StationPerformance)
                         {
-                            <tr>
-                                <td colspan="10" class="px-4 py-6 text-center text-gray-500 dark:text-gray-400">No trips found.</td>
+                            <tr @key="row.StationId" @onclick="() => GoToDrilldown(row.StationId)"
+                                class="bg-white dark:bg-gray-800 border-b dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 @(row.NeedsAttention ? "border-l-4 border-l-red-500" : "")">
+                                <td class="px-2 text-center">
+                                    @if (row.NeedsAttention)
+                                    {
+                                        <span title="Needs attention" class="text-red-500">&#9888;</span>
+                                    }
+                                </td>
+                                <td class="px-4 py-3 font-medium text-gray-900 dark:text-white whitespace-nowrap">@row.StationName</td>
+                                <td class="px-4 py-3 text-center">@row.TripCount</td>
+                                <td class="px-4 py-3 text-right">@row.TotalDispatched.ToString("N0")</td>
+                                <td class="px-4 py-3 text-right">@row.TotalDischarged.ToString("N0")</td>
+                                <td class="px-4 py-3 text-center @(row.ShortageRate > 20 ? "text-red-500 font-medium" : "")">@row.ShortageRate.ToString("F1")%</td>
                             </tr>
-                        }
-                        else
-                        {
-                            @foreach (var row in ActiveRows)
-                            {
-                                <tr class="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                                    <td class="px-4 py-2">@row.Date.ToString("dd MMM yyyy")</td>
-                                    <td class="px-4 py-2">@row.TruckPlate <span class="text-xs text-gray-400">(@row.TruckNo)</span></td>
-                                    <td class="px-4 py-2">@row.Product</td>
-                                    <td class="px-4 py-2">@row.DriverName <span class="text-xs text-gray-400">(@row.DriverPhone)</span></td>
-                                    <td class="px-4 py-2">@row.LoadingDepot</td>
-                                    <td class="px-4 py-2">@row.LoadingDate</td>
-                                    <td class="px-4 py-2 text-right">@row.DispatchQuantity.ToString("N1") @row.Unit</td>
-                                    <td class="px-4 py-2 text-right">@row.DischargedQuantity.ToString("N1") @row.Unit</td>
-                                    <td class="px-4 py-2 text-right @(row.ShortageAmount > 0 ? "text-red-600 dark:text-red-400 font-medium" : row.ShortageAmount < 0 ? "text-amber-600 dark:text-amber-400" : "")">
-                                        @row.ShortageAmount.ToString("N1") @row.Unit
-                                    </td>
-                                    <td class="px-4 py-2">@row.Status</td>
-                                </tr>
-                            }
                         }
                     </tbody>
                 </table>
             </div>
-        }
-    </div>
+        </div>
+    }
+    else if (SelectedType == ReportType.LoadingDepot)
+    {
+        <!-- North-star KPI -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <MetricCard Label="Downstream Shortage Rate" Large="true" SubValue="@PeriodLabel"
+                        Accent="@((LoadingDepotMetrics?.ShortageRate ?? 0) > 20 ? "text-red-500" : "text-gray-900 dark:text-white")">
+                <ValueContent>
+                    <span class="inline-flex items-center gap-1">
+                        <AnimatedNumber Value="@(LoadingDepotMetrics?.ShortageRate ?? 0)" Decimals="1" Suffix="%" />
+                        @if ((LoadingDepotMetrics?.ShortageRate ?? 0) > 20)
+                        {
+                            <svg class="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                            <span class="sr-only">— above the 20% threshold</span>
+                        }
+                    </span>
+                </ValueContent>
+            </MetricCard>
+            <MetricCard Label="Total Loading Depots" Value="@(LoadingDepotMetrics?.TotalLoadingDepots.ToString() ?? "0")" />
+            <MetricCard Label="Active Depots" Value="@($"{LoadingDepotMetrics?.DepotsActiveInPeriod}/{LoadingDepotMetrics?.TotalLoadingDepots}")" SubValue="@PeriodLabel" />
+            <MetricCard Label="Trips" SubValue="@PeriodLabel">
+                <ValueContent><AnimatedNumber Value="@(LoadingDepotMetrics?.TripsInPeriod ?? 0)" /></ValueContent>
+            </MetricCard>
+        </div>
+
+        <!-- Top depots by shortage + monthly trend -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Top Depots by Share of Total Downstream Shortage</h3>
+                @if (TopShortageDepots.Count == 0)
+                {
+                    <p class="text-gray-500 dark:text-gray-400 text-sm">No loading depots match this filter.</p>
+                }
+                <div class="@(TopShortageDepots.Count == 0 ? "hidden" : "")">
+                    <ApexChart @ref="loadingShortageChart" TItem="LoadingDepotPerformanceRowDto" Options="loadingShortageChartOptions" Height="300">
+                        <ApexPointSeries TItem="LoadingDepotPerformanceRowDto"
+                                         Items="TopShortageDepots"
+                                         SeriesType="SeriesType.Bar"
+                                         Name="Share of Total Shortage %"
+                                         XValue="@(e => e.StationName)"
+                                         YValue="@(e => e.ShortageSharePercent)"
+                                         ShowDataLabels="true" />
+                    </ApexChart>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">6-Month Trend</h3>
+                @if (LoadingDepotMonthlyTrend.Count == 0)
+                {
+                    <p class="text-gray-500 dark:text-gray-400 text-sm">Not enough data yet.</p>
+                }
+                <div class="@(LoadingDepotMonthlyTrend.Count == 0 ? "hidden" : "")">
+                    <ApexChart @ref="loadingTrendChart" TItem="LoadingDepotMonthlyTrendDto" Options="loadingTrendChartOptions" Height="300">
+                        <ApexPointSeries TItem="LoadingDepotMonthlyTrendDto"
+                                         Items="LoadingDepotMonthlyTrend"
+                                         SeriesType="SeriesType.Bar"
+                                         Name="Trips"
+                                         XValue="@(e => e.Format)"
+                                         YValue="@(e => (decimal)e.TripCount)" />
+                        <ApexPointSeries TItem="LoadingDepotMonthlyTrendDto"
+                                         Items="LoadingDepotMonthlyTrend"
+                                         SeriesType="SeriesType.Line"
+                                         Name="Shortage %"
+                                         XValue="@(e => e.Format)"
+                                         YValue="@(e => e.ShortageRate)" />
+                    </ApexChart>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cross-depot performance -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Loading Depot Performance &middot; @PeriodLabel</h3>
+                <span class="text-sm text-gray-500 dark:text-gray-400">@LoadingDepotPerformance.Count depots</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                        <tr>
+                            <th class="px-4 py-3"></th>
+                            <th class="px-4 py-3">Depot</th>
+                            <th class="px-4 py-3 text-center">Trips</th>
+                            <th class="px-4 py-3 text-right">Quantity Loaded</th>
+                            <th class="px-4 py-3 text-center">Downstream Shortage</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in LoadingDepotPerformance)
+                        {
+                            <tr @key="row.StationId"
+                                class="bg-white dark:bg-gray-800 border-b dark:border-gray-700 @(row.NeedsAttention ? "border-l-4 border-l-red-500" : "")">
+                                <td class="px-2 text-center">
+                                    @if (row.NeedsAttention)
+                                    {
+                                        <span title="Needs attention" class="text-red-500">&#9888;</span>
+                                    }
+                                </td>
+                                <td class="px-4 py-3 font-medium text-gray-900 dark:text-white whitespace-nowrap">@row.StationName</td>
+                                <td class="px-4 py-3 text-center">@row.TripCount</td>
+                                <td class="px-4 py-3 text-right">@row.TotalQuantityLoaded.ToString("N0")</td>
+                                <td class="px-4 py-3 text-center @(row.ShortageRate > 20 ? "text-red-500 font-medium" : "")">@row.ShortageRate.ToString("F1")%</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+    else if (SelectedType == ReportType.ReceivingDepot)
+    {
+        <!-- North-star KPI -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <MetricCard Label="Avg Dwell Time" Large="true" SubValue="@PeriodLabel">
+                <ValueContent><AnimatedNumber Value="@(ReceivingDepotMetrics?.AvgDwellHours ?? 0)" Decimals="1" Suffix="h" /></ValueContent>
+            </MetricCard>
+            <MetricCard Label="Total Receiving Depots" Value="@(ReceivingDepotMetrics?.TotalReceivingDepots.ToString() ?? "0")" />
+            <MetricCard Label="Active Depots" Value="@($"{ReceivingDepotMetrics?.DepotsActiveInPeriod}/{ReceivingDepotMetrics?.TotalReceivingDepots}")" SubValue="@PeriodLabel" />
+            <MetricCard Label="Currently Stuck" SubValue="right now, not period-filtered"
+                        Accent="@((ReceivingDepotMetrics?.CurrentlyStuckCount ?? 0) > 0 ? "text-red-500" : "text-gray-900 dark:text-white")">
+                <ValueContent>
+                    <span class="inline-flex items-center gap-1">
+                        <AnimatedNumber Value="@(ReceivingDepotMetrics?.CurrentlyStuckCount ?? 0)" />
+                        @if ((ReceivingDepotMetrics?.CurrentlyStuckCount ?? 0) > 0)
+                        {
+                            <svg class="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                            <span class="sr-only">— trucks waiting to be re-invoiced</span>
+                        }
+                    </span>
+                </ValueContent>
+            </MetricCard>
+        </div>
+
+        <!-- Depots by dwell time + monthly trend -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Depots by Average Dwell Time</h3>
+                @if (TopDwellDepots.Count == 0)
+                {
+                    <p class="text-gray-500 dark:text-gray-400 text-sm">No receiving depots match this filter.</p>
+                }
+                <div class="@(TopDwellDepots.Count == 0 ? "hidden" : "")">
+                    <ApexChart @ref="receivingDwellChart" TItem="ReceivingDepotPerformanceRowDto" Options="receivingDwellChartOptions" Height="300">
+                        <ApexPointSeries TItem="ReceivingDepotPerformanceRowDto"
+                                         Items="TopDwellDepots"
+                                         SeriesType="SeriesType.Bar"
+                                         Name="Avg Dwell (h)"
+                                         XValue="@(e => e.StationName)"
+                                         YValue="@(e => e.AvgDwellHours)"
+                                         ShowDataLabels="true" />
+                    </ApexChart>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">6-Month Trend</h3>
+                @if (ReceivingDepotMonthlyTrend.Count == 0)
+                {
+                    <p class="text-gray-500 dark:text-gray-400 text-sm">Not enough data yet.</p>
+                }
+                <div class="@(ReceivingDepotMonthlyTrend.Count == 0 ? "hidden" : "")">
+                    <ApexChart @ref="receivingTrendChart" TItem="ReceivingDepotMonthlyTrendDto" Options="receivingTrendChartOptions" Height="300">
+                        <ApexPointSeries TItem="ReceivingDepotMonthlyTrendDto"
+                                         Items="ReceivingDepotMonthlyTrend"
+                                         SeriesType="SeriesType.Bar"
+                                         Name="Trips"
+                                         XValue="@(e => e.Format)"
+                                         YValue="@(e => (decimal)e.TripCount)" />
+                        <ApexPointSeries TItem="ReceivingDepotMonthlyTrendDto"
+                                         Items="ReceivingDepotMonthlyTrend"
+                                         SeriesType="SeriesType.Line"
+                                         Name="Avg Dwell (h)"
+                                         XValue="@(e => e.Format)"
+                                         YValue="@(e => e.AvgDwellHours)" />
+                    </ApexChart>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cross-depot performance -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Receiving Depot Performance &middot; @PeriodLabel</h3>
+                <span class="text-sm text-gray-500 dark:text-gray-400">@ReceivingDepotPerformance.Count depots</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                        <tr>
+                            <th class="px-4 py-3"></th>
+                            <th class="px-4 py-3">Depot</th>
+                            <th class="px-4 py-3 text-center">Trips</th>
+                            <th class="px-4 py-3 text-right">Avg Dwell Time</th>
+                            <th class="px-4 py-3 text-center">Currently Stuck</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in ReceivingDepotPerformance)
+                        {
+                            <tr @key="row.StationId"
+                                class="bg-white dark:bg-gray-800 border-b dark:border-gray-700 @(row.NeedsAttention ? "border-l-4 border-l-red-500" : "")">
+                                <td class="px-2 text-center">
+                                    @if (row.NeedsAttention)
+                                    {
+                                        <span title="Trucks currently stuck" class="text-red-500">&#9888;</span>
+                                    }
+                                </td>
+                                <td class="px-4 py-3 font-medium text-gray-900 dark:text-white whitespace-nowrap">@row.StationName</td>
+                                <td class="px-4 py-3 text-center">@row.TripCount</td>
+                                <td class="px-4 py-3 text-right">@row.AvgDwellHours.ToString("F1")h</td>
+                                <td class="px-4 py-3 text-center @(row.CurrentlyStuckCount > 0 ? "text-red-500 font-medium" : "")">@row.CurrentlyStuckCount</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- North-star KPI -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <MetricCard Label="Total Cost" Large="true" Value="@(RefuellingStationMetrics?.TotalCost.ToString("N0") ?? "0")" SubValue="@PeriodLabel" />
+            <MetricCard Label="Total Refuelling Stations" Value="@(RefuellingStationMetrics?.TotalRefuellingStations.ToString() ?? "0")" />
+            <MetricCard Label="Active Stations" Value="@($"{RefuellingStationMetrics?.StationsActiveInPeriod}/{RefuellingStationMetrics?.TotalRefuellingStations}")" SubValue="@PeriodLabel" />
+            <MetricCard Label="Refuel Events" SubValue="@PeriodLabel">
+                <ValueContent><AnimatedNumber Value="@(RefuellingStationMetrics?.RefuelEventCount ?? 0)" /></ValueContent>
+            </MetricCard>
+        </div>
+
+        <!-- Top stations by cost share + monthly trend -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Top Stations by Share of Total Cost</h3>
+                @if (TopCostStations.Count == 0)
+                {
+                    <p class="text-gray-500 dark:text-gray-400 text-sm">No refuelling stations match this filter.</p>
+                }
+                <div class="@(TopCostStations.Count == 0 ? "hidden" : "")">
+                    <ApexChart @ref="refuellingCostChart" TItem="RefuellingStationPerformanceRowDto" Options="refuellingCostChartOptions" Height="300">
+                        <ApexPointSeries TItem="RefuellingStationPerformanceRowDto"
+                                         Items="TopCostStations"
+                                         SeriesType="SeriesType.Bar"
+                                         Name="Share of Total Cost %"
+                                         XValue="@(e => e.StationName)"
+                                         YValue="@(e => e.CostSharePercent)"
+                                         ShowDataLabels="true" />
+                    </ApexChart>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">6-Month Trend</h3>
+                @if (RefuellingStationMonthlyTrend.Count == 0)
+                {
+                    <p class="text-gray-500 dark:text-gray-400 text-sm">Not enough data yet.</p>
+                }
+                <div class="@(RefuellingStationMonthlyTrend.Count == 0 ? "hidden" : "")">
+                    <ApexChart @ref="refuellingTrendChart" TItem="RefuellingStationMonthlyTrendDto" Options="refuellingTrendChartOptions" Height="300">
+                        <ApexPointSeries TItem="RefuellingStationMonthlyTrendDto"
+                                         Items="RefuellingStationMonthlyTrend"
+                                         SeriesType="SeriesType.Bar"
+                                         Name="Refuel Events"
+                                         XValue="@(e => e.Format)"
+                                         YValue="@(e => (decimal)e.RefuelEventCount)" />
+                        <ApexPointSeries TItem="RefuellingStationMonthlyTrendDto"
+                                         Items="RefuellingStationMonthlyTrend"
+                                         SeriesType="SeriesType.Line"
+                                         Name="Total Cost"
+                                         XValue="@(e => e.Format)"
+                                         YValue="@(e => e.TotalCost)" />
+                    </ApexChart>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cross-station performance -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Refuelling Station Performance &middot; @PeriodLabel</h3>
+                <span class="text-sm text-gray-500 dark:text-gray-400">@RefuellingStationPerformance.Count stations</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                        <tr>
+                            <th class="px-4 py-3">Station</th>
+                            <th class="px-4 py-3 text-center">Events</th>
+                            <th class="px-4 py-3 text-center">Trucks Serviced</th>
+                            <th class="px-4 py-3 text-right">Quantity</th>
+                            <th class="px-4 py-3 text-right">Total Cost</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in RefuellingStationPerformance)
+                        {
+                            <tr @key="row.StationId" class="bg-white dark:bg-gray-800 border-b dark:border-gray-700">
+                                <td class="px-4 py-3 font-medium text-gray-900 dark:text-white whitespace-nowrap">@row.StationName</td>
+                                <td class="px-4 py-3 text-center">@row.RefuelEventCount</td>
+                                <td class="px-4 py-3 text-center">@row.TrucksServiced</td>
+                                <td class="px-4 py-3 text-right">@row.TotalQuantity.ToString("N1") @row.Unit</td>
+                                <td class="px-4 py-3 text-right">@row.TotalCost.ToString("N0")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
 </div>
 
 @code {
-    private Guid? selectedStationId;
-    private string? selectedStationName;
-    private DateOnly? startDate;
-    private DateOnly? endDate;
-    private bool isLoading;
-    private string activeTab = "all";
+    private enum ReportType { DischargeStation, LoadingDepot, ReceivingDepot, RefuellingStation }
+    private enum PeriodFilter { ThisMonth, AllTime }
 
-    private List<StationReportDto> allRows = [];
-    private List<StationReportDto> completeRows = [];
-    private List<StationReportDto> shortageRows = [];
+    private ReportType SelectedType = ReportType.DischargeStation;
+    private PeriodFilter Period = PeriodFilter.ThisMonth;
 
-    private enum SortDirection { None, Ascending, Descending }
-    private SortDirection shortageSort = SortDirection.None;
-
-    private List<StationReportDto> ActiveRows
+    private string TypeDescription => SelectedType switch
     {
-        get
-        {
-            var rows = activeTab switch
-            {
-                "complete" => completeRows,
-                "shortage" => shortageRows,
-                _ => allRows,
-            };
+        ReportType.DischargeStation => "Shortage rates and delivery volume across discharge stations",
+        ReportType.LoadingDepot => "Quantity loaded and downstream shortage across loading depots",
+        ReportType.ReceivingDepot => "Dwell time and currently-held trucks across receiving depots",
+        _ => "Refuel volume, events and cost across refuelling stations"
+    };
 
-            return shortageSort switch
-            {
-                SortDirection.Ascending => rows.OrderBy(r => r.ShortageAmount).ToList(),
-                SortDirection.Descending => rows.OrderByDescending(r => r.ShortageAmount).ToList(),
-                _ => rows,
-            };
-        }
-    }
+    // ─── Discharge Station state ────────────────────────────────────────────
+    private StationFleetMetricsDto? Metrics;
+    private List<StationPerformanceRowDto> StationPerformance = [];
+    private List<StationPerformanceRowDto> TopShortageStations => StationPerformance
+        .Where(r => r.ShortageSharePercent > 0)
+        .OrderByDescending(r => r.ShortageSharePercent)
+        .Take(10)
+        .ToList();
+    private List<StationMonthlyTrendDto> MonthlyTrend = [];
 
-    private void ToggleShortageSort()
+    private ApexChart<StationPerformanceRowDto>? shortageChart;
+    private ApexChartOptions<StationPerformanceRowDto> shortageChartOptions = new();
+
+    private ApexChart<StationMonthlyTrendDto>? trendChart;
+    private ApexChartOptions<StationMonthlyTrendDto> trendChartOptions = new();
+
+    // ─── Loading Depot state ─────────────────────────────────────────────────
+    private LoadingDepotFleetMetricsDto? LoadingDepotMetrics;
+    private List<LoadingDepotPerformanceRowDto> LoadingDepotPerformance = [];
+    private List<LoadingDepotPerformanceRowDto> TopShortageDepots => LoadingDepotPerformance
+        .Where(r => r.ShortageSharePercent > 0)
+        .OrderByDescending(r => r.ShortageSharePercent)
+        .Take(10)
+        .ToList();
+    private List<LoadingDepotMonthlyTrendDto> LoadingDepotMonthlyTrend = [];
+
+    private ApexChart<LoadingDepotPerformanceRowDto>? loadingShortageChart;
+    private ApexChartOptions<LoadingDepotPerformanceRowDto> loadingShortageChartOptions = new();
+
+    private ApexChart<LoadingDepotMonthlyTrendDto>? loadingTrendChart;
+    private ApexChartOptions<LoadingDepotMonthlyTrendDto> loadingTrendChartOptions = new();
+
+    // ─── Receiving Depot state ───────────────────────────────────────────────
+    private ReceivingDepotFleetMetricsDto? ReceivingDepotMetrics;
+    private List<ReceivingDepotPerformanceRowDto> ReceivingDepotPerformance = [];
+    private List<ReceivingDepotPerformanceRowDto> TopDwellDepots => ReceivingDepotPerformance
+        .Where(r => r.AvgDwellHours > 0)
+        .OrderByDescending(r => r.AvgDwellHours)
+        .Take(10)
+        .ToList();
+    private List<ReceivingDepotMonthlyTrendDto> ReceivingDepotMonthlyTrend = [];
+
+    private ApexChart<ReceivingDepotPerformanceRowDto>? receivingDwellChart;
+    private ApexChartOptions<ReceivingDepotPerformanceRowDto> receivingDwellChartOptions = new();
+
+    private ApexChart<ReceivingDepotMonthlyTrendDto>? receivingTrendChart;
+    private ApexChartOptions<ReceivingDepotMonthlyTrendDto> receivingTrendChartOptions = new();
+
+    // ─── Refuelling Station state ────────────────────────────────────────────
+    private RefuellingStationFleetMetricsDto? RefuellingStationMetrics;
+    private List<RefuellingStationPerformanceRowDto> RefuellingStationPerformance = [];
+    private List<RefuellingStationPerformanceRowDto> TopCostStations => RefuellingStationPerformance
+        .Where(r => r.CostSharePercent > 0)
+        .OrderByDescending(r => r.CostSharePercent)
+        .Take(10)
+        .ToList();
+    private List<RefuellingStationMonthlyTrendDto> RefuellingStationMonthlyTrend = [];
+
+    private ApexChart<RefuellingStationPerformanceRowDto>? refuellingCostChart;
+    private ApexChartOptions<RefuellingStationPerformanceRowDto> refuellingCostChartOptions = new();
+
+    private ApexChart<RefuellingStationMonthlyTrendDto>? refuellingTrendChart;
+    private ApexChartOptions<RefuellingStationMonthlyTrendDto> refuellingTrendChartOptions = new();
+
+    private bool IsLoading;
+    private bool IsExporting;
+
+    private string PeriodLabel => Period == PeriodFilter.ThisMonth ? "This Month" : "All Time";
+
+    private DateOnly? StartDateParam => Period == PeriodFilter.ThisMonth
+        ? new DateOnly(DateTime.Today.Year, DateTime.Today.Month, 1)
+        : null;
+
+    // Comma-grouped, fixed at 2 decimals — "1,000.89" instead of "1000.0000000000000"
+    // (an artifact of the underlying decimal's precision, not meaningful extra accuracy).
+    private const string ReadableNumberFormatter = "function (v) { return v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }";
+
+    protected override async Task OnInitializedAsync()
     {
-        shortageSort = shortageSort switch
+        shortageChartOptions = new ApexChartOptions<StationPerformanceRowDto>
         {
-            SortDirection.None => SortDirection.Descending,
-            SortDirection.Descending => SortDirection.Ascending,
-            _ => SortDirection.None,
+            PlotOptions = new PlotOptions { Bar = new PlotOptionsBar { Horizontal = true, BorderRadius = 4 } },
+            Legend = new Legend { Show = false },
+            Grid = new Grid { StrokeDashArray = 4 },
+            Chart = new Chart { Toolbar = new Toolbar { Show = false } },
+            Colors = ["#ef4444"],
+            DataLabels = new DataLabels { Formatter = ReadableNumberFormatter },
+            Yaxis = [new YAxis { Labels = new YAxisLabels { Formatter = ReadableNumberFormatter } }]
         };
-    }
 
-    private async Task<List<Station>> SearchStations(string query, int page, CancellationToken ct)
-    {
-        var request = new GridDataRequest { SearchTerm = query, Page = page, PageSize = 10 };
-        var response = await StationService.GetPagedAsync(request, ct);
-        return response?.Data ?? [];
-    }
-
-    private async Task OnStationSelected(Station? station)
-    {
-        selectedStationId = station?.Id;
-        selectedStationName = station?.Name;
-        await LoadReport();
-    }
-
-    private async Task LoadReport()
-    {
-        if (!selectedStationId.HasValue)
+        trendChartOptions = new ApexChartOptions<StationMonthlyTrendDto>
         {
-            return;
-        }
+            Colors = ["#3b82f6", "#ef4444"],
+            Grid = new Grid { StrokeDashArray = 4 },
+            Chart = new Chart { Toolbar = new Toolbar { Show = false } },
+            Yaxis = [new YAxis { Labels = new YAxisLabels { Formatter = ReadableNumberFormatter } }]
+        };
 
-        isLoading = true;
-        StateHasChanged();
+        loadingShortageChartOptions = new ApexChartOptions<LoadingDepotPerformanceRowDto>
+        {
+            PlotOptions = new PlotOptions { Bar = new PlotOptionsBar { Horizontal = true, BorderRadius = 4 } },
+            Legend = new Legend { Show = false },
+            Grid = new Grid { StrokeDashArray = 4 },
+            Chart = new Chart { Toolbar = new Toolbar { Show = false } },
+            Colors = ["#ef4444"],
+            DataLabels = new DataLabels { Formatter = ReadableNumberFormatter },
+            Yaxis = [new YAxis { Labels = new YAxisLabels { Formatter = ReadableNumberFormatter } }]
+        };
+
+        loadingTrendChartOptions = new ApexChartOptions<LoadingDepotMonthlyTrendDto>
+        {
+            Colors = ["#3b82f6", "#ef4444"],
+            Grid = new Grid { StrokeDashArray = 4 },
+            Chart = new Chart { Toolbar = new Toolbar { Show = false } },
+            Yaxis = [new YAxis { Labels = new YAxisLabels { Formatter = ReadableNumberFormatter } }]
+        };
+
+        receivingDwellChartOptions = new ApexChartOptions<ReceivingDepotPerformanceRowDto>
+        {
+            PlotOptions = new PlotOptions { Bar = new PlotOptionsBar { Horizontal = true, BorderRadius = 4 } },
+            Legend = new Legend { Show = false },
+            Grid = new Grid { StrokeDashArray = 4 },
+            Chart = new Chart { Toolbar = new Toolbar { Show = false } },
+            Colors = ["#f59e0b"],
+            DataLabels = new DataLabels { Formatter = ReadableNumberFormatter },
+            Yaxis = [new YAxis { Labels = new YAxisLabels { Formatter = ReadableNumberFormatter } }]
+        };
+
+        receivingTrendChartOptions = new ApexChartOptions<ReceivingDepotMonthlyTrendDto>
+        {
+            Colors = ["#3b82f6", "#f59e0b"],
+            Grid = new Grid { StrokeDashArray = 4 },
+            Chart = new Chart { Toolbar = new Toolbar { Show = false } },
+            Yaxis = [new YAxis { Labels = new YAxisLabels { Formatter = ReadableNumberFormatter } }]
+        };
+
+        refuellingCostChartOptions = new ApexChartOptions<RefuellingStationPerformanceRowDto>
+        {
+            PlotOptions = new PlotOptions { Bar = new PlotOptionsBar { Horizontal = true, BorderRadius = 4 } },
+            Legend = new Legend { Show = false },
+            Grid = new Grid { StrokeDashArray = 4 },
+            Chart = new Chart { Toolbar = new Toolbar { Show = false } },
+            Colors = ["#10b981"],
+            DataLabels = new DataLabels { Formatter = ReadableNumberFormatter },
+            Yaxis = [new YAxis { Labels = new YAxisLabels { Formatter = ReadableNumberFormatter } }]
+        };
+
+        refuellingTrendChartOptions = new ApexChartOptions<RefuellingStationMonthlyTrendDto>
+        {
+            Colors = ["#3b82f6", "#10b981"],
+            Grid = new Grid { StrokeDashArray = 4 },
+            Chart = new Chart { Toolbar = new Toolbar { Show = false } },
+            Yaxis = [new YAxis { Labels = new YAxisLabels { Formatter = ReadableNumberFormatter } }]
+        };
+
+        await LoadDataAsync();
+    }
+
+    private async Task OnTypeChanged()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task SetPeriod(PeriodFilter period)
+    {
+        if (Period == period)
+            return;
+
+        Period = period;
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        switch (SelectedType)
+        {
+            case ReportType.DischargeStation:
+                await LoadDischargeStationDataAsync();
+                break;
+            case ReportType.LoadingDepot:
+                await LoadLoadingDepotDataAsync();
+                break;
+            case ReportType.ReceivingDepot:
+                await LoadReceivingDepotDataAsync();
+                break;
+            default:
+                await LoadRefuellingStationDataAsync();
+                break;
+        }
+    }
+
+    private async Task LoadDischargeStationDataAsync()
+    {
+        IsLoading = true;
+        await InvokeAsync(StateHasChanged);
         try
         {
-            var filter = new StationReportFilter
-            {
-                StationId = selectedStationId.Value,
-                StartDate = startDate,
-                EndDate = endDate,
-            };
-            allRows = await TripService.GetStationReportAsync(filter, AppState.GetCancellationToken());
-            completeRows = allRows.Where(r => r.ShortageAmount == 0).ToList();
-            shortageRows = allRows.Where(r => r.ShortageAmount > 50).ToList();
+            var startDate = StartDateParam;
+
+            var metricsTask = StationReportService.GetMetricsAsync(startDate);
+            var performanceTask = StationReportService.GetStationPerformanceAsync(startDate);
+            var trendTask = StationReportService.GetMonthlyTrendAsync(6);
+
+            await Task.WhenAll(metricsTask, performanceTask, trendTask);
+
+            Metrics = await metricsTask;
+            StationPerformance = await performanceTask;
+            MonthlyTrend = await trendTask;
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Failed to load station report: {ex.Message}");
         }
         finally
         {
-            isLoading = false;
+            IsLoading = false;
+            // Render first so the ApexPointSeries children pick up the new Items via their
+            // parameter binding before we ask the charts to re-pull their series — calling
+            // UpdateSeriesAsync() before this render would push each chart's *previous* series.
+            await InvokeAsync(StateHasChanged);
+
+            if (TopShortageStations.Count > 0 && shortageChart is not null)
+            {
+                await shortageChart.UpdateOptionsAsync(true, true, true);
+                await shortageChart.UpdateSeriesAsync();
+            }
+
+            if (MonthlyTrend.Count > 0 && trendChart is not null)
+            {
+                await trendChart.UpdateOptionsAsync(true, true, true);
+                await trendChart.UpdateSeriesAsync();
+            }
         }
+    }
+
+    private async Task LoadLoadingDepotDataAsync()
+    {
+        IsLoading = true;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            var startDate = StartDateParam;
+
+            var metricsTask = StationReportService.GetLoadingDepotMetricsAsync(startDate);
+            var performanceTask = StationReportService.GetLoadingDepotPerformanceAsync(startDate);
+            var trendTask = StationReportService.GetLoadingDepotMonthlyTrendAsync(6);
+
+            await Task.WhenAll(metricsTask, performanceTask, trendTask);
+
+            LoadingDepotMetrics = await metricsTask;
+            LoadingDepotPerformance = await performanceTask;
+            LoadingDepotMonthlyTrend = await trendTask;
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Failed to load loading depot report: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+            await InvokeAsync(StateHasChanged);
+
+            if (TopShortageDepots.Count > 0 && loadingShortageChart is not null)
+            {
+                await loadingShortageChart.UpdateOptionsAsync(true, true, true);
+                await loadingShortageChart.UpdateSeriesAsync();
+            }
+
+            if (LoadingDepotMonthlyTrend.Count > 0 && loadingTrendChart is not null)
+            {
+                await loadingTrendChart.UpdateOptionsAsync(true, true, true);
+                await loadingTrendChart.UpdateSeriesAsync();
+            }
+        }
+    }
+
+    private async Task LoadReceivingDepotDataAsync()
+    {
+        IsLoading = true;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            var startDate = StartDateParam;
+
+            var metricsTask = StationReportService.GetReceivingDepotMetricsAsync(startDate);
+            var performanceTask = StationReportService.GetReceivingDepotPerformanceAsync(startDate);
+            var trendTask = StationReportService.GetReceivingDepotMonthlyTrendAsync(6);
+
+            await Task.WhenAll(metricsTask, performanceTask, trendTask);
+
+            ReceivingDepotMetrics = await metricsTask;
+            ReceivingDepotPerformance = await performanceTask;
+            ReceivingDepotMonthlyTrend = await trendTask;
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Failed to load receiving depot report: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+            await InvokeAsync(StateHasChanged);
+
+            if (TopDwellDepots.Count > 0 && receivingDwellChart is not null)
+            {
+                await receivingDwellChart.UpdateOptionsAsync(true, true, true);
+                await receivingDwellChart.UpdateSeriesAsync();
+            }
+
+            if (ReceivingDepotMonthlyTrend.Count > 0 && receivingTrendChart is not null)
+            {
+                await receivingTrendChart.UpdateOptionsAsync(true, true, true);
+                await receivingTrendChart.UpdateSeriesAsync();
+            }
+        }
+    }
+
+    private async Task LoadRefuellingStationDataAsync()
+    {
+        IsLoading = true;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            var startDate = StartDateParam;
+
+            var metricsTask = StationReportService.GetRefuellingStationMetricsAsync(startDate);
+            var performanceTask = StationReportService.GetRefuellingStationPerformanceAsync(startDate);
+            var trendTask = StationReportService.GetRefuellingStationMonthlyTrendAsync(6);
+
+            await Task.WhenAll(metricsTask, performanceTask, trendTask);
+
+            RefuellingStationMetrics = await metricsTask;
+            RefuellingStationPerformance = await performanceTask;
+            RefuellingStationMonthlyTrend = await trendTask;
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Failed to load refuelling station report: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+            await InvokeAsync(StateHasChanged);
+
+            if (TopCostStations.Count > 0 && refuellingCostChart is not null)
+            {
+                await refuellingCostChart.UpdateOptionsAsync(true, true, true);
+                await refuellingCostChart.UpdateSeriesAsync();
+            }
+
+            if (RefuellingStationMonthlyTrend.Count > 0 && refuellingTrendChart is not null)
+            {
+                await refuellingTrendChart.UpdateOptionsAsync(true, true, true);
+                await refuellingTrendChart.UpdateSeriesAsync();
+            }
+        }
+    }
+
+    private async Task ExportToCsv()
+    {
+        IsExporting = true;
+        try
+        {
+            var csv = new StringBuilder();
+            string fileName;
+
+            if (SelectedType == ReportType.DischargeStation)
+            {
+                csv.AppendLine("Station,Trips,Dispatched,Discharged,Shortage %,Needs Attention");
+                foreach (var row in StationPerformance)
+                {
+                    csv.AppendLine(string.Join(",", new[]
+                    {
+                        EscapeCsvValue(row.StationName),
+                        row.TripCount.ToString(),
+                        row.TotalDispatched.ToString("N0"),
+                        row.TotalDischarged.ToString("N0"),
+                        row.ShortageRate.ToString("F1"),
+                        row.NeedsAttention ? "Yes" : "No"
+                    }));
+                }
+                fileName = $"StationPerformanceReport_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+            }
+            else if (SelectedType == ReportType.LoadingDepot)
+            {
+                csv.AppendLine("Loading Depot,Trips,Quantity Loaded,Downstream Shortage %,Needs Attention");
+                foreach (var row in LoadingDepotPerformance)
+                {
+                    csv.AppendLine(string.Join(",", new[]
+                    {
+                        EscapeCsvValue(row.StationName),
+                        row.TripCount.ToString(),
+                        row.TotalQuantityLoaded.ToString("N0"),
+                        row.ShortageRate.ToString("F1"),
+                        row.NeedsAttention ? "Yes" : "No"
+                    }));
+                }
+                fileName = $"LoadingDepotPerformanceReport_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+            }
+            else if (SelectedType == ReportType.ReceivingDepot)
+            {
+                csv.AppendLine("Receiving Depot,Trips,Avg Dwell (h),Currently Stuck,Needs Attention");
+                foreach (var row in ReceivingDepotPerformance)
+                {
+                    csv.AppendLine(string.Join(",", new[]
+                    {
+                        EscapeCsvValue(row.StationName),
+                        row.TripCount.ToString(),
+                        row.AvgDwellHours.ToString("F1"),
+                        row.CurrentlyStuckCount.ToString(),
+                        row.NeedsAttention ? "Yes" : "No"
+                    }));
+                }
+                fileName = $"ReceivingDepotPerformanceReport_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+            }
+            else
+            {
+                csv.AppendLine("Refuelling Station,Events,Trucks Serviced,Quantity,Unit,Total Cost");
+                foreach (var row in RefuellingStationPerformance)
+                {
+                    csv.AppendLine(string.Join(",", new[]
+                    {
+                        EscapeCsvValue(row.StationName),
+                        row.RefuelEventCount.ToString(),
+                        row.TrucksServiced.ToString(),
+                        row.TotalQuantity.ToString("N1"),
+                        EscapeCsvValue(row.Unit),
+                        row.TotalCost.ToString("N0")
+                    }));
+                }
+                fileName = $"RefuellingStationPerformanceReport_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+            }
+
+            var fileBytes = Encoding.UTF8.GetBytes(csv.ToString());
+            await ExportService.ExportCsvContent(fileBytes, fileName);
+            ToastService.ShowSuccess("Report exported successfully");
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Failed to export report: {ex.Message}");
+        }
+        finally
+        {
+            IsExporting = false;
+        }
+    }
+
+    private static string EscapeCsvValue(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return string.Empty;
+
+        if (value.Contains(',') || value.Contains('"') || value.Contains('\n') || value.Contains('\r'))
+        {
+            var escaped = value.Replace("\"", "\"\"");
+            return "\"" + escaped + "\"";
+        }
+
+        return value;
+    }
+
+    private void GoToDrilldown(Guid? stationId = null)
+    {
+        nav.NavigateTo(stationId.HasValue ? $"/stations/report/drilldown/{stationId}" : "/stations/report/drilldown");
     }
 
     private void GoToStations()

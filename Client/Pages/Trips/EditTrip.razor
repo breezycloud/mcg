@@ -799,6 +799,8 @@
             {
                 ToastService.ShowWarning("Please enter discharge information");
                 await _js.InvokeVoidAsync("alert", errors);
+                AppState.IsProcessing = false;
+                StateHasChanged();
                 return;
             }
             if (Trip!.Status == TripStatus.Closed)
@@ -831,11 +833,26 @@
                     nav.NavigateTo("/trips");
                 }
             }
-        }    
+            else
+            {
+                // Previously silent: a `false` result (no exception, just an unsuccessful save)
+                // left the user staring at an unchanged screen with zero feedback — for the
+                // Close tab specifically, that means the truck stays stuck "open" with no
+                // indication anything went wrong or that they should retry.
+                ToastService.ShowError("Failed to save trip. Please try again.");
+            }
+        }
+        catch (Exception)
+        {
+            // This call previously had no catch at all — any exception (network drop, timeout)
+            // propagated uncaught into Blazor's global error banner instead of a clear,
+            // actionable message, and gave the user no way to just retry in place.
+            ToastService.ShowError("Failed to save trip — check your connection and try again.");
+        }
         finally
         {
             AppState.IsProcessing = false;
-        }            
+        }
     }
 
     private void ShowAddCheckpointModal()
@@ -907,23 +924,30 @@
             currentDischarge.TripId = Trip!.Id;
             Trip!.Discharges.Add(currentDischarge);
             var response = await DischargeService.AddAsync(currentDischarge, AppState.GetCancellationToken());
-            if (response)            
-            {                                
+            if (response)
+            {
                 Notify();
                 await OnRefresh();
             }
             else
             {
+                // The optimistic add above must be rolled back on failure — previously this
+                // stayed in Trip.Discharges even though the server never persisted it, so the
+                // UI kept showing a discharge record that didn't actually exist until the next
+                // full reload silently corrected it.
+                Trip!.Discharges.Remove(currentDischarge);
                 ToastService.ShowWarning("Failed to update discharge info");
             }
         }
         catch (Exception ex)
         {
+            Trip!.Discharges.Remove(currentDischarge);
+            ToastService.ShowError("Failed to update discharge info");
             Console.WriteLine($"Error adding discharge: {ex.Message}");
         }
         finally
         {
-            CloseDischargeModal();            
+            CloseDischargeModal();
             AppState.IsProcessing = false;
         }
     }

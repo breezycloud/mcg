@@ -110,6 +110,7 @@
                     SearchFunc="SearchMotorMates"
                     SelectedChanged="OnMotorMateSelected"
                     Placeholder="Search motor mate by name or phone..."
+                    AriaLabel="Motor Mate"
                     InitialText="@selectedMotorMateName">
                     <OptionTemplate Context="motorMate">
                         <div>
@@ -139,17 +140,17 @@
             {
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">
+                        <span class="block mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">
                             Created At
-                        </label>
+                        </span>
                         <div class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300">
                             @CurrentDriver.CreatedAt.ToString("MMM dd, yyyy HH:mm")
                         </div>
                     </div>
                     <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">
+                        <span class="block mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">
                             Last Updated
-                        </label>
+                        </span>
                         <div class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300">
                             @(CurrentDriver.UpdatedAt?.ToString("MMM dd, yyyy HH:mm") ?? "Never")
                         </div>

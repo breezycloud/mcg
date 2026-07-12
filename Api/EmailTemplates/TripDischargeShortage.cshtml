@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shortage Notification</title>
+    <style type="text/css">
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 680px;
+            min-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            background-color: #f4f4f4;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .header {
+            background-color: #c0392b;
+            color: white;
+            text-align: center;
+            padding: 15px;
+            border-radius: 8px 8px 0 0;
+        }
+        .content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 0 0 8px 8px;
+        }
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .summary-table td {
+            padding: 6px 8px;
+            border-bottom: 1px solid #eee;
+        }
+        .summary-table td.label {
+            font-weight: bold;
+            width: 160px;
+        }
+        .chart-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 0.92em;
+        }
+        .chart-table th, .chart-table td {
+            border: 1px solid #b8cfe0;
+            padding: 8px 10px;
+            text-align: center;
+        }
+        .chart-table thead th {
+            background-color: #5b9bd5;
+            color: white;
+        }
+        .chart-table td.left {
+            text-align: left;
+            font-weight: bold;
+        }
+        .chart-table tr.total-row td {
+            font-weight: bold;
+        }
+        .chart-table tr.shortage-row td {
+            font-weight: bold;
+            color: white;
+            background-color: #c0392b;
+        }
+        .footer {
+            text-align: center;
+            font-size: 0.8em;
+            color: #777;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    @if (Model.IsTestEnvironment)
+    {
+        <div style="background-color:#fff3cd; color:#856404; padding:12px 20px; text-align:center; font-weight:bold; border:1px solid #f0ad4e; border-radius:8px; margin-bottom:15px;">
+            &#9888; TEST ENVIRONMENT &mdash; This email was sent from a staging/test system, not the live production system. No action is needed if you weren't expecting this.
+        </div>
+    }
+    <div class="container">
+        <div class="header">
+            <h2>Delivery Shortage Notification</h2>
+        </div>
+        <div class="content">
+            <p>Dear Customer Care,</p>
+
+            <p>Kindly assist to resolve with the attached calibration chart and waybill.</p>
+
+            <table class="summary-table">
+                <tr>
+                    <td class="label">Driver:</td>
+                    <td>@Model.DriverName</td>
+                </tr>
+                <tr>
+                    <td class="label">Station:</td>
+                    <td>@Model.StationName</td>
+                </tr>
+                <tr>
+                    <td class="label">Loading Date:</td>
+                    <td>@Model.LoadingDate</td>
+                </tr>
+            </table>
+
+            <table class="chart-table">
+                <thead>
+                    <tr>
+                        <th rowspan="2">@Model.TruckPlate</th>
+                        <th rowspan="2">Qty loaded (ltrs)</th>
+                        <th colspan="3">Loading Parameters</th>
+                        <th colspan="3">Arrival Parameters</th>
+                    </tr>
+                    <tr>
+                        <th>ullage</th>
+                        <th>LH</th>
+                        <th>OH</th>
+                        <th>ullage</th>
+                        <th>LH</th>
+                        <th>OH</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.Compartments)
+                    {
+                        <tr>
+                            <td class="left">@row.Compartment</td>
+                            <td>@row.QuantityLoaded.ToString("N0")</td>
+                            <td>@row.LoadingUllage</td>
+                            <td>@row.LoadingLiquidHeight</td>
+                            <td>@row.LoadingOverall</td>
+                            <td>@row.ArrivalUllage</td>
+                            <td>@row.ArrivalLiquidHeight</td>
+                            <td>@row.ArrivalOverall</td>
+                        </tr>
+                    }
+                    <tr class="total-row">
+                        <td class="left">Total</td>
+                        <td>@Model.LoadedQuantity.ToString("N0")</td>
+                        <td colspan="6"></td>
+                    </tr>
+                    <tr>
+                        <td class="left">Waybill No.</td>
+                        <td colspan="7">@Model.WaybillNo</td>
+                    </tr>
+                    <tr class="shortage-row">
+                        <td class="left">Shortage</td>
+                        <td colspan="7">@Model.ShortageAmount @Model.Unit</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <p>Best regards,<br>
+            The MCC Team</p>
+        </div>
+        <div class="footer">
+            <p>&copy; @DateTime.Now.Year MCC. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

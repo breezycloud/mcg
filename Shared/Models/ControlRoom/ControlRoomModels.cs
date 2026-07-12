@@ -33,8 +33,12 @@ public class ProductBreakdownDto
     public decimal TotalShortageQuantity { get; set; } // Absolute shortage volume — used as pie-slice weight to show each product's share of total shortage
 }
 
-// One row per product: the truck ranked highest within that product for the selected period —
-// most trips, ties broken by lowest shortage rate, further ties broken by shortest avg turnaround.
+// One row per product: the truck ranked highest (GetProductLeadersAsync) or lowest
+// (GetProductLaggardsAsync) within that product for the selected period. Leader = most trips,
+// ties broken by lowest shortage rate, further ties broken by shortest avg turnaround. Laggard =
+// highest shortage rate (the metric that actually matters operationally, not simply "fewest
+// trips" — a lightly-used truck isn't a problem truck), ties broken by most trips so a recurring
+// issue outranks a one-off.
 public class ProductLeaderDto
 {
     public string Product { get; set; } = string.Empty;

@@ -129,8 +129,18 @@ else
     private async Task LoadData()
     {
         IsLoading = true;
-        shipments = await DashboardService.GetProductShipmentsAsync(StartDate, EndDate, Product.ToString());
-        IsLoading = false;
+        try
+        {
+            shipments = await DashboardService.GetProductShipmentsAsync(StartDate, EndDate, Product.ToString());
+        }
+        catch
+        {
+            ToastService.ShowError("Failed to load product shipments");
+        }
+        finally
+        {
+            IsLoading = false;
+        }
         StateHasChanged();
     }
 

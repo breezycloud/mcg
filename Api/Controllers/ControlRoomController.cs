@@ -67,6 +67,22 @@ public class ControlRoomController : ControllerBase
         }
     }
 
+    [HttpGet("product-laggards")]
+    public async Task<IActionResult> GetProductLaggards(
+        [FromQuery, ModelBinder(typeof(MultiDateFormatBinder))] DateOnly? startDate,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return Ok(await _controlRoomService.GetProductLaggardsAsync(startDate, cancellationToken));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching control room product laggards");
+            return StatusCode(500, "Error retrieving product laggards");
+        }
+    }
+
     [HttpGet("recent-incidents")]
     public async Task<IActionResult> GetRecentIncidents([FromQuery] int count = 8, CancellationToken cancellationToken = default)
     {

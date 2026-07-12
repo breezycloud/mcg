@@ -16,6 +16,7 @@ using Microsoft.Extensions.Logging;
 using Npgsql;
 using Api.Context;
 using Api.Util;
+using Api.Services.Discharges;
 using Shared.Models.Trips;
 using Shared.Helpers;
 using Shared.Dtos;
@@ -26,21 +27,29 @@ namespace Api.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
+[Authorize]
 public class TripsController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly ShortageNotificationService _shortageNotificationService;
     private readonly ILogger<TripsController> _logger;
     private readonly string _uploadPath;
+    private readonly string _uploadRoot;
 
-    public TripsController(AppDbContext context, ILogger<TripsController> logger, IConfiguration config, IHostEnvironment env)
+    public TripsController(AppDbContext context, ShortageNotificationService shortageNotificationService, ILogger<TripsController> logger, IConfiguration config, IHostEnvironment env)
     {
         _context = context;
+        _shortageNotificationService = shortageNotificationService;
         _logger = logger;
 
         var rawPath = config["FileStorage:UploadPath"]!;
         _uploadPath = Path.IsPathRooted(rawPath)
             ? rawPath
             : Path.Combine(env.ContentRootPath, rawPath);
+
+        // Canonical, trailing-separator form of the upload root, used to verify any resolved
+        // file path is actually contained within it before opening (path-traversal guard).
+        _uploadRoot = Path.GetFullPath(_uploadPath + Path.DirectorySeparatorChar);
     }
 
     [HttpGet("generate-dispatch")]
@@ -550,13 +559,20 @@ public class TripsController : ControllerBase
     // PUT: api/Trips/5
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     [HttpPut("{id}")]
+    [Authorize(Roles = "Master, Admin, Supervisor, DriverSupervisor, Manager")]
     public async Task<IActionResult> PutTrip(Guid id, Trip trip, CancellationToken cancellationToken)
     {
         if (id != trip.Id)
         {
             return BadRequest();
         }
-        
+
+        var productScopeError = await ValidateProductScopeAsync(trip, cancellationToken);
+        if (productScopeError is not null)
+        {
+            return Forbid();
+        }
+
         var loadingValidation = ValidateLoadingInfo(trip);
         if (loadingValidation is not null && trip.ArrivalInfo is null)
             return BadRequest(loadingValidation);
@@ -579,18 +595,23 @@ public class TripsController : ControllerBase
             }
         }
 
+        // This save may have just added the loading/arrival ullage readings a pending shortage
+        // notification was waiting on.
+        await _shortageNotificationService.CheckAndNotifyForTripAsync(id);
+
         return NoContent();
     }
 
     // PUT: api/Trips/5
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     [HttpPut("update-no-restriction/{id}")]
+    [Authorize(Roles = "Master, Admin")]
     public async Task<IActionResult> PutTripNoRestriction(Guid id, Trip trip, CancellationToken cancellationToken)
     {
         if (id != trip.Id)
         {
             return BadRequest();
-        }        
+        }
 
         var loadingValidation = ValidateLoadingInfo(trip);
         if (loadingValidation is not null)
@@ -613,6 +634,8 @@ public class TripsController : ControllerBase
                 throw;
             }
         }
+
+        await _shortageNotificationService.CheckAndNotifyForTripAsync(id);
 
         return NoContent();
     }
@@ -801,7 +824,16 @@ public class TripsController : ControllerBase
                         if (string.IsNullOrWhiteSpace(file.ServerFileName))
                             continue;
 
-                        var physicalPath = Path.Combine(_uploadPath, file.ServerFileName);
+                        // ServerFileName is stored data, not necessarily a value this server generated
+                        // (older rows, or a future bug, could carry a path-traversal payload) — resolve
+                        // and re-verify it lands inside the upload root before ever opening it.
+                        var physicalPath = Path.GetFullPath(Path.Combine(_uploadRoot, file.ServerFileName));
+                        if (!physicalPath.StartsWith(_uploadRoot, StringComparison.OrdinalIgnoreCase))
+                        {
+                            _logger.LogWarning("Rejected out-of-root file reference: {Name} (Trip: {TripId})", file.ServerFileName, trip.Id);
+                            continue;
+                        }
+
                         if (!System.IO.File.Exists(physicalPath))
                         {
                             _logger.LogWarning("File not on disk: {Path} (Trip: {TripId})", physicalPath, trip.Id);
@@ -886,6 +918,12 @@ public class TripsController : ControllerBase
             return Conflict(openTripError);
         }
 
+        var productScopeError = await ValidateProductScopeAsync(trip, cancellationToken);
+        if (productScopeError is not null)
+        {
+            return Forbid();
+        }
+
         var dispatchValidationError = await ValidateDispatchDateAsync(trip, cancellationToken);
         if (dispatchValidationError is not null)
         {
@@ -951,6 +989,7 @@ public class TripsController : ControllerBase
 
     // DELETE: api/Trips/5
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Master, Admin")]
     public async Task<IActionResult> DeleteTrip(Guid id)
     {
         var trip = await _context.Trips.FindAsync(id);
@@ -1008,6 +1047,33 @@ public class TripsController : ControllerBase
 
         return $"This truck already has an open trip (dispatched {openTrip.Date:MMM dd, yyyy}, {openTrip.Status}). " +
                "It must be closed before the truck can be dispatched again.";
+    }
+
+    // DriverSupervisor accounts are scoped to a subset of products in the UI, but nothing
+    // server-side enforced that — the ManagedProducts claim (Security.GetManagedProducts) was
+    // defined but never actually checked by any controller, so a DriverSupervisor calling this
+    // API directly could dispatch or edit a trip for a truck outside their assigned products.
+    private async Task<string?> ValidateProductScopeAsync(Trip trip, CancellationToken cancellationToken)
+    {
+        if (!User.IsDriverSupervisor())
+            return null;
+
+        var truckProduct = await _context.Trucks
+            .AsNoTracking()
+            .Where(t => t.Id == trip.TruckId)
+            .Select(t => (Product?)t.Product)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (truckProduct is null)
+            return "Truck not found.";
+
+        var managedProducts = User.GetManagedProducts();
+        if (!managedProducts.Contains(truckProduct.Value))
+        {
+            return "You are not authorized to dispatch or edit trips for this product.";
+        }
+
+        return null;
     }
 
     private async Task<string?> ValidateDispatchDateAsync(Trip trip, CancellationToken cancellationToken)

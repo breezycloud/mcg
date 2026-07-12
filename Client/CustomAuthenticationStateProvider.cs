@@ -10,6 +10,7 @@ using Client.Handlers;
 using Client.Services.Messages;
 using Microsoft.Extensions.Configuration;
 using Shared.Helpers;
+using Shared.Interfaces.Auth;
 
 namespace Client
 {
@@ -21,6 +22,7 @@ namespace Client
         private readonly AppState _appState;
         private readonly AppHubService _hubService;
         private readonly IConfiguration _configuration;
+        private readonly IAuthService _authService;
 
         public CustomAuthenticationStateProvider(
             ILocalStorageService localStorage,
@@ -28,7 +30,8 @@ namespace Client
             NavigationManager navigation,
             AppState appState,
             AppHubService hubService,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IAuthService authService)
         {
             _localStorage = localStorage;
             _httpClient = httpClient;
@@ -36,6 +39,7 @@ namespace Client
             _appState = appState;
             _hubService = hubService;
             _configuration = configuration;
+            _authService = authService;
         }
 
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
@@ -56,8 +60,21 @@ namespace Client
             // The exp field is in Unix time
             var datetime = DateTimeOffset.FromUnixTimeSeconds(long.Parse(expiry.Value));
             if (datetime.UtcDateTime <= DateTime.UtcNow)
-                return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
+            {
+                // The access token (now 30 minutes) has expired — before giving up, try the
+                // refresh token first. This is what makes a page reload/revisit after the access
+                // token's lifetime not immediately bounce the user to the login page; the 401-
+                // triggered path in CustomAuthorizationHandler covers requests made while a page
+                // is already open, this covers the "came back later" case.
+                var refreshed = await TryRefreshAsync();
+                if (refreshed is null)
+                {
+                    return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
+                }
 
+                token = refreshed;
+                claims = ParseClaimsFromJwt(token);
+            }
 
             //var identity = string.IsNullOrEmpty(token)
             //    ? new ClaimsIdentity()
@@ -70,11 +87,49 @@ namespace Client
             return new AuthenticationState(principal);
         }
 
+        // Called by CustomAuthorizationHandler's 401 path too (indirectly, via localStorage) and
+        // by GetAuthenticationStateAsync's own expired-token path above — both bypass this method
+        // and write "token"/"refreshToken" directly, since neither has a full LoginResponse to
+        // hand it and neither needs the SignalR reconnect this method also does. Keep the storage
+        // key names in sync across all three if either ever changes.
+        private async Task<string?> TryRefreshAsync()
+        {
+            var refreshToken = await _localStorage.GetItemAsync<string>("refreshToken");
+            if (string.IsNullOrWhiteSpace(refreshToken))
+            {
+                return null;
+            }
+
+            try
+            {
+                var result = await _authService.RefreshToken(refreshToken, CancellationToken.None);
+                if (result?.Token is null)
+                {
+                    await _localStorage.RemoveItemAsync("token");
+                    await _localStorage.RemoveItemAsync("refreshToken");
+                    return null;
+                }
+
+                await _localStorage.SetItemAsync("token", result.Token);
+                if (!string.IsNullOrEmpty(result.RefreshToken))
+                {
+                    await _localStorage.SetItemAsync("refreshToken", result.RefreshToken);
+                }
+                return result.Token;
+            }
+            catch (Exception)
+            {
+                // Network failure — leave stored tokens alone, this may just be offline.
+                return null;
+            }
+        }
+
         public async Task SetTokenAsync(LoginResponse response)
         {
             if (string.IsNullOrEmpty(response.Token))
             {
                 await _localStorage.RemoveItemAsync("token");
+                await _localStorage.RemoveItemAsync("refreshToken");
                 await _localStorage.RemoveItemAsync("uid");
                 await _localStorage.RemoveItemAsync("role");
                 await _localStorage.RemoveItemAsync("shopId");
@@ -84,6 +139,10 @@ namespace Client
             else
             {
                 await _localStorage.SetItemAsync("token", response.Token);
+                if (!string.IsNullOrEmpty(response.RefreshToken))
+                {
+                    await _localStorage.SetItemAsync("refreshToken", response.RefreshToken);
+                }
                 await _localStorage.SetItemAsync("uid", response.Id);
                 await _localStorage.SetItemAsync("role", response.Role!.ToString());
                 await _localStorage.SetItemAsync("shopId", response.ShopId!);

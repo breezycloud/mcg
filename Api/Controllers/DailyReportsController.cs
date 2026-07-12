@@ -303,7 +303,18 @@ public class DailyReportsController : ControllerBase
         model.ReportNo = $"DR-{model.ReportDate.Year}-{model.ReportDate.Month:D2}-{monthCount + 1:D3}";
 
         _context.DailyReports.Add(model);
-        await _context.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException pg && pg.SqlState == "23505")
+        {
+            // Last-resort race guard: two near-simultaneous submissions both passed the
+            // duplicate check above before either committed — UX_DailyReports_Employee_Date is
+            // what actually stops the second one. Same pattern as the Trip dispatch race guard.
+            _context.ChangeTracker.Clear();
+            return Conflict(new { message = "A report for this date already exists." });
+        }
 
         // Notify the target employee via SignalR if this report was assigned by a manager
         if (model.AssignedById.HasValue)

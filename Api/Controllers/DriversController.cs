@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using Api.Context;
 using Shared.Dtos;
 using Shared.Models.Drivers;
@@ -21,6 +22,7 @@ namespace Api.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
+[Authorize]
 public class DriversController : ControllerBase
 {
     private readonly AppDbContext _context;
@@ -158,6 +160,13 @@ public class DriversController : ControllerBase
                 throw;
             }
         }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException pg && pg.SqlState == "23505")
+        {
+            // Last-resort race guard: two near-simultaneous edits both passed the phone-number
+            // pre-check above before either committed — same fix pattern as TrucksController.
+            _context.ChangeTracker.Clear();
+            return Conflict("Another driver is already registered with this phone number.");
+        }
 
         return NoContent();
     }
@@ -187,7 +196,18 @@ public class DriversController : ControllerBase
         _context.Drivers.Add(driver);
         var currentUserId = Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var newUid) ? newUid : (Guid?)null;
         AddMotorMateHistoryIfChanged(driver.Id, previousMotorMateId: null, driver.CurrentMotorMateId, currentUserId, "Manual entry");
-        await _context.SaveChangesAsync();
+
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException pg && pg.SqlState == "23505")
+        {
+            // Last-resort race guard: two near-simultaneous "Add Driver" submissions both passed
+            // the phone-number pre-check above before either committed.
+            _context.ChangeTracker.Clear();
+            return Conflict("A driver is already registered with this phone number.");
+        }
 
         return CreatedAtAction("GetDriver", new { id = driver.Id }, driver);
     }

@@ -211,7 +211,7 @@ public class SeedData
                 FirstName = "Aminu",
                 LastName = "Aliyu",
                 Email = "nerdyamin@gmail.com",
-                HashedPassword = Security.Encrypt("jacubox123*"),
+                HashedPassword = Security.HashPassword("jacubox123*"),
                 Role = UserRole.Master
             },
             new User
@@ -221,7 +221,7 @@ public class SeedData
                 LastName = "Aliyu",
                 Email = "mstphly@gmail.com",
                 Role = UserRole.Master,
-                HashedPassword = Security.Encrypt("12345678"),
+                HashedPassword = Security.HashPassword("12345678"),
             }
         ]);
 

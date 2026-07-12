@@ -6,7 +6,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using Api.Context;
+using Api.Services.Discharges;
 using Shared.Dtos;
 using Shared.Models.Trucks;
 using Shared.Helpers;
@@ -16,13 +18,16 @@ namespace Api.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
+[Authorize]
 public class TrucksController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly ShortageNotificationService _shortageNotificationService;
 
-    public TrucksController(AppDbContext context)
+    public TrucksController(AppDbContext context, ShortageNotificationService shortageNotificationService)
     {
         _context = context;
+        _shortageNotificationService = shortageNotificationService;
     }
 
      // POST: api/Paged
@@ -204,6 +209,10 @@ public class TrucksController : ControllerBase
             }
         }
 
+        // This save may have just added the calibration chart a pending shortage notification
+        // was waiting on.
+        await _shortageNotificationService.CheckAndNotifyForTruckAsync(id);
+
         return NoContent();
     }
 
@@ -241,10 +250,31 @@ public class TrucksController : ControllerBase
     // POST: api/Trucks
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     [HttpPost]
-    public async Task<ActionResult<Truck>> PostTruck(Truck truck)
+    public async Task<ActionResult<Truck>> PostTruck(Truck truck, CancellationToken cancellationToken)
     {
+        if (truck.Id == Guid.Empty)
+            truck.Id = Guid.NewGuid();
+
         _context.Trucks.Add(truck);
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException pg && pg.SqlState == "23505")
+        {
+            // Last-resort race guard: two near-simultaneous "Add Truck" submissions both passed
+            // client-side uniqueness pre-checks before either committed — same fix pattern as
+            // TripsController's dispatch race guard.
+            _context.ChangeTracker.Clear();
+            var field = pg.ConstraintName switch
+            {
+                "UX_Trucks_TruckNo" => "truck number",
+                "UX_Trucks_LicensePlate" => "license plate",
+                "UX_Trucks_VIN" => "VIN",
+                _ => "identifying field"
+            };
+            return Conflict(new { error = $"A truck with this {field} already exists." });
+        }
 
         return CreatedAtAction("GetTruck", new { id = truck.Id }, truck);
     }

@@ -17,7 +17,7 @@
    {
          <!-- Form Header -->
     <div class="mb-6">
-        <h2 class="text-xl font-bold text-gray-900 dark:text-white">@(EditMode ? "Edit Incident" : "Add New Incidnet")</h2>
+        <h2 class="text-xl font-bold text-gray-900 dark:text-white">@(EditMode ? "Edit Incident" : "Add New Incident")</h2>
         <p class="text-sm text-gray-500 dark:text-gray-400">Please fill in the request details below</p>
     </div>
 
@@ -382,14 +382,12 @@
                     }
                     else
                     {
-                        Console.WriteLine("babu trip");
                         ToastService.ShowWarning($"{truck.LicensePlate} has no active trip");
                     }
                 }
             }
             else
             {
-                Console.WriteLine("akwai trip");
                 ToastService.ShowWarning($"Truck has no active trip");
             }
         }   

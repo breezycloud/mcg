@@ -1,9 +1,8 @@
+using System.Linq;
 using System.Text;
 using System.Text.Json;
 using FluentEmail.Core;
 using Microsoft.Extensions.Options;
-using PuppeteerSharp;
-using PuppeteerSharp.Media;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using RazorLight;
@@ -18,14 +17,24 @@ public class EmailConsumerService : BackgroundService
     private readonly IFluentEmail _fluentEmail;
     private readonly RazorLightEngine _razorEngine;
     private readonly ILogger<EmailConsumerService> _logger;
+    private readonly string _uploadRootPath;
 
     public EmailConsumerService(
         IOptions<MessageBrokerSetting> rabbitConfig,
         IFluentEmail fluentEmail,
+        IConfiguration configuration,
+        IWebHostEnvironment environment,
         ILogger<EmailConsumerService> logger)
     {
         _fluentEmail = fluentEmail;
         _logger = logger;
+
+        // Same rooting logic as Program.cs's static-file mount — UploadsController's own
+        // _uploadPath field skips this and can't be trusted for resolving a physical path.
+        var rawUploadPath = configuration["FileStorage:UploadPath"]!;
+        _uploadRootPath = Path.IsPathRooted(rawUploadPath)
+            ? rawUploadPath
+            : Path.Combine(environment.ContentRootPath, rawUploadPath);
 
         var factory = new ConnectionFactory
         {
@@ -33,7 +42,7 @@ public class EmailConsumerService : BackgroundService
             UserName = rabbitConfig.Value.UserName,
             Password = rabbitConfig.Value.Password,
             Port = rabbitConfig.Value.Port
-        };        
+        };
         _connection = factory.CreateConnection();
         _channel = _connection.CreateModel();
 
@@ -77,35 +86,46 @@ public class EmailConsumerService : BackgroundService
         }
     }
 
-    bool HasAttachment = false;
     private async Task ProcessEmailMessageAsync(EmailQueueMessage message)
     {
-        dynamic model;
         var templatePath = $"{message.Template}.cshtml";
         var json = JsonSerializer.Serialize(message.TemplateModel);
         _logger.LogInformation("Processing email template {0} with model {1}", templatePath, json);
-        // if (!templatePath.Contains("AccountDetail", StringComparison.OrdinalIgnoreCase))
-        model = JsonSerializer.Deserialize<AccountDetailBody>(json);
-        // else
-        // {
-        //     model = JsonSerializer.Deserialize<BookingConfirmation>(json);
-        //     HasAttachment = true;
-        // }
-        var htmlContent = await _razorEngine.CompileRenderAsync(templatePath, model);
-        FluentEmail.Core.Models.Attachment? attachment = null;
-        if (HasAttachment)
-        {
-            attachment = await PrepareAttachment(htmlContent);
-        }
 
-        var email = _fluentEmail
+        // Template name picks the model shape to deserialize into — every template beyond
+        // the default needs a case here, since the .cshtml itself only binds dynamically.
+        dynamic model = message.Template switch
+        {
+            "TripDischargeShortage" => JsonSerializer.Deserialize<ShortageNotificationBody>(json)!,
+            _ => JsonSerializer.Deserialize<AccountDetailBody>(json)!
+        };
+
+        // Explicitly typed, not `var` — model is dynamic, so CompileRenderAsync's result (and
+        // everything built from it below) would otherwise stay dynamic all the way through,
+        // deferring overload resolution to the runtime binder instead of the compiler. That's
+        // exactly what broke CC(IEnumerable<string>) below: the runtime binder doesn't see it
+        // and silently rebinds to CC(string, string), then fails converting the list.
+        string htmlContent = await _razorEngine.CompileRenderAsync(templatePath, model);
+
+        IFluentEmail email = _fluentEmail
             .To(message.To)
             .Subject(message.Subject)
             .Body(htmlContent, true);
 
-        if (attachment != null)
+        var ccAddresses = (message.Cc ?? string.Empty)
+            .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        foreach (var cc in ccAddresses)
         {
-            email.Attach(attachment);
+            email.CC(cc);
+        }
+
+        foreach (var attachmentRef in message.Attachments ?? [])
+        {
+            var attachment = ResolveAttachment(attachmentRef);
+            if (attachment != null)
+            {
+                email.Attach(attachment);
+            }
         }
 
         var response = await email.SendAsync();
@@ -117,32 +137,41 @@ public class EmailConsumerService : BackgroundService
         _logger.LogInformation("Mail successfully sent to {0}", message!.To);
     }
 
-    private async Task<FluentEmail.Core.Models.Attachment?> PrepareAttachment(string content)
+    // Missing/unreadable attachments don't fail the whole send — a late or incomplete
+    // notice still beats none, and an exception here would otherwise put this message into
+    // the infinite BasicNack(requeue:true) loop below for a file that will never come back.
+    private FluentEmail.Core.Models.Attachment? ResolveAttachment(EmailAttachmentRef attachmentRef)
     {
-        FluentEmail.Core.Models.Attachment? attachment;
-        var browserFetcher = new BrowserFetcher();
-        await browserFetcher.DownloadAsync();
-        var browser = await Puppeteer.LaunchAsync(new LaunchOptions
+        var path = Path.Combine(_uploadRootPath, attachmentRef.ServerFileName);
+        if (!File.Exists(path))
         {
-            Headless = true,
-            Args = ["--no-sandbox", "--disable-setuid-sandbox"]
-        });
-        using (var page = await browser.NewPageAsync())
+            _logger.LogWarning("Email attachment not found on disk, skipping: {0}", path);
+            return null;
+        }
+
+        try
         {
-            await page.SetContentAsync(content);
-            var pdfStream = await page.PdfStreamAsync(new PdfOptions
+            return new FluentEmail.Core.Models.Attachment
             {
-                PrintBackground = true
-            });
-            attachment = new FluentEmail.Core.Models.Attachment
-            {
-                Data = pdfStream,
-                ContentType = "application/pdf",
-                Filename = "Your Booking.pdf"
+                Data = File.OpenRead(path),
+                ContentType = GetContentType(attachmentRef.ServerFileName),
+                Filename = attachmentRef.DisplayFileName
             };
         }
-        return attachment;
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to read email attachment, skipping: {0}", path);
+            return null;
+        }
     }
+
+    private static string GetContentType(string fileName) => Path.GetExtension(fileName).ToLowerInvariant() switch
+    {
+        ".jpg" or ".jpeg" => "image/jpeg",
+        ".png" => "image/png",
+        ".pdf" => "application/pdf",
+        _ => "application/octet-stream"
+    };
 
     public override void Dispose()
     {

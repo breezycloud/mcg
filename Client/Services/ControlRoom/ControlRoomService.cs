@@ -27,6 +27,13 @@ public class ControlRoomService(IHttpClientFactory _httpClient) : IControlRoomSe
         return await response.Content.ReadFromJsonAsync<List<ProductLeaderDto>>(cancellationToken) ?? [];
     }
 
+    public async Task<List<ProductLeaderDto>> GetProductLaggardsAsync(DateOnly? startDate = null, CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.CreateClient("AppUrl").GetAsync($"controlroom/product-laggards?startDate={startDate}", cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<List<ProductLeaderDto>>(cancellationToken) ?? [];
+    }
+
     public async Task<List<RecentIncidentDto>> GetRecentIncidentsAsync(int count = 8, CancellationToken cancellationToken = default)
     {
         using var response = await _httpClient.CreateClient("AppUrl").GetAsync($"controlroom/recent-incidents?count={count}", cancellationToken);

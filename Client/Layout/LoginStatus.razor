@@ -1,17 +1,35 @@
+@inject IAuthService AuthService
+@inject IUserService UserService
+@implements IDisposable
 
-<button
-  type="button"
-  class="flex mx-3 text-sm rounded-full md:mr-0 focus:ring-4 focus:ring-gray-300 dark:focus:ring-gray-600 dark:bg-white"
-  id="user-menu-button"
-  aria-expanded="false"
-  data-dropdown-toggle="dropdown"
->
-  <span class="sr-only">Open user menu</span>
-  <img
-    class="w-8 h-8 rounded-full"
-    src="https://img.icons8.com/material-rounded/24/user-male-circle.png" alt="user-male-circle"
-    />
-</button>
+<div class="flex items-center gap-2 mx-3">
+    @if (CurrentUser is not null)
+    {
+        <span class="hidden sm:inline text-sm font-medium text-gray-700 dark:text-gray-200 whitespace-nowrap">
+            Hello, @CurrentUser.FirstName <span aria-hidden="true">👋</span>
+        </span>
+    }
+
+    <button
+      type="button"
+      class="flex text-sm rounded-full focus:ring-4 focus:ring-gray-300 dark:focus:ring-gray-600"
+      id="user-menu-button"
+      aria-expanded="false"
+      data-dropdown-toggle="dropdown"
+    >
+      <span class="sr-only">Open user menu</span>
+      @if (!string.IsNullOrEmpty(AvatarUrl))
+      {
+          <img class="w-8 h-8 rounded-full object-cover" src="@AvatarUrl" alt="Your avatar" />
+      }
+      else
+      {
+          <span class="w-8 h-8 rounded-full flex items-center justify-center bg-blue-600 text-white text-xs font-semibold">
+              @Initials
+          </span>
+      }
+    </button>
+</div>
 
   <div
     class="hidden z-50 my-4 w-56 text-base list-none bg-white rounded divide-y divide-gray-100 shadow dark:bg-gray-700 dark:divide-gray-600 rounded-xl"
@@ -22,7 +40,7 @@
         class="block text-sm font-semibold text-gray-900 dark:text-white"
         >@auth.User.Identity?.Name</span>
       <span
-        class="block text-sm text-gray-900 truncate dark:text-white">@auth.User.Claims.Where(c => c.Type == "email").FirstOrDefault()?.Value.ToString()</span>
+        class="block text-sm text-gray-900 truncate dark:text-white">@(CurrentUser?.Email)</span>
     </div>
     <ul
       class="py-1 text-gray-700 dark:text-gray-300"
@@ -57,18 +75,77 @@
 
 @code {
 
-  private Guid id { get;set; }
+  private Guid id { get; set; }
+  private User? CurrentUser { get; set; }
+  private string? _token;
+
+  private string? AvatarUrl => CurrentUser?.Avatar?.PreviewUrl is { } url
+      ? WithToken(url)
+      : null;
+
+  private string Initials => CurrentUser is null
+      ? "?"
+      : $"{CurrentUser.FirstName?.ElementAtOrDefault(0)}{CurrentUser.LastName?.ElementAtOrDefault(0)}".ToUpperInvariant();
+
   protected override async Task OnInitializedAsync()
   {
     id = await localStorage.GetItemAsync<Guid>("uid");
+    _token = await CustomAuthenticationProvider.GetTokenAsync();
+    await LoadCurrentUserAsync();
+
+    AppState.CurrentUserProfileChanged += OnCurrentUserProfileChanged;
+
     await base.OnInitializedAsync();
   }
-  
+
+  private async Task LoadCurrentUserAsync()
+  {
+    if (id == Guid.Empty) return;
+    try
+    {
+        CurrentUser = await UserService.GetAsync(id, CancellationToken.None);
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error loading current user for header: {ex.Message}");
+    }
+  }
+
+  private async void OnCurrentUserProfileChanged(object? sender, EventArgs e)
+  {
+    await LoadCurrentUserAsync();
+    await InvokeAsync(StateHasChanged);
+  }
+
+  // Same auth workaround as FileListView/FilePreviewModal: a plain <img> src can't carry an
+  // Authorization header, so the token rides along as a query param instead.
+  private string? WithToken(string? url)
+  {
+    if (string.IsNullOrEmpty(url) || string.IsNullOrEmpty(_token)) return url;
+    var separator = url.Contains('?') ? '&' : '?';
+    return $"{url}{separator}access_token={Uri.EscapeDataString(_token)}";
+  }
+
   private async Task LogOut()
   {
+    var refreshToken = await localStorage.GetItemAsync<string>("refreshToken");
+    if (!string.IsNullOrWhiteSpace(refreshToken))
+    {
+        // Best-effort: revokes the refresh token server-side so it can't be used again even if
+        // it leaked (e.g. a shared/public machine) — previously logout only cleared local
+        // storage, leaving a 30-day-valid refresh token sitting unrevoked on the server.
+        await AuthService.Logout(refreshToken, CancellationToken.None);
+    }
+
     await localStorage.RemoveItemAsync("uid");
     await localStorage.RemoveItemAsync("token");
+    await localStorage.RemoveItemAsync("refreshToken");
     await localStorage.RemoveItemAsync("shopId");
     nav.NavigateTo("/", true);
+  }
+
+  public void Dispose()
+  {
+    AppState.CurrentUserProfileChanged -= OnCurrentUserProfileChanged;
   }
 }

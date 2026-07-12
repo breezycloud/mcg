@@ -56,11 +56,14 @@ else
     protected override void OnInitialized()
     {
         AppState.DashboardDataChanged += OnDashboardDataChanged;
+        // Subscribing here (once) instead of in OnParametersSetAsync (called on every
+        // re-render with new parameters) — the previous code re-subscribed on every parameter
+        // set with no guard, piling up duplicate handlers the longer the page stayed open.
+        AppState.FilterChanged += OnFilterChanged!;
     }
 
     protected override async Task OnParametersSetAsync()
     {
-        AppState.FilterChanged += OnFilterChanged!;
         await LoadData();
     }
 
@@ -78,18 +81,31 @@ else
     private async Task LoadData()
     {
         IsLoading = true;
-        recentTrips = await DashboardService.GetRecentTripsAsync(5, StartDate, EndDate, Product.ToString());
-        IsLoading = false;
+        try
+        {
+            recentTrips = await DashboardService.GetRecentTripsAsync(5, StartDate, EndDate, Product.ToString());
+        }
+        catch
+        {
+            ToastService.ShowError("Failed to load recent trips");
+        }
+        finally
+        {
+            IsLoading = false;
+        }
         StateHasChanged();
     }
 
     private string GetStatusBadgeClass(TripStatus status)
     {
+        // Matches the canonical mapping in Trips/ViewTrip.razor and EditTrip.razor — this
+        // previously colored Closed yellow here vs. red everywhere else in the app.
         return status switch
         {
-            TripStatus.Active => "px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800",
-            TripStatus.Closed => "px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800",
-            _ => "px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800"
+            TripStatus.Closed => "px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+            TripStatus.Dispatched => "px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+            TripStatus.Active => "px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+            _ => "px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
         };
     }
 

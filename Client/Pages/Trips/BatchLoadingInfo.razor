@@ -19,13 +19,11 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <!-- Loading Depot -->
                     <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                            Loading Depot <span class="text-red-500">*</span>
-                        </label>
                         <StationAutocomplete
                             @bind-Value="SelectedStation"
                             StationType="StationType.LoadingDepot"
-                            Label=""
+                            Label="Loading Depot"
+                            IsRequired="true"
                             Placeholder="Start typing station name..."
                             ShowDetails="true"
                             AllowClear="true" />
@@ -74,12 +72,10 @@
                 @if (batchLoading.DispatchType == DispatchType.Depot)
                 {
                     <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                            Receiving Point <span class="text-red-500">*</span>
-                        </label>
                         <StationAutocomplete
                             @bind-Value="SelectedReceivingStation"
-                            Label=""
+                            Label="Receiving Point"
+                            IsRequired="true"
                             StationType="StationType.ReceivingDepot"
                             Placeholder="Start typing depot name..."
                             ShowDetails="true"

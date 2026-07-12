@@ -92,36 +92,26 @@
                                 </span>                                    
                             </td>
                             <td class="px-6 py-4 text-right">
-                                <div class="relative inline-block text-left">
-                                    <button type="button" @onclick="() => ToggleActionMenu(request.Id)"
-                                        class="p-1.5 rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white focus:outline-none">
-                                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                                            <path d="M10 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4z" />
-                                        </svg>
-                                    </button>
-                                    <div class="@(openActionMenuId == request.Id ? "block" : "hidden") absolute right-0 mt-1 w-32 bg-white dark:bg-gray-800 rounded-lg shadow-lg z-20 border border-gray-200 dark:border-gray-700">
-                                        <div class="py-1">
-                                            <AuthorizeView Roles="Admin, Master, Monitoring, Manager">
-                                                @if(request.Status != IncidentStatus.Closed)
-                                                {
-                                                    <button type="button" @onclick="() => { ToggleActionMenu(request.Id); EditIncident(request.Id); }"
-                                                        class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                                        Edit
-                                                    </button>
-                                                }
-                                            </AuthorizeView>
-                                            <button type="button" @onclick="() => { ToggleActionMenu(request.Id); ViewIncident(request.Id); }"
+                                <RowActionMenu IsOpen="openActionMenuId == request.Id" OnToggle="() => ToggleActionMenu(request.Id)" TriggerLabel="Incident actions">
+                                    <AuthorizeView Roles="Admin, Master, Monitoring, Manager">
+                                        @if(request.Status != IncidentStatus.Closed)
+                                        {
+                                            <button type="button" role="menuitem" @onclick="() => { ToggleActionMenu(request.Id); EditIncident(request.Id); }"
                                                 class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                                View
+                                                Edit
                                             </button>
-                                            @* <button
-                                                @onclick="() => DeleteIncident(request.Id)"
-                                                class="font-medium text-red-600 dark:text-red-500 hover:underline">
-                                                Delete
-                                            </button> *@
-                                        </div>
-                                    </div>
-                                </div>
+                                        }
+                                    </AuthorizeView>
+                                    <button type="button" role="menuitem" @onclick="() => { ToggleActionMenu(request.Id); ViewIncident(request.Id); }"
+                                        class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                        View
+                                    </button>
+                                    @* <button
+                                        @onclick="() => DeleteIncident(request.Id)"
+                                        class="font-medium text-red-600 dark:text-red-500 hover:underline">
+                                        Delete
+                                    </button> *@
+                                </RowActionMenu>
                             </td>
                         </tr>
                     }
@@ -272,7 +262,7 @@
         {
             IncidentStatus.New => "bg-yellow-100 rounded text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
             IncidentStatus.Treated => "bg-blue-100 rounded text-blue-800 dark:bg-blue-900 dark:text-blue-300",
-            IncidentStatus.Resolved => "bg-green-100 rounded text-green-800 dark:bg-green-900 dark:text-green-300",
+            IncidentStatus.Reported or IncidentStatus.Resolved => "bg-green-100 rounded text-green-800 dark:bg-green-900 dark:text-green-300",
             IncidentStatus.Closed => "bg-red-100 rounded text-red-800 dark:bg-red-900 dark:text-red-300",
             _ => "bg-gray-100 rounded text-gray-800 dark:bg-gray-700 dark:text-gray-300"
         };

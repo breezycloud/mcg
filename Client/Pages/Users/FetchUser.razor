@@ -78,30 +78,20 @@
                                     <td class="px-6 py-4">@user.CreatedAt.ToString("MMM dd, yyyy")</td>
                                     <td class="px-6 py-4">@(user.UpdatedAt?.ToString("MMM dd, yyyy") ?? "Never")</td>
                                     <td class="px-6 py-4 text-right">
-                                        <div class="relative inline-block text-left">
-                                            <button type="button" @onclick="() => ToggleActionMenu(user.Id)"
-                                                class="p-1.5 rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white focus:outline-none">
-                                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                                                    <path d="M10 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4z" />
-                                                </svg>
+                                        <RowActionMenu IsOpen="openActionMenuId == user.Id" OnToggle="() => ToggleActionMenu(user.Id)" TriggerLabel="User actions">
+                                            <button type="button" role="menuitem" @onclick="() => { ToggleActionMenu(user.Id); EditUser(user); }"
+                                                class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                                Edit
                                             </button>
-                                            <div class="@(openActionMenuId == user.Id ? "block" : "hidden") absolute right-0 mt-1 w-32 bg-white dark:bg-gray-800 rounded-lg shadow-lg z-20 border border-gray-200 dark:border-gray-700">
-                                                <div class="py-1">
-                                                    <button type="button" @onclick="() => { ToggleActionMenu(user.Id); EditUser(user); }"
-                                                        class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                                        Edit
-                                                    </button>
-                                                    <button type="button" @onclick="() => { ToggleActionMenu(user.Id); OnView(user); }"
-                                                        class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                                        View
-                                                    </button>
-                                                    @* <button type="button" @onclick="() => { ToggleActionMenu(user.Id); DeleteUser(user.Id); }"
-                                                        class="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                                        Delete
-                                                    </button> *@
-                                                </div>
-                                            </div>
-                                        </div>
+                                            <button type="button" role="menuitem" @onclick="() => { ToggleActionMenu(user.Id); OnView(user); }"
+                                                class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                                View
+                                            </button>
+                                            @* <button type="button" @onclick="() => { ToggleActionMenu(user.Id); DeleteUser(user.Id); }"
+                                                class="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                                Delete
+                                            </button> *@
+                                        </RowActionMenu>
                                     </td>
                                 </tr>
                             }
@@ -250,10 +240,13 @@
     }
 
     private async Task HandleSave(User user)
-    {        
+    {
+        if (AppState.IsProcessing) return;
+
         bool result = false;
+        AppState.IsProcessing = true;
         try
-        {            
+        {
 
             if (!EditMode)
             {
@@ -275,19 +268,16 @@
         }
         finally
         {
+            AppState.IsProcessing = false;
             if (result)
             {
                 EntryMode = false;
                 EditMode = false;
                 selectedUser = null;
-                if (result)
-                {
-                    DataMode = true;
-                    await LoadUsers();
-                }
+                DataMode = true;
+                await LoadUsers();
             }
-            
-        }        
+        }
     }
 
     private void CancelView()

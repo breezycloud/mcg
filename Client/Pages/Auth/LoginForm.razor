@@ -3,93 +3,132 @@
 @using Shared.Enums
 @inject IAuthService AuthService
 
-
-
-@* @if (!string.IsNullOrEmpty(loginResponse!.Message))
-{
-    <Alerts Title="Error" Dismissible Type="AlertType.Error">
-        @loginResponse.Message
-    </Alerts>
-} *@
 <EditForm Model="Model" OnValidSubmit="OnValidSubmit">
     <DataAnnotationsValidator/>
-    <section class="bg-gray-50 dark:bg-gray-900 min-h-screen flex items-center justify-center">
-        <div class="flex flex-col items-center justify-center px-4 py-8 w-lg">
-                <a href="#" class="flex items-center mb-6 text-2xl font-semibold text-gray-900 dark:text-white">
-                        <img class="w-12 h-12 mr-2" src="favicon.png" alt="logo">
-                        MCC    
-                </a>
+    <section class="min-h-screen flex bg-white dark:bg-gray-900">
+        <!-- Form panel -->
+        <div class="w-full lg:w-[46%] flex flex-col justify-center px-6 sm:px-12 lg:px-16 py-10">
+            <div class="max-w-sm mx-auto w-full">
+                <div class="flex items-center gap-3 mb-10">
+                    <img class="w-11 h-11" src="favicon.png" alt="MCC logo">
+                    <div>
+                        <div class="text-lg font-bold text-gray-900 dark:text-white leading-tight">MCC</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400 leading-tight">Mutual Commitment Company</div>
+                    </div>
+                </div>
 
-                <div class="w-90 bg-white rounded-lg shadow dark:border md:mt-0 xl:p-0 dark:bg-gray-800 dark:border-gray-700">
-                        <div class="p-6 space-y-4 md:space-y-6 sm:p-8">
-                                <h1 class="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl dark:text-white">
-                                        Sign in to your account
-                                </h1>
-                                <div class="space-y-4 md:space-y-6">
-                                    <div>
-                                        <label for="email" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Your email</label>
-                                        <InputText @bind-Value="Model.Email" type="email" name="email" id="email"
-                                            class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                                            placeholder="name@company.com" />
-                                        <ValidationMessage For="@(() => Model.Email)" />
-                                    </div>
-                                    <div>
-                                        <label for="password" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Password</label>
-                                        <InputText @bind-Value="Model.HashedPassword" type="password" name="password" id="password"
-                                            placeholder="••••••••"
-                                            class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" />
-                                        <ValidationMessage For="@(() => Model.HashedPassword)" />
-                                    </div>
-                                    <div class="flex items-center justify-between">
-                                        <div class="flex items-start">
-                                                @* <div class="flex items-center h-5">
-                                                        <input id="remember" aria-describedby="remember" type="checkbox" class="w-4 h-4 border border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-primary-300 dark:bg-gray-700 dark:border-gray-600 dark:focus:ring-primary-600 dark:ring-offset-gray-800" required="">
-                                                </div>
-                                                <div class="ml-3 text-sm">
-                                                        <label for="remember" class="text-gray-500 dark:text-gray-300">Remember me</label>
-                                                </div> *@
-                                        </div>
-                                        <a href="/forgot-password" class="text-sm font-medium text-blue-600 hover:underline">Forgot password?</a>
-                                    </div>
-                                    <button type="submit" disabled="@AppState.IsProcessing" class="w-full flex items-center justify-center text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
-                                        @if (AppState.IsProcessing)
-                                        {
-                                            <svg class="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                                            </svg>
-                                            @("Processing...")
-                                        }
-                                        else
-                                        {
-                                            @("Sign in")
-                                        }
-                                    </button>
-                                    
-                                </div>
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-1">Welcome back</h1>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-8">Sign in to manage your fleet.</p>
+
+                <div class="space-y-5">
+                    <div>
+                        <label for="email" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">Email</label>
+                        <InputText @bind-Value="Model.Email" type="email" name="email" id="email" autocomplete="username"
+                            class="bg-gray-50 border border-gray-300 text-gray-900 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full p-3 dark:bg-gray-800 dark:border-gray-700 dark:placeholder-gray-500 dark:text-white"
+                            placeholder="name@company.com" />
+                        <ValidationMessage For="@(() => Model.Email)" />
+                    </div>
+                    <div>
+                        <label for="password" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">Password</label>
+                        <div class="relative">
+                            <InputText @bind-Value="Model.HashedPassword" type="@(showPassword ? "text" : "password")" name="password" id="password" autocomplete="current-password"
+                                placeholder="Enter your password"
+                                class="bg-gray-50 border border-gray-300 text-gray-900 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full p-3 pr-11 dark:bg-gray-800 dark:border-gray-700 dark:placeholder-gray-500 dark:text-white" />
+                            <button type="button" @onclick="() => showPassword = !showPassword"
+                                    class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                                    aria-label="@(showPassword ? "Hide password" : "Show password")" tabindex="-1">
+                                @if (showPassword)
+                                {
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" /></svg>
+                                }
+                                else
+                                {
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                }
+                            </button>
                         </div>
-                </div>  
+                        <ValidationMessage For="@(() => Model.HashedPassword)" />
+                    </div>
+                    <div class="flex items-center justify-end">
+                        <a href="/forgot-password" class="text-sm font-medium text-blue-600 hover:underline">Forgot password?</a>
+                    </div>
+                    <button type="submit" disabled="@AppState.IsProcessing" class="w-full flex items-center justify-center text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-xl text-sm px-5 py-3 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                        @if (AppState.IsProcessing)
+                        {
+                            <svg class="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                            </svg>
+                            @("Signing in...")
+                        }
+                        else
+                        {
+                            @("Sign in")
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hero panel -->
+        <div class="hidden lg:flex lg:w-[54%] relative overflow-hidden bg-gradient-to-br from-blue-700 via-blue-800 to-slate-900">
+            <!-- Dot-grid texture -->
+            <div class="absolute inset-0 opacity-[0.15]" style="background-image: radial-gradient(circle, #fff 1px, transparent 1px); background-size: 24px 24px;"></div>
+            <!-- Soft glow accents -->
+            <div class="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-blue-400/20 blur-3xl"></div>
+            <div class="absolute bottom-0 left-0 w-80 h-80 rounded-full bg-sky-400/10 blur-3xl"></div>
+
+            <div class="relative z-10 flex flex-col justify-center px-16 w-full">
+                <div class="w-16 h-16 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center mb-8">
+                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h6l2 4m-8-4v8m0-8V6a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v9h2m8 0H9m4 0h2m4 0h2v-4m0 0h-5m3.5 5.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0Zm-10 0a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0Z" />
+                    </svg>
+                </div>
+                <h2 class="text-3xl font-bold text-white leading-tight max-w-md">
+                    Every trip tracked. Every truck accounted for.
+                </h2>
+                <p class="text-blue-100 mt-4 max-w-sm">
+                    MCC gives your team real-time visibility across the whole haulage operation, from
+                    dispatch to discharge.
+                </p>
+
+                <div class="mt-10 space-y-4">
+                    <div class="flex items-center gap-3 text-white/90">
+                        <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        </div>
+                        <span class="text-sm">Live trip and dispatch tracking</span>
+                    </div>
+                    <div class="flex items-center gap-3 text-white/90">
+                        <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        </div>
+                        <span class="text-sm">Shortage, incident &amp; maintenance alerts</span>
+                    </div>
+                    <div class="flex items-center gap-3 text-white/90">
+                        <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        </div>
+                        <span class="text-sm">Fleet-wide reporting, one screen</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </section>
 </EditForm>
 
-
-
 @code {
     private LoginModel Model { get; set; } = new();
+    private bool showPassword = false;
     [CascadingParameter] public Task<AuthenticationState>? authenticationState { get; set; }
-
-    
 
     protected override async Task OnInitializedAsync()
     {
         var userAuthenticationState = await authenticationState!;
         var isAuthenticated = userAuthenticationState.User;
-        if (isAuthenticated.Identity!.IsAuthenticated)        
-            nav.NavigateTo("/dashboard");        
+        if (isAuthenticated.Identity!.IsAuthenticated)
+            nav.NavigateTo("/dashboard");
     }
-
-
 
     private async Task OnValidSubmit()
     {
@@ -99,11 +138,11 @@
             var response = await AuthService.Login(Model, AppState.GetCancellationToken());
             if (response is null)
             {
-                ToastService.ShowError("Invalid login credentials");        
+                ToastService.ShowError("Invalid login credentials");
 
             }
             else
-            {                
+            {
                 await CustomAuthenticationProvider.SetTokenAsync(response);
 
                 var path = response.MustChangePassword ? "/change-password" : Path(response.Role);
@@ -114,21 +153,21 @@
         {
             ToastService.ShowError("Invalid login credentials");
         }
-        finally 
+        finally
         {
             AppState.IsProcessing = false;
         }
     }
-    
+
     string Path(UserRole userRole)
-    {        
+    {
         string url = userRole switch
         {
             UserRole.Supervisor => "/trucks",
             UserRole.Maintenance => "/requests",
             UserRole.Monitoring => "/trips",
             _ => "/dashboard"
-        };       
+        };
         return url;
     }
 }

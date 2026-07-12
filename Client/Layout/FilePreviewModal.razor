@@ -1,0 +1,73 @@
+@if (currentFile != null)
+{
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80" @onclick="Close" aria-modal="true" role="dialog" aria-labelledby="file-preview-title">
+        <div class="relative max-w-4xl max-h-full w-full pointer-events-auto" @onclick:stopPropagation="true">
+            <button type="button" @onclick="Close"
+                    class="absolute top-2 right-2 z-10 text-white hover:text-gray-200 bg-black/50 rounded-full p-2 focus:outline-none focus:ring-2 focus:ring-white"
+                    aria-label="Close preview">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+
+            <div class="bg-white rounded-lg shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+                <h2 id="file-preview-title" class="sr-only">@currentFile.FileName</h2>
+
+                @if (IsImage(currentFile.ContentType))
+                {
+                    <img src="@WithToken(currentFile.PreviewUrl)" alt="@currentFile.FileName"
+                         class="max-w-full max-h-[75vh] object-contain p-4 mx-auto" loading="lazy" />
+                }
+                else if (IsPdf(currentFile.ContentType))
+                {
+                    <embed src="@WithToken(currentFile.PreviewUrl)" type="application/pdf" class="w-full h-[75vh]" aria-label="PDF preview" />
+                }
+                else
+                {
+                    <iframe src="@WithToken(currentFile.PreviewUrl)" class="w-full h-[75vh] bg-white border-0"
+                            title="@currentFile.FileName" sandbox="allow-scripts allow-same-origin" loading="lazy"></iframe>
+                }
+
+                <div class="px-4 py-2 bg-gray-50 border-t border-gray-200 text-sm text-gray-700 flex justify-between items-center gap-3">
+                    <span class="truncate">@currentFile.FileName</span>
+                    <a href="@WithToken(currentFile.PreviewUrl)" download="@currentFile.FileName" target="_blank"
+                       class="text-xs text-blue-600 hover:underline flex-shrink-0">Download</a>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private UploadResult? currentFile;
+    private string? _token;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _token = await CustomAuthenticationProvider.GetTokenAsync();
+    }
+
+    public void Show(UploadResult file)
+    {
+        currentFile = file;
+        StateHasChanged();
+    }
+
+    public void Close()
+    {
+        currentFile = null;
+        StateHasChanged();
+    }
+
+    // Same auth workaround as FileListView: an <img>/<embed>/<iframe> src can't carry an
+    // Authorization header, so the token rides along as a query param instead.
+    private string? WithToken(string? url)
+    {
+        if (string.IsNullOrEmpty(url) || string.IsNullOrEmpty(_token)) return url;
+        var separator = url.Contains('?') ? '&' : '?';
+        return $"{url}{separator}access_token={Uri.EscapeDataString(_token)}";
+    }
+
+    private bool IsImage(string contentType) => contentType.StartsWith("image/");
+    private bool IsPdf(string contentType) => contentType == "application/pdf";
+}

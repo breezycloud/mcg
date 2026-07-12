@@ -170,9 +170,13 @@
     private async Task LoadMaintenances()
     {
         AppState.IsBusy = true;
-        try 
+        try
         {
             response = await MaintenanceService.GetPagedAsync(request, AppState.GetCancellationToken());
+        }
+        catch
+        {
+            ToastService.ShowError("Failed to load maintenance sites");
         }
         finally
         {

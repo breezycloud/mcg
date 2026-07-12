@@ -67,6 +67,15 @@ public partial class AppState
         HasProcessed = false;
     }
 
+    // This does NOT cancel anything, ever — it's a fresh CancellationTokenSource whose only
+    // reference is discarded immediately, so nothing can ever call Cancel() on it. It's used at
+    // 48 call sites under the apparent belief that navigating away cancels the in-flight
+    // request; it doesn't. Wiring real navigation-triggered cancellation here would change the
+    // runtime behavior of all 48 of those call sites at once (some in-flight request may
+    // currently rely on completing even after the user navigates away), which isn't something
+    // to change quietly as a side effect of fixing this doc comment — that needs its own
+    // deliberate pass auditing each call site. Kept as a real (inert) token rather than
+    // CancellationToken.None so existing call sites don't need touching either way.
     public CancellationToken GetCancellationToken() =>
         new CancellationTokenSource().Token;
 
@@ -143,4 +152,15 @@ public partial class AppState
             // Superseded by a newer event for the same entity type before the delay elapsed.
         }
     }
+
+    // ─── Current user profile (avatar/name shown in the top-right nav) ────────
+
+    /// <summary>
+    /// Raised when the signed-in user's own profile (avatar, name) changes — LoginStatus lives in
+    /// MainLayout and never remounts on navigation, so without this it wouldn't notice a new
+    /// avatar uploaded from the Account Settings page until a full browser refresh.
+    /// </summary>
+    public event EventHandler? CurrentUserProfileChanged;
+
+    public void OnCurrentUserProfileChanged() => CurrentUserProfileChanged?.Invoke(this, EventArgs.Empty);
 }

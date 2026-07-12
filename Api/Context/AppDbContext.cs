@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Shared.Models.Auth;
 using Shared.Models.Drivers;
 using Shared.Models.IoTs;
 using Shared.Models.Logging;
@@ -13,6 +14,7 @@ using Shared.Models.Checkpoints;
 using Shared.Models.RefuelInfos;
 using Shared.Models.TripCheckpoints;
 using Shared.Models.Incidents;
+using Shared.Models.Settings;
 
 namespace Api.Context;
 
@@ -24,6 +26,7 @@ public class AppDbContext : DbContext
 
     }
     public virtual DbSet<User> Users { get; set; } = default!;
+    public virtual DbSet<RefreshToken> RefreshTokens { get; set; } = default!;
     public virtual DbSet<AuditLog> AuditLogs { get; set; } = default!;
     public virtual DbSet<Driver> Drivers { get; set; } = default!;
     public virtual DbSet<MotorMate> MotorMates { get; set; } = default!;
@@ -37,6 +40,7 @@ public class AppDbContext : DbContext
     public virtual DbSet<Origin> TripOrigins { get; set; } = default!;
     public virtual DbSet<Destination> TripDestinations { get; set; } = default!;
     public virtual DbSet<Discharge> Discharges { get; set; } = default!;
+    public virtual DbSet<ShortageRecommendation> ShortageRecommendations { get; set; } = default!;
     public virtual DbSet<Truck> Trucks { get; set; } = default!;
     public virtual DbSet<IoT> IoTs { get; set; } = default!;
     public virtual DbSet<RefuelInfo> RefuelInfos { get; set; } = default!;
@@ -47,6 +51,7 @@ public class AppDbContext : DbContext
     public DbSet<IncidentType> IncidentTypes { get; set; } = default!;
     public DbSet<IncidentHistory> IncidentHistories { get; set; } = default!;
     public virtual DbSet<DailyReport> DailyReports { get; set; } = default!;
+    public virtual DbSet<NotificationSettings> AppSettings { get; set; } = default!;
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -64,6 +69,20 @@ public class AppDbContext : DbContext
                   .HasForeignKey(x => x.SupervisorId)
                   .OnDelete(DeleteBehavior.Restrict)
                   .IsRequired(false);
+        });
+
+        modelBuilder.Entity<RefreshToken>(entity =>
+        {
+            // Unique so a hash collision (or a bug that reissues the same token) can never
+            // create two live rows referring to different users.
+            entity.HasIndex(x => x.TokenHash)
+                  .IsUnique()
+                  .HasDatabaseName("UX_RefreshTokens_TokenHash");
+
+            // Supports "revoke every session for this user" (password change, account
+            // deactivation) without a full table scan.
+            entity.HasIndex(x => x.UserId)
+                  .HasDatabaseName("IX_RefreshTokens_UserId");
         });
 
         // Enforce constraints on Trip.DispatchId to avoid duplicate dispatches at the database level.
@@ -93,6 +112,42 @@ public class AppDbContext : DbContext
             entity.HasIndex(new[] { nameof(Trip.TruckId) }, "UX_Trips_TruckId_OpenStatus")
                   .IsUnique()
                   .HasFilter("\"Status\" IN (0, 2, 4)");
+        });
+
+        modelBuilder.Entity<ShortageRecommendation>(entity =>
+        {
+            // Supports "latest recommendation for this trip" lookups without a full scan.
+            entity.HasIndex(x => x.TripId)
+                  .HasDatabaseName("IX_ShortageRecommendations_TripId");
+
+            entity.HasOne(x => x.RecordedBy)
+                  .WithMany()
+                  .HasForeignKey(x => x.RecordedById)
+                  .OnDelete(DeleteBehavior.SetNull)
+                  .IsRequired(false);
+        });
+
+        // TruckNo/LicensePlate/VIN uniqueness was previously enforced only by a client-triggered
+        // pre-flight check with no re-check in PostTruck and no DB backstop — two concurrent
+        // "Add Truck" submissions with the same plate both succeeded. Same fix pattern as the
+        // Trip dispatch race guard above: filtered unique indexes as the final safety net,
+        // paired with a DbUpdateException catch in TrucksController.PostTruck.
+        modelBuilder.Entity<Truck>(entity =>
+        {
+            entity.HasIndex(t => t.TruckNo)
+                  .IsUnique()
+                  .HasDatabaseName("UX_Trucks_TruckNo")
+                  .HasFilter("\"TruckNo\" IS NOT NULL AND \"TruckNo\" != ''");
+
+            entity.HasIndex(t => t.LicensePlate)
+                  .IsUnique()
+                  .HasDatabaseName("UX_Trucks_LicensePlate")
+                  .HasFilter("\"LicensePlate\" IS NOT NULL AND \"LicensePlate\" != ''");
+
+            entity.HasIndex(t => t.VIN)
+                  .IsUnique()
+                  .HasDatabaseName("UX_Trucks_VIN")
+                  .HasFilter("\"VIN\" IS NOT NULL AND \"VIN\" != ''");
         });
 
         modelBuilder.Entity<DailyReport>(entity =>
@@ -142,6 +197,13 @@ public class AppDbContext : DbContext
                   .HasForeignKey(x => x.CurrentMotorMateId)
                   .OnDelete(DeleteBehavior.SetNull)
                   .IsRequired(false);
+
+            // tools/driver-dedupe cleared 68 duplicate-PhoneNo groups before this could be
+            // added safely — see tools/driver-dedupe/README.md.
+            entity.HasIndex(x => x.PhoneNo)
+                  .IsUnique()
+                  .HasDatabaseName("UX_Drivers_PhoneNo")
+                  .HasFilter("\"PhoneNo\" IS NOT NULL AND \"PhoneNo\" != ''");
         });
 
         modelBuilder.Entity<MotorMateHistory>(entity =>

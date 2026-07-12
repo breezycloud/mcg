@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -12,6 +13,7 @@ namespace Api.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
+[Authorize]
 public class UsersController : ControllerBase
 {
     private readonly AppDbContext _context;
@@ -42,6 +44,7 @@ public class UsersController : ControllerBase
 
     // POST: api/Users/SendEmail
     [HttpPost("send-email")]
+    [Authorize(Roles = "Admin, Master")]
     public async Task<ActionResult<bool>> SendEmailAsync(EmailQueueMessage message, CancellationToken cancellationToken = default)
     {
         try
@@ -72,6 +75,7 @@ public class UsersController : ControllerBase
 
     // POST: api/Paged
     [HttpPost("paged")]
+    [Authorize(Roles = "Admin, Master")]
     public async Task<ActionResult<GridDataResponse<User>?>> GetPagedDatAsync(GridDataRequest request, CancellationToken cancellationToken = default)
     {
         GridDataResponse<User> response = new();
@@ -110,6 +114,7 @@ public class UsersController : ControllerBase
 
     // GET: api/Users
     [HttpGet]
+    [Authorize(Roles = "Admin, Master")]
     public async Task<ActionResult<IEnumerable<User>>> GetUsers()
     {
         return await _context.Users.ToListAsync();
@@ -146,10 +151,46 @@ public class UsersController : ControllerBase
             return BadRequest();
         }
 
+        var callerId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var callerRole = User.FindFirstValue(ClaimTypes.Role);
+        var isAdminOrMaster = callerRole is "Admin" or "Master";
+
+        var existing = await _context.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
+        if (existing == null)
+        {
+            return NotFound();
+        }
+
+        if (!isAdminOrMaster)
+        {
+            if (callerId != id)
+            {
+                return Forbid();
+            }
+
+            // Non-admin callers editing their own profile may not change role/site/activation/
+            // supervisor fields via this endpoint — only self-service profile fields.
+            user.Role = existing.Role;
+            user.IsActive = existing.IsActive;
+            user.SupervisorId = existing.SupervisorId;
+            user.MaintenanceSiteId = existing.MaintenanceSiteId;
+            user.ManagedProducts = existing.ManagedProducts;
+        }
+
         if (user.SupervisorId.HasValue && await WouldCreateSupervisorCycleAsync(user.Id, user.SupervisorId.Value))
         {
             return BadRequest("This supervisor assignment would create a cycle (directly or transitively supervising themselves).");
         }
+
+        // This endpoint is for general profile fields only. HashedPassword/PasswordResetToken/
+        // PasswordResetTokenExpiry all carry [JsonIgnore], so the incoming `user` object always
+        // has these three at their C# default (null) — blanket EntityState.Modified would
+        // otherwise null them out in the DB on every single profile edit. Password changes go
+        // through Auth/change-password; reset tokens are only ever written by forgot-password.
+        user.HashedPassword = existing.HashedPassword;
+        user.PasswordResetToken = existing.PasswordResetToken;
+        user.PasswordResetTokenExpiry = existing.PasswordResetTokenExpiry;
+        user.MustChangePassword = existing.MustChangePassword;
 
         _context.Entry(user).State = EntityState.Modified;
 
@@ -179,10 +220,19 @@ public class UsersController : ControllerBase
     public async Task<ActionResult<User>> PostUser(User user)
     {
         var password = Security.GenerateRandomPassword();
-        user.HashedPassword = Security.Encrypt(password);
+        user.HashedPassword = Security.HashPassword(password);
         user.MustChangePassword = true;
         _context.Users.Add(user);
-        await _context.SaveChangesAsync();
+
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException pg && pg.SqlState == "23505")
+        {
+            _context.ChangeTracker.Clear();
+            return Conflict(new { error = "A user with this email already exists." });
+        }
 
         if (_mailPublisher != null)
         {
