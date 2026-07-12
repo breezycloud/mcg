@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Shared.Enums;
+using Shared.Extensions;
 using Shared.Models.Drivers;
 using Shared.Models.Incidents;
 using Shared.Models.Services;
@@ -99,10 +100,11 @@ public class Trip
 
     public string GetUnit()
     {
-        return Truck?.Product.ToString() switch
+        if (Truck?.Product is null) return "LTR";
+        if (Truck.Product.Value.IsCng()) return "SCM";
+        return Truck.Product switch
         {
-            "CNG" => "SCM",
-            "LPG" => "KG",
+            Product.LPG => "KG",
             _ => "LTR"
         };
     }
