@@ -8,7 +8,7 @@ namespace Api.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-[Authorize(Roles = "Master, Admin")]
+[Authorize]
 public class AppSettingsController : ControllerBase
 {
     private readonly AppDbContext _context;
@@ -18,6 +18,9 @@ public class AppSettingsController : ControllerBase
         _context = context;
     }
 
+    // Any authenticated user can read — dashboards/reports across many roles need
+    // ExcludeCngFromShortage, and nothing else on this row is sensitive. Only Update is
+    // Master/Admin-gated.
     [HttpGet]
     public async Task<ActionResult<NotificationSettings>> Get(CancellationToken cancellationToken)
     {
@@ -33,6 +36,7 @@ public class AppSettingsController : ControllerBase
     }
 
     [HttpPut]
+    [Authorize(Roles = "Master, Admin")]
     public async Task<IActionResult> Update(NotificationSettings settings, CancellationToken cancellationToken)
     {
         var existing = await _context.AppSettings.FirstOrDefaultAsync(cancellationToken);
@@ -46,6 +50,7 @@ public class AppSettingsController : ControllerBase
         {
             existing.NrlCcuEmail = settings.NrlCcuEmail;
             existing.NrlCcuCcEmails = settings.NrlCcuCcEmails;
+            existing.ExcludeCngFromShortage = settings.ExcludeCngFromShortage;
             existing.UpdatedAt = DateTimeOffset.UtcNow;
         }
 

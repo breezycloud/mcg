@@ -49,6 +49,29 @@
                 </button>
             </div>
         </div>
+
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-4 sm:p-5 mt-4">
+            <h3 class="text-sm font-bold text-gray-800 dark:text-white mb-1">Shortage Reporting</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                CNG's discharge measurements aren't directly comparable to liquid products — turn this on to leave CNG
+                trips out of shortage dashboards, reports, drill-downs, and CSV exports. CNG and LPG are always left
+                out of CCU notifications regardless of this setting, since neither product's shortage figures are
+                reliable enough to act on.
+            </p>
+
+            <label class="flex items-center gap-3 cursor-pointer">
+                <input type="checkbox" @bind="Data.ExcludeCngFromShortage"
+                       class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600" />
+                <span class="text-sm text-gray-700 dark:text-gray-300">Exclude CNG from shortage reporting</span>
+            </label>
+
+            <div class="mt-5 pt-4 border-t border-gray-100 dark:border-gray-700 flex items-center justify-end">
+                <button type="button" @onclick="Save" disabled="@IsSaving"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow-sm hover:bg-blue-700 text-sm font-medium disabled:opacity-50">
+                    @(IsSaving ? "Saving..." : "Save")
+                </button>
+            </div>
+        </div>
     }
 </div>
 

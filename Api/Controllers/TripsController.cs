@@ -191,7 +191,7 @@ public class TripsController : ControllerBase
         }
 
         var trips = await query.OrderByDescending(x => x.CreatedAt).ToListAsync(cancellationToken);
-        var report = TripMapper.ToExportDto(trips);
+        var report = TripMapper.ToExportDto(trips, await GetExcludeCngSettingAsync(cancellationToken));
 
         var csv = new StringBuilder();
 
@@ -280,7 +280,7 @@ public class TripsController : ControllerBase
         }
 
         var trips = await query.OrderByDescending(x => x.CreatedAt).ToListAsync(cancellationToken);
-        var report = TripMapper.ToExportDto(trips);
+        var report = TripMapper.ToExportDto(trips, await GetExcludeCngSettingAsync(cancellationToken));
 
         var csv = new StringBuilder();
         
@@ -370,6 +370,28 @@ public class TripsController : ControllerBase
         }
     }
 
+    // Shared by the three trip-level drill-down reports below (station/truck/driver-report). A
+    // trip's shortage only counts once one of its discharges is marked final — matching every
+    // aggregate report's convention (StationReportService et al.) rather than showing a premature
+    // number for a still-in-progress delivery — and CNG trips are zeroed out when the setting
+    // says so, same as everywhere else, without hiding the row (the drill-down is about this
+    // specific truck/driver/station's full history, not a product-filtered view).
+    private static decimal ShortageAmountFor(Trip trip, decimal loaded, decimal totalDischarged, bool excludeCng)
+    {
+        var hasFinalDischarge = trip.Discharges?.Any(d => d.IsFinalDischarge) ?? false;
+        if (!hasFinalDischarge) return 0;
+        if (excludeCng && (trip.Truck?.Product?.IsCng() ?? false)) return 0;
+        return loaded - totalDischarged;
+    }
+
+    // No caching, matching AppSettingsController's own read pattern — this is a low-traffic
+    // settings row, not worth a cache invalidation story yet.
+    private async Task<bool> GetExcludeCngSettingAsync(CancellationToken cancellationToken)
+    {
+        var settings = await _context.AppSettings.AsNoTracking().FirstOrDefaultAsync(cancellationToken);
+        return settings?.ExcludeCngFromShortage ?? false;
+    }
+
     // POST: api/Trips/station-report — every trip that discharged at the given
     // station. Shortage is trip-wide (loaded qty minus the sum of ALL of that
     // trip's discharges, not just this station's) — see StationReportDto.
@@ -397,6 +419,7 @@ public class TripsController : ControllerBase
         }
 
         var trips = await query.OrderByDescending(x => x.Date).ToListAsync(cancellationToken);
+        var excludeCng = await GetExcludeCngSettingAsync(cancellationToken);
 
         var report = trips.Select(trip =>
         {
@@ -421,7 +444,7 @@ public class TripsController : ControllerBase
                     : null,
                 DispatchQuantity = loaded,
                 DischargedQuantity = dischargedAtStation,
-                ShortageAmount = loaded - totalDischarged,
+                ShortageAmount = ShortageAmountFor(trip, loaded, totalDischarged, excludeCng),
                 Unit = trip.GetUnit(),
                 Status = trip.Status.ToString(),
             };
@@ -457,6 +480,7 @@ public class TripsController : ControllerBase
         }
 
         var trips = await query.OrderByDescending(x => x.Date).ToListAsync(cancellationToken);
+        var excludeCng = await GetExcludeCngSettingAsync(cancellationToken);
 
         var report = trips.Select(trip =>
         {
@@ -482,7 +506,7 @@ public class TripsController : ControllerBase
                     : null,
                 DispatchQuantity = loaded,
                 DischargedQuantity = totalDischarged,
-                ShortageAmount = loaded - totalDischarged,
+                ShortageAmount = ShortageAmountFor(trip, loaded, totalDischarged, excludeCng),
                 Unit = trip.GetUnit(),
                 Status = trip.Status.ToString(),
             };
@@ -518,6 +542,7 @@ public class TripsController : ControllerBase
         }
 
         var trips = await query.OrderByDescending(x => x.Date).ToListAsync(cancellationToken);
+        var excludeCng = await GetExcludeCngSettingAsync(cancellationToken);
 
         var report = trips.Select(trip =>
         {
@@ -543,7 +568,7 @@ public class TripsController : ControllerBase
                     : null,
                 DispatchQuantity = loaded,
                 DischargedQuantity = totalDischarged,
-                ShortageAmount = loaded - totalDischarged,
+                ShortageAmount = ShortageAmountFor(trip, loaded, totalDischarged, excludeCng),
                 Unit = trip.GetUnit(),
                 Status = trip.Status.ToString(),
             };

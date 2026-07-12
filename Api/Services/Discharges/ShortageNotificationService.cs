@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Api.Context;
 using Api.Services.Messages;
+using Shared.Enums;
+using Shared.Extensions;
 using Shared.Models.Trips;
 using Shared.Models.MessageBroker;
 using Shared.Helpers;
@@ -96,6 +98,15 @@ public class ShortageNotificationService
         var shortage = loaded - totalDischarged;
         if (shortage <= 0) return;
 
+        // LPG (measured by weight, not volume ullage) and CNG never have reliable enough
+        // shortage figures to act on — both are permanently excluded from the CCU pipeline,
+        // independent of NotificationSettings.ExcludeCngFromShortage (that toggle only controls
+        // whether CNG counts toward shortage dashboards/reports/aggregates, not this pipeline).
+        var product = trip.Truck?.Product;
+        if (product == Product.LPG || (product?.IsCng() ?? false)) return;
+
+        var settings = await _context.AppSettings.FirstOrDefaultAsync();
+
         var calibrationChart = trip.Truck?.Files.LastOrDefault(f => f.Category == FileCategories.CalibrationChart);
         var waybill = discharge.Files.LastOrDefault(f => f.Category == FileCategories.Waybill);
         var hasLoadingUllage = trip.LoadingInfo?.Metrics != null && trip.LoadingInfo.Metrics.Any();
@@ -115,7 +126,6 @@ public class ShortageNotificationService
             return;
         }
 
-        var settings = await _context.AppSettings.FirstOrDefaultAsync();
         // The DB-backed Settings page (Administration > Settings) is the real source of this
         // address now; the old Email:NrlCcu config key only survives as a last-resort fallback
         // for environments where nobody has opened that page yet.

@@ -1,5 +1,6 @@
 @page "/view-trip/{id:guid}"
 @using Client.Pages.Modals
+@using Shared.Extensions
 @inject ITripService TripService
 @inject IShortageRecommendationService ShortageRecommendationService
 @inject IJSRuntime JSRuntime
@@ -276,14 +277,17 @@
                             <div class="text-gray-500 dark:text-gray-400 italic text-xs py-1">No CCU recommendation recorded yet.</div>
                         }
 
-                        <AuthorizeView Roles="Admin, Master, Supervisor, Manager" Context="auth">
-                            <Authorized>
-                                <button class="mt-3 w-full px-3 py-2 bg-blue-600 text-white rounded-xl shadow-sm hover:bg-blue-700 text-sm font-medium"
-                                        @onclick="() => recommendationModal.Show()">
-                                    Record CCU Recommendation
-                                </button>
-                            </Authorized>
-                        </AuthorizeView>
+                        @if (CanRecordCcuRecommendation)
+                        {
+                            <AuthorizeView Roles="Admin, Master, Supervisor, Manager" Context="auth">
+                                <Authorized>
+                                    <button class="mt-3 w-full px-3 py-2 bg-blue-600 text-white rounded-xl shadow-sm hover:bg-blue-700 text-sm font-medium"
+                                            @onclick="() => recommendationModal.Show()">
+                                        Record CCU Recommendation
+                                    </button>
+                                </Authorized>
+                            </AuthorizeView>
+                        }
                     </div>
 
                     <RecommendationModal @ref="recommendationModal" TripId="Trip!.Id" OnSave="SaveRecommendation" />
@@ -363,6 +367,11 @@
     private RecommendationModal recommendationModal = default!;
     private FilePreviewModal loadingFilePreview = default!;
     private List<ShortageRecommendation> Recommendations { get; set; } = [];
+
+    // LPG and CNG never have reliable enough shortage figures to act on (see
+    // ShortageNotificationService) — there's never anything from CCU to record for either,
+    // permanently, independent of the shortage-dashboard exclusion toggle.
+    private bool CanRecordCcuRecommendation => Product != Shared.Enums.Product.LPG && !Product.IsCng();
 
     private decimal TotalDischarged => Trip?.Discharges?.Sum(d => d.QuantityDischarged) ?? 0;
     private decimal Remaining => (Trip?.LoadingInfo?.Quantity ?? 0) - TotalDischarged;

@@ -1,7 +1,10 @@
 @* ShortagesChart.razor *@
 @inject ITripService TripService
 @inject IExportService ExportService
+@inject IAppSettingsService AppSettingsService
 @using ApexCharts
+@using Shared.Extensions
+@using Shared.Interfaces.Settings
 @using System.ComponentModel.DataAnnotations.Schema
 @implements IDisposable
 
@@ -166,6 +169,10 @@
 
             if (Product.HasValue)
                 trips = trips.Where(t => t.Truck?.Product == Product.Value).ToArray();
+
+            var settings = await AppSettingsService.GetAsync(AppState.GetCancellationToken());
+            if (settings.ExcludeCngFromShortage)
+                trips = trips.Where(t => !(t.Truck?.Product?.IsCng() ?? false)).ToArray();
 
             var shortages = trips
                 .Where(t => t.Discharges?.Any(d => d.IsFinalDischarge) == true)

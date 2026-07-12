@@ -1,6 +1,7 @@
 using Api.Context;
 using Microsoft.EntityFrameworkCore;
 using Shared.Enums;
+using Shared.Extensions;
 using Shared.Interfaces.ControlRoom;
 using Shared.Models.ControlRoom;
 using Shared.Models.Trips;
@@ -50,7 +51,9 @@ public class ControlRoomService : IControlRoomService
             .Where(d => d >= 0)
             .ToList();
 
-        var dischargedTrips = periodTrips.Where(t => t.Discharges.Any(d => d.IsFinalDischarge)).ToList();
+        var excludeCng = await GetExcludeCngSettingAsync(cancellationToken);
+        var dischargedTrips = ApplyCngExclusion(
+            periodTrips.Where(t => t.Discharges.Any(d => d.IsFinalDischarge)), excludeCng).ToList();
 
         var incidentsQuery = _context.Incidents.AsNoTracking().AsQueryable();
         if (windowStart.HasValue)
@@ -104,13 +107,21 @@ public class ControlRoomService : IControlRoomService
     public async Task<List<ProductBreakdownDto>> GetProductBreakdownAsync(DateOnly? startDate = null, CancellationToken cancellationToken = default)
     {
         var periodTrips = await GetTripsInWindowAsync(ToWindowStart(startDate), cancellationToken);
+        var excludeCng = await GetExcludeCngSettingAsync(cancellationToken);
 
         return periodTrips
             .Where(t => t.Truck?.Product is not null)
             .GroupBy(t => t.Truck!.Product!.Value)
             .Select(g =>
             {
-                var dischargedInGroup = g.Where(t => t.Discharges.Any(d => d.IsFinalDischarge)).ToList();
+                // TripCount/TotalQuantity always reflect every trip — this view exists to show
+                // loading volume per product (including CNG), not just shortage. Only the
+                // shortage figures below are zeroed for CNG when excluded, since that's the
+                // number that's unreliable, not the volume.
+                var isCngExcluded = excludeCng && g.Key.IsCng();
+                var dischargedInGroup = isCngExcluded
+                    ? []
+                    : g.Where(t => t.Discharges.Any(d => d.IsFinalDischarge)).ToList();
                 return new ProductBreakdownDto
                 {
                     Product = g.Key.ToString(),
@@ -130,7 +141,10 @@ public class ControlRoomService : IControlRoomService
 
         return perTruckRows
             .GroupBy(x => x.Product)
-            // Leader = most trips; ties broken by lowest shortage rate, then shortest avg turnaround.
+            // Leader = most trips; ties broken by lowest shortage rate, then shortest avg
+            // turnaround. Already works fine for CNG when excluded — ShortageRate is forced to 0
+            // for every CNG row (see GetPerTruckProductRowsAsync), so it's a no-op tiebreaker
+            // rather than a meaningful one, but TripCount still ranks CNG trucks correctly.
             .Select(g => g
                 .OrderByDescending(x => x.TripCount)
                 .ThenBy(x => x.ShortageRate)
@@ -143,16 +157,24 @@ public class ControlRoomService : IControlRoomService
     public async Task<List<ProductLeaderDto>> GetProductLaggardsAsync(DateOnly? startDate = null, CancellationToken cancellationToken = default)
     {
         var perTruckRows = await GetPerTruckProductRowsAsync(startDate, cancellationToken);
+        var excludeCng = await GetExcludeCngSettingAsync(cancellationToken);
 
         return perTruckRows
             .GroupBy(x => x.Product)
-            // Laggard = highest shortage rate — the metric that actually signals a problem truck,
-            // not simply "fewest trips" (a lightly-used truck isn't a bad one). Ties broken by
-            // most trips, so a recurring issue ranks above a single unlucky delivery.
-            .Select(g => g
-                .OrderByDescending(x => x.ShortageRate)
-                .ThenByDescending(x => x.TripCount)
-                .First())
+            .Select(g =>
+            {
+                // Laggard = highest shortage rate — the metric that actually signals a problem
+                // truck. That signal doesn't exist for CNG when it's excluded (every row's
+                // ShortageRate is forced to 0, see GetPerTruckProductRowsAsync), so ranking by it
+                // would be arbitrary — falls back to fewest trips instead (the least-utilized
+                // truck, the inverse of Leader's most-trips), tied broken by longest average
+                // turnaround. Deliberately not excluded from also being the Leader — a product
+                // with very few trucks can legitimately have the same truck top both lists.
+                var isCngGroup = excludeCng && Enum.TryParse<Product>(g.Key, out var product) && product.IsCng();
+                return isCngGroup
+                    ? g.OrderBy(x => x.TripCount).ThenByDescending(x => x.AvgTripDurationDays).First()
+                    : g.OrderByDescending(x => x.ShortageRate).ThenByDescending(x => x.TripCount).First();
+            })
             .OrderBy(x => x.Product)
             .ToList();
     }
@@ -162,10 +184,13 @@ public class ControlRoomService : IControlRoomService
     private async Task<List<ProductLeaderDto>> GetPerTruckProductRowsAsync(DateOnly? startDate, CancellationToken cancellationToken)
     {
         var periodTrips = await GetTripsInWindowAsync(ToWindowStart(startDate), cancellationToken);
+        var excludeCng = await GetExcludeCngSettingAsync(cancellationToken);
 
         return periodTrips
             // Only closed trips count — an in-progress trip hasn't actually demonstrated
-            // completeness, turnaround, or a real shortage outcome yet.
+            // completeness, turnaround, or a real shortage outcome yet. CNG trucks still appear
+            // here (TripCount/TotalQuantityDispatched/AvgTripDurationDays are all real activity
+            // data worth seeing) — only their ShortageRate gets zeroed below when excluded.
             .Where(t => t.Truck?.Product is not null && (t.Status == TripStatus.Closed || t.Status == TripStatus.Completed))
             .GroupBy(t => t.Truck!.Product!.Value)
             .SelectMany(productGroup => productGroup
@@ -175,7 +200,10 @@ public class ControlRoomService : IControlRoomService
                 .GroupBy(t => t.TruckId)
                 .Select(truckGroup =>
                 {
-                    var dischargedInGroup = truckGroup.Where(t => t.Discharges.Any(d => d.IsFinalDischarge)).ToList();
+                    var isCngExcluded = excludeCng && productGroup.Key.IsCng();
+                    var dischargedInGroup = isCngExcluded
+                        ? []
+                        : truckGroup.Where(t => t.Discharges.Any(d => d.IsFinalDischarge)).ToList();
                     var closedInGroup = truckGroup.Where(t => t.CloseInfo.ReturnDateTime.HasValue).ToList();
                     var groupDurations = closedInGroup
                         .Select(t => t.CalculateTripDuration(t.Date, t.CloseInfo.ReturnDateTime!.Value))
@@ -235,6 +263,17 @@ public class ControlRoomService : IControlRoomService
 
         return await query.ToListAsync(cancellationToken);
     }
+
+    // No caching, matching AppSettingsController's own read pattern — this is a low-traffic
+    // settings row, not worth a cache invalidation story yet.
+    private async Task<bool> GetExcludeCngSettingAsync(CancellationToken cancellationToken)
+    {
+        var settings = await _context.AppSettings.AsNoTracking().FirstOrDefaultAsync(cancellationToken);
+        return settings?.ExcludeCngFromShortage ?? false;
+    }
+
+    private static IEnumerable<Trip> ApplyCngExclusion(IEnumerable<Trip> trips, bool excludeCng) =>
+        excludeCng ? trips.Where(t => !(t.Truck?.Product?.IsCng() ?? false)) : trips;
 
     private static decimal GetShortageAmount(Trip trip)
     {

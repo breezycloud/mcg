@@ -1,6 +1,7 @@
 using Api.Context;
 using Microsoft.EntityFrameworkCore;
 using Shared.Enums;
+using Shared.Extensions;
 using Shared.Interfaces.Drivers;
 using Shared.Models.Drivers;
 using Shared.Models.Trips;
@@ -24,7 +25,9 @@ public class DriverReportService : IDriverReportService
         var totalDrivers = await _context.Drivers.AsNoTracking().CountAsync(cancellationToken);
 
         var periodTrips = await GetTripsInWindowAsync(windowStart, cancellationToken);
-        var dischargedTrips = periodTrips.Where(t => t.Discharges.Any(d => d.IsFinalDischarge)).ToList();
+        var excludeCng = await GetExcludeCngSettingAsync(cancellationToken);
+        var dischargedTrips = ApplyCngExclusion(
+            periodTrips.Where(t => t.Discharges.Any(d => d.IsFinalDischarge)), excludeCng).ToList();
         var durations = GetValidDurations(periodTrips);
         var ratedTrips = periodTrips.Where(t => t.Status == TripStatus.Completed && t.CloseInfo.Rating > 0).ToList();
 
@@ -68,6 +71,7 @@ public class DriverReportService : IDriverReportService
         var tripsByDriverId = periodTrips.Where(t => t.DriverId.HasValue)
             .GroupBy(t => t.DriverId!.Value)
             .ToDictionary(g => g.Key, g => g.ToList());
+        var excludeCng = await GetExcludeCngSettingAsync(cancellationToken);
 
         var driverIdsOnTrip = (await _context.Trips.AsNoTracking()
             .Where(t => t.DriverId.HasValue && (t.Status == TripStatus.Active || t.Status == TripStatus.Dispatched))
@@ -80,7 +84,8 @@ public class DriverReportService : IDriverReportService
         foreach (var driver in drivers)
         {
             var trips = tripsByDriverId.GetValueOrDefault(driver.Id, []);
-            var dischargedTrips = trips.Where(t => t.Discharges.Any(d => d.IsFinalDischarge)).ToList();
+            var dischargedTrips = ApplyCngExclusion(
+                trips.Where(t => t.Discharges.Any(d => d.IsFinalDischarge)), excludeCng).ToList();
             var durations = GetValidDurations(trips);
             var ratedTrips = trips.Where(t => t.Status == TripStatus.Completed && t.CloseInfo.Rating > 0).ToList();
             var licenseStatus = GetLicenseStatus(driver.ExpiryDate, today);
@@ -167,13 +172,24 @@ public class DriverReportService : IDriverReportService
     private async Task<List<Trip>> GetTripsInWindowAsync(DateTimeOffset? windowStart, CancellationToken cancellationToken)
     {
         var query = _context.Trips.AsNoTracking().Where(t => t.DriverId.HasValue)
-            .Include(t => t.Discharges).AsSplitQuery().AsQueryable();
+            .Include(t => t.Truck).Include(t => t.Discharges).AsSplitQuery().AsQueryable();
 
         if (windowStart.HasValue)
             query = query.Where(t => t.LoadingInfo.LoadingDate.HasValue && t.LoadingInfo.LoadingDate >= windowStart.Value);
 
         return await query.ToListAsync(cancellationToken);
     }
+
+    // No caching, matching AppSettingsController's own read pattern — this is a low-traffic
+    // settings row, not worth a cache invalidation story yet.
+    private async Task<bool> GetExcludeCngSettingAsync(CancellationToken cancellationToken)
+    {
+        var settings = await _context.AppSettings.AsNoTracking().FirstOrDefaultAsync(cancellationToken);
+        return settings?.ExcludeCngFromShortage ?? false;
+    }
+
+    private static IEnumerable<Trip> ApplyCngExclusion(IEnumerable<Trip> trips, bool excludeCng) =>
+        excludeCng ? trips.Where(t => !(t.Truck?.Product?.IsCng() ?? false)) : trips;
 
     private static decimal GetShortageAmount(Trip trip)
     {

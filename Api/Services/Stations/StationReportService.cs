@@ -1,6 +1,7 @@
 using Api.Context;
 using Microsoft.EntityFrameworkCore;
 using Shared.Enums;
+using Shared.Extensions;
 using Shared.Interfaces.Stations;
 using Shared.Models.RefuelInfos;
 using Shared.Models.Stations;
@@ -23,7 +24,9 @@ public class StationReportService : IStationReportService
         var totalStations = await _context.Stations.AsNoTracking().CountAsync(cancellationToken);
 
         var trips = await GetTripsInWindowAsync(windowStart, cancellationToken);
-        var dischargedTrips = trips.Where(t => t.Discharges.Any(d => d.IsFinalDischarge)).ToList();
+        var excludeCng = await GetExcludeCngSettingAsync(cancellationToken);
+        var dischargedTrips = ApplyCngExclusion(
+            trips.Where(t => t.Discharges.Any(d => d.IsFinalDischarge)), excludeCng).ToList();
         var stationsActiveInPeriod = trips.SelectMany(t => t.Discharges.Select(d => d.StationId)).Distinct().Count();
 
         return new StationFleetMetricsDto
@@ -41,6 +44,7 @@ public class StationReportService : IStationReportService
         var windowStart = ToWindowStart(startDate);
         var stations = await _context.Stations.AsNoTracking().ToListAsync(cancellationToken);
         var trips = await GetTripsInWindowAsync(windowStart, cancellationToken);
+        var excludeCng = await GetExcludeCngSettingAsync(cancellationToken);
 
         var rows = new List<(StationPerformanceRowDto Row, decimal ShortageUnits)>();
         foreach (var station in stations)
@@ -50,8 +54,20 @@ public class StationReportService : IStationReportService
 
             var totalDispatched = tripsAtStation.Sum(t => t.LoadingInfo.Quantity ?? 0);
             var totalDischarged = tripsAtStation.Sum(t => t.Discharges.Where(d => d.StationId == station.Id).Sum(d => d.QuantityDischarged));
-            var shortageUnits = Math.Max(0, totalDispatched - totalDischarged);
-            var shortageRate = totalDispatched > 0 ? shortageUnits / totalDispatched * 100 : 0;
+
+            // Shortage rate is scoped down further than the row's own TripCount/TotalDispatched/
+            // TotalDischarged: only trips with a final discharge AT THIS STATION count toward it
+            // (a mid-transit trip hasn't demonstrated a real shortage outcome yet), and CNG trips
+            // are excluded when the setting says so — matching the Loading Depot report's own
+            // convention of computing the rate from its own eligible subset, not the row totals.
+            var shortageEligible = tripsAtStation
+                .Where(t => t.Discharges.Any(d => d.StationId == station.Id && d.IsFinalDischarge))
+                .Where(t => !(excludeCng && (t.Truck?.Product?.IsCng() ?? false)))
+                .ToList();
+            var shortageDispatched = shortageEligible.Sum(t => t.LoadingInfo.Quantity ?? 0);
+            var shortageDischarged = shortageEligible.Sum(t => t.Discharges.Where(d => d.StationId == station.Id).Sum(d => d.QuantityDischarged));
+            var shortageUnits = Math.Max(0, shortageDispatched - shortageDischarged);
+            var shortageRate = shortageDispatched > 0 ? shortageUnits / shortageDispatched * 100 : 0;
 
             rows.Add((new StationPerformanceRowDto
             {
@@ -86,6 +102,7 @@ public class StationReportService : IStationReportService
         var windowStart = new DateTimeOffset(earliestMonth.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
 
         var trips = await GetTripsInWindowAsync(windowStart, cancellationToken);
+        var excludeCng = await GetExcludeCngSettingAsync(cancellationToken);
 
         var results = new List<StationMonthlyTrendDto>();
         for (var i = 0; i < monthsBack; i++)
@@ -94,7 +111,8 @@ public class StationReportService : IStationReportService
             var monthTrips = trips
                 .Where(t => t.LoadingInfo.LoadingDate!.Value.Year == bucket.Year && t.LoadingInfo.LoadingDate!.Value.Month == bucket.Month)
                 .ToList();
-            var dischargedInMonth = monthTrips.Where(t => t.Discharges.Any(d => d.IsFinalDischarge)).ToList();
+            var dischargedInMonth = ApplyCngExclusion(
+                monthTrips.Where(t => t.Discharges.Any(d => d.IsFinalDischarge)), excludeCng).ToList();
 
             results.Add(new StationMonthlyTrendDto
             {
@@ -121,7 +139,9 @@ public class StationReportService : IStationReportService
         var totalDepots = await _context.Stations.AsNoTracking().CountAsync(s => s.Type == StationType.LoadingDepot, cancellationToken);
 
         var trips = await GetTripsLoadedInWindowAsync(windowStart, cancellationToken);
-        var dischargedTrips = trips.Where(t => t.Discharges.Any(d => d.IsFinalDischarge)).ToList();
+        var excludeCng = await GetExcludeCngSettingAsync(cancellationToken);
+        var dischargedTrips = ApplyCngExclusion(
+            trips.Where(t => t.Discharges.Any(d => d.IsFinalDischarge)), excludeCng).ToList();
         var depotsActiveInPeriod = trips.Where(t => t.LoadingDepotId.HasValue).Select(t => t.LoadingDepotId!.Value).Distinct().Count();
 
         return new LoadingDepotFleetMetricsDto
@@ -139,6 +159,7 @@ public class StationReportService : IStationReportService
         var windowStart = ToWindowStart(startDate);
         var depots = await _context.Stations.AsNoTracking().Where(s => s.Type == StationType.LoadingDepot).ToListAsync(cancellationToken);
         var trips = await GetTripsLoadedInWindowAsync(windowStart, cancellationToken);
+        var excludeCng = await GetExcludeCngSettingAsync(cancellationToken);
 
         var rows = new List<(LoadingDepotPerformanceRowDto Row, decimal ShortageUnits)>();
         foreach (var depot in depots)
@@ -146,7 +167,8 @@ public class StationReportService : IStationReportService
             var depotTrips = trips.Where(t => t.LoadingDepotId == depot.Id).ToList();
             if (depotTrips.Count == 0) continue;
 
-            var dischargedTrips = depotTrips.Where(t => t.Discharges.Any(d => d.IsFinalDischarge)).ToList();
+            var dischargedTrips = ApplyCngExclusion(
+                depotTrips.Where(t => t.Discharges.Any(d => d.IsFinalDischarge)), excludeCng).ToList();
             var totalLoaded = dischargedTrips.Sum(t => t.LoadingInfo.Quantity ?? 0);
             var shortageUnits = dischargedTrips.Sum(GetShortageAmount);
             var shortageRate = totalLoaded > 0 ? shortageUnits / totalLoaded * 100 : 0;
@@ -181,6 +203,7 @@ public class StationReportService : IStationReportService
         var windowStart = new DateTimeOffset(earliestMonth.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
 
         var trips = await GetTripsLoadedInWindowAsync(windowStart, cancellationToken);
+        var excludeCng = await GetExcludeCngSettingAsync(cancellationToken);
 
         var results = new List<LoadingDepotMonthlyTrendDto>();
         for (var i = 0; i < monthsBack; i++)
@@ -189,7 +212,8 @@ public class StationReportService : IStationReportService
             var monthTrips = trips
                 .Where(t => t.LoadingInfo.LoadingDate!.Value.Year == bucket.Year && t.LoadingInfo.LoadingDate!.Value.Month == bucket.Month)
                 .ToList();
-            var dischargedInMonth = monthTrips.Where(t => t.Discharges.Any(d => d.IsFinalDischarge)).ToList();
+            var dischargedInMonth = ApplyCngExclusion(
+                monthTrips.Where(t => t.Discharges.Any(d => d.IsFinalDischarge)), excludeCng).ToList();
 
             results.Add(new LoadingDepotMonthlyTrendDto
             {
@@ -210,7 +234,7 @@ public class StationReportService : IStationReportService
     private async Task<List<Trip>> GetTripsLoadedInWindowAsync(DateTimeOffset? windowStart, CancellationToken cancellationToken)
     {
         var query = _context.Trips.AsNoTracking().Where(t => t.LoadingDepotId.HasValue)
-            .Include(t => t.Discharges).AsSplitQuery().AsQueryable();
+            .Include(t => t.Truck).Include(t => t.Discharges).AsSplitQuery().AsQueryable();
 
         if (windowStart.HasValue)
             query = query.Where(t => t.LoadingInfo.LoadingDate.HasValue && t.LoadingInfo.LoadingDate >= windowStart.Value);
@@ -463,13 +487,24 @@ public class StationReportService : IStationReportService
     private async Task<List<Trip>> GetTripsInWindowAsync(DateTimeOffset? windowStart, CancellationToken cancellationToken)
     {
         var query = _context.Trips.AsNoTracking().Where(t => t.Discharges.Any())
-            .Include(t => t.Discharges).AsSplitQuery().AsQueryable();
+            .Include(t => t.Truck).Include(t => t.Discharges).AsSplitQuery().AsQueryable();
 
         if (windowStart.HasValue)
             query = query.Where(t => t.LoadingInfo.LoadingDate.HasValue && t.LoadingInfo.LoadingDate >= windowStart.Value);
 
         return await query.ToListAsync(cancellationToken);
     }
+
+    // No caching, matching AppSettingsController's own read pattern — this is a low-traffic
+    // settings row, not worth a cache invalidation story yet.
+    private async Task<bool> GetExcludeCngSettingAsync(CancellationToken cancellationToken)
+    {
+        var settings = await _context.AppSettings.AsNoTracking().FirstOrDefaultAsync(cancellationToken);
+        return settings?.ExcludeCngFromShortage ?? false;
+    }
+
+    private static IEnumerable<Trip> ApplyCngExclusion(IEnumerable<Trip> trips, bool excludeCng) =>
+        excludeCng ? trips.Where(t => !(t.Truck?.Product?.IsCng() ?? false)) : trips;
 
     private static decimal GetShortageAmount(Trip trip)
     {

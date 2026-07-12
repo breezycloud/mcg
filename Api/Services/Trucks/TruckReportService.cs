@@ -1,6 +1,7 @@
 using Api.Context;
 using Microsoft.EntityFrameworkCore;
 using Shared.Enums;
+using Shared.Extensions;
 using Shared.Interfaces.Trucks;
 using Shared.Models.Trips;
 using Shared.Models.Trucks;
@@ -25,7 +26,9 @@ public class TruckReportService : ITruckReportService
         var totalDeployedTrucks = await truckQuery.CountAsync(t => t.IsActive, cancellationToken);
 
         var periodTrips = await GetTripsInWindowAsync(windowStart, product, cancellationToken);
-        var dischargedTrips = periodTrips.Where(t => t.Discharges.Any(d => d.IsFinalDischarge)).ToList();
+        var excludeCng = await GetExcludeCngSettingAsync(cancellationToken);
+        var dischargedTrips = ApplyCngExclusion(
+            periodTrips.Where(t => t.Discharges.Any(d => d.IsFinalDischarge)), excludeCng).ToList();
         var durations = GetValidDurations(periodTrips);
 
         var loadingQuery = FilterByProduct(_context.Trips.AsNoTracking().Where(t => t.LoadingInfo.LoadingDate.HasValue), product);
@@ -103,6 +106,7 @@ public class TruckReportService : ITruckReportService
 
         var periodTrips = await GetTripsInWindowAsync(windowStart, product, cancellationToken);
         var tripsByTruckId = periodTrips.GroupBy(t => t.TruckId).ToDictionary(g => g.Key, g => g.ToList());
+        var excludeCng = await GetExcludeCngSettingAsync(cancellationToken);
 
         var openServiceRequestCounts = await _context.ServiceRequest.AsNoTracking()
             .Where(s => s.Status != RequestStatus.Closed)
@@ -120,7 +124,8 @@ public class TruckReportService : ITruckReportService
         foreach (var truck in trucks)
         {
             var trips = tripsByTruckId.GetValueOrDefault(truck.Id, []);
-            var dischargedTrips = trips.Where(t => t.Discharges.Any(d => d.IsFinalDischarge)).ToList();
+            var dischargedTrips = ApplyCngExclusion(
+                trips.Where(t => t.Discharges.Any(d => d.IsFinalDischarge)), excludeCng).ToList();
             var durations = GetValidDurations(trips);
 
             var openServiceRequests = openServiceRequestCounts.GetValueOrDefault(truck.Id, 0);
@@ -226,6 +231,7 @@ public class TruckReportService : ITruckReportService
         var trips = await GetTripsInWindowAsync(windowStart, product, cancellationToken);
         var totalDeployedTrucks = await FilterByProduct(_context.Trucks.AsNoTracking(), product)
             .CountAsync(t => t.IsActive, cancellationToken);
+        var excludeCng = await GetExcludeCngSettingAsync(cancellationToken);
 
         var results = new List<FleetMonthlyTrendDto>();
         for (var i = 0; i < monthsBack; i++)
@@ -234,7 +240,8 @@ public class TruckReportService : ITruckReportService
             var monthTrips = trips
                 .Where(t => t.LoadingInfo.LoadingDate!.Value.Year == bucket.Year && t.LoadingInfo.LoadingDate!.Value.Month == bucket.Month)
                 .ToList();
-            var dischargedInMonth = monthTrips.Where(t => t.Discharges.Any(d => d.IsFinalDischarge)).ToList();
+            var dischargedInMonth = ApplyCngExclusion(
+                monthTrips.Where(t => t.Discharges.Any(d => d.IsFinalDischarge)), excludeCng).ToList();
             var trucksLoadedInMonth = monthTrips.Select(t => t.TruckId).Distinct().Count();
 
             results.Add(new FleetMonthlyTrendDto
@@ -278,6 +285,17 @@ public class TruckReportService : ITruckReportService
 
         return await query.ToListAsync(cancellationToken);
     }
+
+    // No caching, matching AppSettingsController's own read pattern — this is a low-traffic
+    // settings row, not worth a cache invalidation story yet.
+    private async Task<bool> GetExcludeCngSettingAsync(CancellationToken cancellationToken)
+    {
+        var settings = await _context.AppSettings.AsNoTracking().FirstOrDefaultAsync(cancellationToken);
+        return settings?.ExcludeCngFromShortage ?? false;
+    }
+
+    private static IEnumerable<Trip> ApplyCngExclusion(IEnumerable<Trip> trips, bool excludeCng) =>
+        excludeCng ? trips.Where(t => !(t.Truck?.Product?.IsCng() ?? false)) : trips;
 
     private static decimal GetShortageAmount(Trip trip)
     {
