@@ -27,10 +27,11 @@ MONTHS = ['February 2025', 'March 2025', 'April 2025', 'May 2025', 'June 2025', 
 
 # ---------- Load DB reference data ----------
 def load_pipe_file(path):
+    # Format: header line, "---" separator line, N data lines, "(N rows)" footer.
     rows = []
     with open(path) as f:
         lines = [l.rstrip("\n") for l in f]
-    for line in lines[1:-2]:
+    for line in lines[2:-1]:
         rows.append([c.strip() for c in line.split("|")])
     return rows
 

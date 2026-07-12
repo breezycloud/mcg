@@ -23,6 +23,11 @@ Shared/Truck Loading Info.xlsx
 # reviewed merge decisions — same "never commit real PII to this public repo" rule as above.
 tools/driver-dedupe/
 
+# Resolved import data and exported DB reference data contain real trip/driver/truck/station
+# records (names, phone numbers, GUIDs) — same PII rule as above.
+tools/import-trips/prod-ref-data/
+tools/import-trips/*.json
+
 # User-specific files
 *.rsuser
 *.suo
