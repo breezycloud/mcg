@@ -18,6 +18,7 @@ CLAUDE.md
 # Real operational data used for one-off local imports — never commit to this
 # public repo. See tools/import-trips/prod-runbook/ for the reusable tooling.
 Shared/Truck Loading Info.xlsx
+Shared/driver_import.csv
 
 # One-off driver-dedupe cleanup scripts hardcode real driver names/phone numbers as manually
 # reviewed merge decisions — same "never commit real PII to this public repo" rule as above.

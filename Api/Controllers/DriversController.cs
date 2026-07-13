@@ -280,19 +280,33 @@ public class DriversController : ControllerBase
         var changedById = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
         using var stream = file.OpenReadStream();
-        var (rows, created, updated, motorMatesCreated, motorMateHistoryEntries, trucksAssigned) =
-            await ProcessImportAsync(stream, commit: true, changedById, cancellationToken);
-
-        return new DriverImportCommitResponse
+        try
         {
-            Rows = rows,
-            CreatedCount = created,
-            UpdatedCount = updated,
-            SkippedCount = rows.Count(r => r.HasErrors),
-            MotorMatesCreated = motorMatesCreated,
-            MotorMateHistoryEntries = motorMateHistoryEntries,
-            TrucksAssigned = trucksAssigned,
-        };
+            var (rows, created, updated, motorMatesCreated, motorMateHistoryEntries, trucksAssigned) =
+                await ProcessImportAsync(stream, commit: true, changedById, cancellationToken);
+
+            return new DriverImportCommitResponse
+            {
+                Rows = rows,
+                CreatedCount = created,
+                UpdatedCount = updated,
+                SkippedCount = rows.Count(r => r.HasErrors),
+                MotorMatesCreated = motorMatesCreated,
+                MotorMateHistoryEntries = motorMateHistoryEntries,
+                TrucksAssigned = trucksAssigned,
+            };
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException pg && pg.SqlState == "23505")
+        {
+            // Last-resort race guard, same pattern as PutDriver/PostDriver. The within-batch
+            // check in ProcessImportAsync only catches duplicates WITHIN this file; this catches
+            // a row whose phone number collides with an existing driver already in the database
+            // in a different format (e.g. "8069993037" vs "08069993037") — the exact class of bug
+            // that slipped through as three pre-existing duplicate pairs before
+            // UX_Drivers_PhoneNo_Normalized existed — or any other near-simultaneous-import race.
+            _context.ChangeTracker.Clear();
+            return Conflict("Import failed: one or more phone numbers already exist for another driver (possibly saved in a different format). Please review the file and try again.");
+        }
     }
 
     // CSV columns (fixed position — header text is ignored, since "Phone Number"
@@ -309,6 +323,14 @@ public class DriversController : ControllerBase
         // mate (e.g. one mate working with several drivers) resolve to a
         // single record instead of creating a duplicate per row.
         var motorMateCache = new Dictionary<string, MotorMate>();
+
+        // Two rows sharing a phone number within the SAME file both see "no existing driver"
+        // (existingDriver is looked up against the database, not the other new rows queued
+        // alongside them) and would both try to insert — the second violates
+        // UX_Drivers_PhoneNo and fails the whole batch's one commit-time SaveChangesAsync,
+        // taking every other row down with it. Caught here as a row-level error instead, the
+        // same way any other bad row is, so it's skipped on commit rather than crashing it.
+        var phoneToFirstRowNumber = new Dictionary<string, int>();
 
         var config = new CsvConfiguration(CultureInfo.InvariantCulture)
         {
@@ -350,6 +372,14 @@ public class DriversController : ControllerBase
 
             var normalizedPhone = PhoneNumberHelper.NormalizeForComparison(row.PhoneNo);
             if (normalizedPhone.Length != 10) row.Errors.Add("Phone number must be 10 or 11 digits.");
+            else if (phoneToFirstRowNumber.TryGetValue(normalizedPhone, out var firstRowNumber))
+            {
+                row.Errors.Add($"Duplicate phone number — already used on row {firstRowNumber} in this file.");
+            }
+            else
+            {
+                phoneToFirstRowNumber[normalizedPhone] = rowNumber;
+            }
 
             if (string.IsNullOrWhiteSpace(row.LicenseNo)) row.Errors.Add("License number is required.");
 

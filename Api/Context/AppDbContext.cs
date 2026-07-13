@@ -198,12 +198,13 @@ public class AppDbContext : DbContext
                   .OnDelete(DeleteBehavior.SetNull)
                   .IsRequired(false);
 
-            // tools/driver-dedupe cleared 68 duplicate-PhoneNo groups before this could be
-            // added safely — see tools/driver-dedupe/README.md.
-            entity.HasIndex(x => x.PhoneNo)
-                  .IsUnique()
-                  .HasDatabaseName("UX_Drivers_PhoneNo")
-                  .HasFilter("\"PhoneNo\" IS NOT NULL AND \"PhoneNo\" != ''");
+            // The real uniqueness guard lives in the database as a hand-written expression
+            // index (see migration ReplaceDriverPhoneUniqueIndexWithNormalized) rather than a
+            // fluent HasIndex here — EF's fluent API can only index an actual column, not an
+            // expression, and the whole point is to key on NORMALIZED digits (last 10, matching
+            // Shared/Helpers/PhoneNumberHelper.NormalizeForComparison) so "8069993037" and
+            // "08069993037" collide as the same number instead of silently coexisting the way
+            // the previous exact-text UX_Drivers_PhoneNo index let three pairs do.
         });
 
         modelBuilder.Entity<MotorMateHistory>(entity =>
