@@ -114,12 +114,13 @@ public class EmailConsumerService : BackgroundService
             .Subject(message.Subject)
             .Body(htmlContent, true);
 
-        // CCU shortage notifications go out under their own sender address rather than the
-        // default MIS one — must stay a Brevo-verified sender or the relay will reject the send.
+        // CCU shortage notifications go out under their own sender address/name rather than the
+        // default MIS ones — the address must stay a Brevo-verified sender or the relay will
+        // reject the send.
         if (message.Template == "TripDischargeShortage")
         {
             var ccuSenderEmail = _configuration["Brevo:CcuSenderEmail"] ?? "mcc@atlanticco-ltd.com";
-            var ccuSenderName = _configuration["Brevo:SenderName"];
+            var ccuSenderName = _configuration["Brevo:CcuSenderName"] ?? "MCC-Logistics";
             email.SetFrom(ccuSenderEmail, ccuSenderName);
         }
 
