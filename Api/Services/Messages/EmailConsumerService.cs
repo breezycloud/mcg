@@ -18,6 +18,7 @@ public class EmailConsumerService : BackgroundService
     private readonly RazorLightEngine _razorEngine;
     private readonly ILogger<EmailConsumerService> _logger;
     private readonly string _uploadRootPath;
+    private readonly IConfiguration _configuration;
 
     public EmailConsumerService(
         IOptions<MessageBrokerSetting> rabbitConfig,
@@ -27,6 +28,7 @@ public class EmailConsumerService : BackgroundService
         ILogger<EmailConsumerService> logger)
     {
         _fluentEmail = fluentEmail;
+        _configuration = configuration;
         _logger = logger;
 
         // Same rooting logic as Program.cs's static-file mount — UploadsController's own
@@ -111,6 +113,15 @@ public class EmailConsumerService : BackgroundService
             .To(message.To)
             .Subject(message.Subject)
             .Body(htmlContent, true);
+
+        // CCU shortage notifications go out under their own sender address rather than the
+        // default MIS one — must stay a Brevo-verified sender or the relay will reject the send.
+        if (message.Template == "TripDischargeShortage")
+        {
+            var ccuSenderEmail = _configuration["Brevo:CcuSenderEmail"] ?? "mcc@atlanticco-ltd.com";
+            var ccuSenderName = _configuration["Brevo:SenderName"];
+            email.SetFrom(ccuSenderEmail, ccuSenderName);
+        }
 
         var ccAddresses = (message.Cc ?? string.Empty)
             .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
