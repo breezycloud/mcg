@@ -240,6 +240,14 @@
                             }
                         </div>
 
+                        @if (CanRecordCcuRecommendation && FinalDischarge?.ShortageNotifiedAt == null)
+                        {
+                            <button type="button" @onclick="() => shortagePreviewModal.Show(FinalDischarge!.Id)"
+                                    class="w-full px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-xl shadow-sm hover:bg-gray-200 dark:hover:bg-gray-600 text-sm font-medium">
+                                Preview &amp; Send to CCU
+                            </button>
+                        }
+
                         @if (Recommendations.Any())
                         {
                             var current = Recommendations.First();
@@ -291,6 +299,7 @@
                     </div>
 
                     <RecommendationModal @ref="recommendationModal" TripId="Trip!.Id" OnSave="SaveRecommendation" />
+                    <ShortagePreviewModal @ref="shortagePreviewModal" OnSent="ReloadTrip" />
                 }
 
                 <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-4 sm:p-5">
@@ -365,6 +374,7 @@
     private ConfirmationModal deleteModal = default!;
     private Discharge? editingDischarge;
     private RecommendationModal recommendationModal = default!;
+    private ShortagePreviewModal shortagePreviewModal = default!;
     private FilePreviewModal loadingFilePreview = default!;
     private List<ShortageRecommendation> Recommendations { get; set; } = [];
 
@@ -453,6 +463,14 @@
         {
             AppState.IsBusy = false;
         }
+    }
+
+    // Re-fetches the trip so FinalDischarge.ShortageNotifiedAt reflects the send that just
+    // happened — the modal itself has no reason to know how to mutate the parent's Trip state.
+    private async Task ReloadTrip()
+    {
+        Trip = await TripService.GetAsync(id, AppState.GetCancellationToken());
+        StateHasChanged();
     }
 
     private async Task SaveRecommendation(ShortageRecommendation recommendation)

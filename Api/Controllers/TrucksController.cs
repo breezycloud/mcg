@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Api.Context;
-using Api.Services.Discharges;
 using Shared.Dtos;
 using Shared.Models.Trucks;
 using Shared.Helpers;
@@ -22,12 +21,10 @@ namespace Api.Controllers;
 public class TrucksController : ControllerBase
 {
     private readonly AppDbContext _context;
-    private readonly ShortageNotificationService _shortageNotificationService;
 
-    public TrucksController(AppDbContext context, ShortageNotificationService shortageNotificationService)
+    public TrucksController(AppDbContext context)
     {
         _context = context;
-        _shortageNotificationService = shortageNotificationService;
     }
 
      // POST: api/Paged
@@ -208,10 +205,6 @@ public class TrucksController : ControllerBase
                 throw;
             }
         }
-
-        // This save may have just added the calibration chart a pending shortage notification
-        // was waiting on.
-        await _shortageNotificationService.CheckAndNotifyForTruckAsync(id);
 
         return NoContent();
     }

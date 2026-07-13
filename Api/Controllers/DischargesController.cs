@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Api.Context;
 using Api.Services.Discharges;
+using Shared.Models.MessageBroker;
 using Shared.Models.Trips;
 
 namespace Api.Controllers;
@@ -125,11 +126,6 @@ public class DischargesController : ControllerBase
             }
         }
 
-        if (trip.IsFinalDischarge)
-        {
-            await _shortageNotificationService.CheckAndNotifyAsync(trip.Id);
-        }
-
         return NoContent();
     }
 
@@ -141,12 +137,29 @@ public class DischargesController : ControllerBase
         _context.Discharges.Add(trip);
         await _context.SaveChangesAsync();
 
-        if (trip.IsFinalDischarge)
-        {
-            await _shortageNotificationService.CheckAndNotifyAsync(trip.Id);
-        }
-
         return CreatedAtAction("GetDischarge", new { id = trip.Id }, trip);
+    }
+
+    // GET: api/Discharges/5/shortage-preview — renders exactly what a CCU notification for this
+    // discharge would look like, without sending anything. Backs the "Preview & Send to CCU"
+    // button on ViewTrip.razor.
+    [HttpGet("{id}/shortage-preview")]
+    public async Task<ActionResult<ShortagePreviewDto>> GetShortagePreview(Guid id, CancellationToken cancellationToken)
+    {
+        return await _shortageNotificationService.GetPreviewAsync(id);
+    }
+
+    // POST: api/Discharges/5/send-shortage-notification — the only place a CCU shortage email
+    // actually gets queued; only ever called from the preview modal's explicit "Send" click.
+    [HttpPost("{id}/send-shortage-notification")]
+    public async Task<IActionResult> SendShortageNotification(Guid id, CancellationToken cancellationToken)
+    {
+        var (success, error) = await _shortageNotificationService.SendAsync(id);
+        if (!success)
+        {
+            return BadRequest(new { error });
+        }
+        return NoContent();
     }
 
     // DELETE: api/Discharges/5

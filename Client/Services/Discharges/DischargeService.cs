@@ -1,7 +1,9 @@
 using System.Net.Http.Json;
+using System.Text.Json;
 using Shared.Dtos;
 using Shared.Helpers;
 using Shared.Interfaces.Discharges;
+using Shared.Models.MessageBroker;
 using Shared.Models.Trips;
 
 namespace Client.Services.Discharges;
@@ -130,5 +132,25 @@ public class DischargeService(IHttpClientFactory _httpClient) : IDischargeServic
 
             throw;
         }
+    }
+
+    public async Task<ShortagePreviewDto?> GetShortagePreviewAsync(Guid dischargeId, CancellationToken cancellationToken)
+    {
+        using var response = await _httpClient.CreateClient("AppUrl").GetAsync($"Discharges/{dischargeId}/shortage-preview", cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<ShortagePreviewDto?>(cancellationToken: cancellationToken);
+    }
+
+    public async Task<(bool Success, string? Error)> SendShortageNotificationAsync(Guid dischargeId, CancellationToken cancellationToken)
+    {
+        using var response = await _httpClient.CreateClient("AppUrl").PostAsync($"Discharges/{dischargeId}/send-shortage-notification", null, cancellationToken);
+        if (response.IsSuccessStatusCode)
+        {
+            return (true, null);
+        }
+
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: cancellationToken);
+        var error = body.TryGetProperty("error", out var errorProp) ? errorProp.GetString() : "Failed to send.";
+        return (false, error);
     }
 }

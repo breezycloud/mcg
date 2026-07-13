@@ -17,7 +17,6 @@ using Npgsql;
 using Api.Context;
 using Api.Filters;
 using Api.Util;
-using Api.Services.Discharges;
 using Shared.Models.Trips;
 using Shared.Helpers;
 using Shared.Dtos;
@@ -37,15 +36,13 @@ public class TripsController : ControllerBase
         new(@"^[a-zA-Z0-9\-]{1,30}$", RegexOptions.Compiled, TimeSpan.FromMilliseconds(100));
 
     private readonly AppDbContext _context;
-    private readonly ShortageNotificationService _shortageNotificationService;
     private readonly ILogger<TripsController> _logger;
     private readonly string _uploadPath;
     private readonly string _uploadRoot;
 
-    public TripsController(AppDbContext context, ShortageNotificationService shortageNotificationService, ILogger<TripsController> logger, IConfiguration config, IHostEnvironment env)
+    public TripsController(AppDbContext context, ILogger<TripsController> logger, IConfiguration config, IHostEnvironment env)
     {
         _context = context;
-        _shortageNotificationService = shortageNotificationService;
         _logger = logger;
 
         var rawPath = config["FileStorage:UploadPath"]!;
@@ -748,10 +745,6 @@ public class TripsController : ControllerBase
             }
         }
 
-        // This save may have just added the loading/arrival ullage readings a pending shortage
-        // notification was waiting on.
-        await _shortageNotificationService.CheckAndNotifyForTripAsync(id);
-
         return NoContent();
     }
 
@@ -787,8 +780,6 @@ public class TripsController : ControllerBase
                 throw;
             }
         }
-
-        await _shortageNotificationService.CheckAndNotifyForTripAsync(id);
 
         return NoContent();
     }

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Api.Context;
 using Api.Services.Messages;
+using RazorLight;
 using Shared.Enums;
 using Shared.Extensions;
 using Shared.Models.Trips;
@@ -9,77 +10,55 @@ using Shared.Helpers;
 
 namespace Api.Services.Discharges;
 
-// Centralizes the "is this final discharge's shortage ready to notify NRL CCU about" check so it
-// can be re-run from every place that can complete one of the four requirements: the discharge
-// itself (waybill / IsFinalDischarge), the trip (loading + arrival ullage metrics), and the truck
-// (calibration chart). Each of those controllers calls in here after its own save; nothing is
-// sent until all four are present, and it's a no-op once ShortageNotifiedAt is already set.
+// Backs the "Preview & Send to CCU" button on ViewTrip.razor's Shortage & CCU card. Nothing is
+// sent automatically anymore — GetPreviewAsync renders exactly what Send would mail out (or
+// reports what's still missing), and SendAsync only fires on the user's explicit click, re-
+// checking everything itself rather than trusting whatever the preview call last saw.
 public class ShortageNotificationService
 {
     private readonly AppDbContext _context;
     private readonly EmailPublisherService? _mailPublisher;
     private readonly IConfiguration _configuration;
     private readonly IWebHostEnvironment _env;
+    private readonly RazorLightEngine _razorEngine;
     private readonly ILogger<ShortageNotificationService> _logger;
 
     #if RELEASE
-        public ShortageNotificationService(AppDbContext context, EmailPublisherService mailPublisher, IConfiguration configuration, IWebHostEnvironment env, ILogger<ShortageNotificationService> logger)
+        public ShortageNotificationService(AppDbContext context, EmailPublisherService mailPublisher, IConfiguration configuration, IWebHostEnvironment env, RazorLightEngine razorEngine, ILogger<ShortageNotificationService> logger)
         {
             _context = context;
             _mailPublisher = mailPublisher;
             _configuration = configuration;
             _env = env;
+            _razorEngine = razorEngine;
             _logger = logger;
         }
     #endif
 
     #if DEBUG
-        public ShortageNotificationService(AppDbContext context, IConfiguration configuration, IWebHostEnvironment env, ILogger<ShortageNotificationService> logger)
+        public ShortageNotificationService(AppDbContext context, IConfiguration configuration, IWebHostEnvironment env, RazorLightEngine razorEngine, ILogger<ShortageNotificationService> logger)
         {
             _context = context;
             _configuration = configuration;
             _env = env;
+            _razorEngine = razorEngine;
             _logger = logger;
         }
     #endif
 
-    // Re-check every not-yet-notified final discharge on trips using this truck — called after a
-    // truck save in case that's what just added the calibration chart.
-    public async Task CheckAndNotifyForTruckAsync(Guid truckId)
+    // Everything both GetPreviewAsync and SendAsync need: whether the discharge even qualifies,
+    // what's still missing if not, and the fully-built message if it is ready. Kept private so
+    // the two public entry points can't drift out of sync on what "ready" means.
+    private class Context
     {
-        var dischargeIds = await _context.Discharges
-            .Where(d => d.IsFinalDischarge && d.ShortageNotifiedAt == null && d.Trip!.TruckId == truckId)
-            .Select(d => d.Id)
-            .ToListAsync();
-
-        foreach (var dischargeId in dischargeIds)
-        {
-            await CheckAndNotifyAsync(dischargeId);
-        }
+        public bool AlreadySent;
+        public DateTimeOffset? SentAt;
+        public List<string> Missing = [];
+        public EmailQueueMessage? Message;
     }
 
-    // Re-check this trip's not-yet-notified final discharge, if it has one — called after a trip
-    // save in case that's what just added the loading/arrival ullage readings.
-    public async Task CheckAndNotifyForTripAsync(Guid tripId)
+    private async Task<Context?> BuildContextAsync(Guid dischargeId)
     {
-        var dischargeId = await _context.Discharges
-            .Where(d => d.TripId == tripId && d.IsFinalDischarge && d.ShortageNotifiedAt == null)
-            .Select(d => d.Id)
-            .FirstOrDefaultAsync();
-
-        if (dischargeId != Guid.Empty)
-        {
-            await CheckAndNotifyAsync(dischargeId);
-        }
-    }
-
-    // A discharge just closed out a trip's discharging (or one of its requirements just showed
-    // up) — check whether the trip came up short and, if every requirement is now in place,
-    // notify NRL CCU with the truck's calibration chart and this discharge's waybill attached.
-    public async Task CheckAndNotifyAsync(Guid dischargeId)
-    {
-        if (_mailPublisher == null) return;
-
         var discharge = await _context.Discharges
             .Include(d => d.Station)
             .Include(d => d.Trip).ThenInclude(t => t!.Discharges)
@@ -88,22 +67,26 @@ public class ShortageNotificationService
             .AsSplitQuery()
             .FirstOrDefaultAsync(d => d.Id == dischargeId);
 
-        if (discharge == null || !discharge.IsFinalDischarge || discharge.ShortageNotifiedAt != null) return;
+        if (discharge == null || !discharge.IsFinalDischarge) return null;
+        if (discharge.ShortageNotifiedAt != null)
+        {
+            return new Context { AlreadySent = true, SentAt = discharge.ShortageNotifiedAt };
+        }
 
         var trip = discharge.Trip;
-        if (trip == null) return;
+        if (trip == null) return null;
 
         var loaded = trip.LoadingInfo?.Quantity ?? 0;
         var totalDischarged = trip.Discharges.Sum(d => d.QuantityDischarged);
         var shortage = loaded - totalDischarged;
-        if (shortage <= 0) return;
+        if (shortage <= 0) return null;
 
         // LPG (measured by weight, not volume ullage) and CNG never have reliable enough
         // shortage figures to act on — both are permanently excluded from the CCU pipeline,
         // independent of NotificationSettings.ExcludeCngFromShortage (that toggle only controls
         // whether CNG counts toward shortage dashboards/reports/aggregates, not this pipeline).
         var product = trip.Truck?.Product;
-        if (product == Product.LPG || (product?.IsCng() ?? false)) return;
+        if (product == Product.LPG || (product?.IsCng() ?? false)) return null;
 
         var settings = await _context.AppSettings.FirstOrDefaultAsync();
 
@@ -122,8 +105,7 @@ public class ShortageNotificationService
 
         if (missing.Count > 0)
         {
-            _logger.LogInformation("Shortage notification for discharge {DischargeId} withheld — missing: {Missing}", dischargeId, string.Join(", ", missing));
-            return;
+            return new Context { Missing = missing };
         }
 
         // The DB-backed Settings page (Administration > Settings) is the real source of this
@@ -134,8 +116,7 @@ public class ShortageNotificationService
             : _configuration["Email:NrlCcu"];
         if (string.IsNullOrWhiteSpace(nrlCcuAddress))
         {
-            _logger.LogWarning("Shortage detected on trip {TripId} but no NRL CCU email is configured (Settings page or Email:NrlCcu) — skipping notification.", trip.Id);
-            return;
+            return new Context { Missing = ["an NRL CCU recipient address (set one on the Settings page)"] };
         }
 
         var message = new EmailQueueMessage
@@ -169,10 +150,73 @@ public class ShortageNotificationService
                 IsTestEnvironment = !_env.IsProduction()
             }
         };
-        _mailPublisher.QueueEmailAsync(message);
 
+        return new Context { Message = message };
+    }
+
+    // Renders exactly what Send would mail out, without sending anything — safe to call as
+    // often as the user opens the preview.
+    public async Task<ShortagePreviewDto> GetPreviewAsync(Guid dischargeId)
+    {
+        var context = await BuildContextAsync(dischargeId);
+        if (context == null)
+        {
+            return new ShortagePreviewDto { Ready = false, MissingRequirements = ["this discharge isn't a final discharge with a shortage yet"] };
+        }
+        if (context.AlreadySent)
+        {
+            return new ShortagePreviewDto { Ready = false, AlreadySent = true, SentAt = context.SentAt };
+        }
+        if (context.Message == null)
+        {
+            return new ShortagePreviewDto { Ready = false, MissingRequirements = context.Missing };
+        }
+
+        var templatePath = $"{context.Message.Template}.cshtml";
+        var html = await _razorEngine.CompileRenderAsync(templatePath, context.Message.TemplateModel);
+
+        return new ShortagePreviewDto
+        {
+            Ready = true,
+            Subject = context.Message.Subject,
+            To = context.Message.To,
+            Cc = context.Message.Cc,
+            Html = html
+        };
+    }
+
+    // The only place an email actually gets queued now — explicitly triggered by the user
+    // clicking "Send" on the preview, never automatically. Re-runs the full check itself rather
+    // than trusting that a prior preview call is still accurate.
+    public async Task<(bool Success, string? Error)> SendAsync(Guid dischargeId)
+    {
+        if (_mailPublisher == null)
+        {
+            return (false, "Email sending isn't available in this environment.");
+        }
+
+        var context = await BuildContextAsync(dischargeId);
+        if (context == null)
+        {
+            return (false, "This discharge isn't a final discharge with a shortage.");
+        }
+        if (context.AlreadySent)
+        {
+            return (false, "A CCU notification was already sent for this discharge.");
+        }
+        if (context.Message == null)
+        {
+            return (false, $"Still missing: {string.Join(", ", context.Missing)}.");
+        }
+
+        _mailPublisher.QueueEmailAsync(context.Message);
+
+        var discharge = await _context.Discharges.FirstAsync(d => d.Id == dischargeId);
         discharge.ShortageNotifiedAt = DateTimeOffset.UtcNow;
         await _context.SaveChangesAsync();
+
+        _logger.LogInformation("CCU shortage notification sent for discharge {DischargeId}", dischargeId);
+        return (true, null);
     }
 
     // Loading-side ullage/LH/overall live on Trip.LoadingInfo.Metrics; arrival-side readings

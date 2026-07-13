@@ -1,5 +1,6 @@
 using Shared.Dtos;
 using Shared.Helpers;
+using Shared.Models.MessageBroker;
 using Shared.Models.Trips;
 
 namespace Shared.Interfaces.Discharges;
@@ -12,4 +13,6 @@ public interface IDischargeService
     Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken);
     Task<Discharge?> GetAsync(Guid id, CancellationToken cancellationToken);
     Task<GridDataResponse<Discharge>?> GetPagedAsync(GridDataRequest request, CancellationToken cancellationToken);
+    Task<ShortagePreviewDto?> GetShortagePreviewAsync(Guid dischargeId, CancellationToken cancellationToken);
+    Task<(bool Success, string? Error)> SendShortageNotificationAsync(Guid dischargeId, CancellationToken cancellationToken);
 }
