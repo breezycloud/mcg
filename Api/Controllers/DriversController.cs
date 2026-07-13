@@ -300,12 +300,13 @@ public class DriversController : ControllerBase
         {
             // Last-resort race guard, same pattern as PutDriver/PostDriver. The within-batch
             // check in ProcessImportAsync only catches duplicates WITHIN this file; this catches
-            // a row whose phone number collides with an existing driver already in the database
-            // in a different format (e.g. "8069993037" vs "08069993037") — the exact class of bug
-            // that slipped through as three pre-existing duplicate pairs before
+            // a row whose phone number (driver's or a newly-created motor mate's — this commit
+            // saves both) collides with an existing record already in the database in a
+            // different format (e.g. "8069993037" vs "08069993037") — the exact class of bug
+            // that slipped through as three pre-existing driver duplicate pairs before
             // UX_Drivers_PhoneNo_Normalized existed — or any other near-simultaneous-import race.
             _context.ChangeTracker.Clear();
-            return Conflict("Import failed: one or more phone numbers already exist for another driver (possibly saved in a different format). Please review the file and try again.");
+            return Conflict("Import failed: one or more phone numbers already exist for another driver or motor mate (possibly saved in a different format). Please review the file and try again.");
         }
     }
 

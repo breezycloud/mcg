@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using Api.Context;
 using Shared.Dtos;
 using Shared.Models.Drivers;
@@ -95,6 +96,14 @@ public class MotorMatesController : ControllerBase
             return BadRequest();
         }
 
+        var normalizedPhone = PhoneNumberHelper.NormalizeForComparison(motorMate.PhoneNo);
+        var duplicate = await _context.MotorMates.AsNoTracking()
+            .AnyAsync(x => x.Id != id && x.PhoneNo != null && x.PhoneNo.EndsWith(normalizedPhone));
+        if (duplicate)
+        {
+            return Conflict("A motor mate is already registered with this phone number.");
+        }
+
         motorMate.UpdatedAt = DateTimeOffset.UtcNow;
         _context.Entry(motorMate).State = EntityState.Modified;
 
@@ -110,6 +119,13 @@ public class MotorMatesController : ControllerBase
             }
             throw;
         }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException pg && pg.SqlState == "23505")
+        {
+            // Last-resort race guard: two near-simultaneous edits both passed the phone-number
+            // pre-check above before either committed — same fix pattern as DriversController.
+            _context.ChangeTracker.Clear();
+            return Conflict("Another motor mate is already registered with this phone number.");
+        }
 
         return NoContent();
     }
@@ -119,8 +135,27 @@ public class MotorMatesController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<MotorMate>> PostMotorMate(MotorMate motorMate)
     {
+        var normalizedPhone = PhoneNumberHelper.NormalizeForComparison(motorMate.PhoneNo);
+        var duplicate = await _context.MotorMates.AsNoTracking()
+            .AnyAsync(x => x.PhoneNo != null && x.PhoneNo.EndsWith(normalizedPhone));
+        if (duplicate)
+        {
+            return Conflict("A motor mate is already registered with this phone number.");
+        }
+
         _context.MotorMates.Add(motorMate);
-        await _context.SaveChangesAsync();
+
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException pg && pg.SqlState == "23505")
+        {
+            // Last-resort race guard: two near-simultaneous "Add Motor Mate" submissions both
+            // passed the phone-number pre-check above before either committed.
+            _context.ChangeTracker.Clear();
+            return Conflict("A motor mate is already registered with this phone number.");
+        }
 
         return CreatedAtAction("GetMotorMate", new { id = motorMate.Id }, motorMate);
     }
