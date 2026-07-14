@@ -2,7 +2,7 @@
 @using Shared.Dtos
 @inject ITruckService TruckService
 @inject IDriverService DriverService
-@attribute [Authorize(Roles = "Supervisor, Admin, Master, Nrl, DriverSupervisor")]
+@attribute [Authorize(Roles = "Supervisor, Admin, Master, Nrl, DriverSupervisor, Manager")]
 <PageTitle>Trucks</PageTitle>
 
 
@@ -51,7 +51,7 @@
                         </svg>
                         Report
                     </a>
-                    <AuthorizeView Roles="Supervisor, Admin, Master" Context="auth">
+                    <AuthorizeView Roles="Supervisor, Admin, Master, Manager" Context="auth">
                         <button 
                             @onclick="AddTruck" 
                             type="button" 
@@ -70,17 +70,13 @@
                 <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
                     <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-400">
                         <tr>
-                            <th scope="col" class="px-6 py-3">Truck No</th>
                             <th scope="col" class="px-6 py-3">License Plate</th>
                             <th scope="col" class="px-6 py-3">Manufacturer</th>
-                            <th scope="col" class="px-6 py-3">Color</th>
                             <th scope="col" class="px-6 py-3">VIN</th>
-                            <th scope="col" class="px-6 py-3">Engine No</th>
                             <th scope="col" class="px-6 py-3">Product</th>
                             <th scope="col" class="px-6 py-3">Driver</th>
                             <th scope="col" class="px-6 py-3">Deployment</th>
                             <th scope="col" class="px-6 py-3">Maintenance</th>
-                            <th scope="col" class="px-6 py-3">Created</th>
                             @* <th scope="col" class="px-6 py-3">Updated</th> *@
                             <th scope="col" class="px-6 py-3 text-right">Actions</th>
                         </tr>
@@ -91,12 +87,9 @@
                             foreach (var truck in response.Data!)
                             {
                                 <tr class="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                                    <td class="px-6 py-4">@truck.TruckNo</td>
                                     <td class="px-6 py-4">@truck.LicensePlate</td>
                                     <td class="px-6 py-4">@truck.Manufacturer</td>
-                                    <td class="px-6 py-4">@truck.Color</td>
                                     <td class="px-6 py-4">@truck.VIN</td>
-                                    <td class="px-6 py-4">@truck.EngineNo</td>
                                     <td class="px-6 py-4">@truck.Product</td>
                                     <td class="px-6 py-4">
                                         @if (truck.Driver is not null)
@@ -123,26 +116,24 @@
                                             @(IsUnderMaintenance(truck) ? "Under Maintenance" : "Clear")
                                         </span>
                                     </td>
-                                    <td class="px-6 py-4">@truck.CreatedAt.ToString("MMM dd, yyyy")</td>
                                     @* <td class="px-6 py-4">@(truck.UpdatedAt?.ToString("MMM dd, yyyy") ?? "Never")</td> *@
                                     <td class="px-6 py-4 text-right">
-                                        <div class="flex justify-end space-x-3">
-                                            <button @onclick="() => ViewTruck(truck.Id)" class="font-medium text-green-600 dark:text-green-500 hover:underline">
+                                        <RowActionMenu IsOpen="openActionMenuId == truck.Id" OnToggle="() => ToggleActionMenu(truck.Id)" TriggerLabel="Truck actions">
+                                            <button type="button" role="menuitem" @onclick="() => { ToggleActionMenu(truck.Id); ViewTruck(truck.Id); }"
+                                                class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
                                                 View
                                             </button>
-                                            <AuthorizeView Roles="Supervisor, Admin, Master, DriverSupervisor" Context="auth">
-                                                <button
-                                                    @onclick="() => OpenDriverAssignmentModal(truck)"
-                                                    class="font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
+                                            <AuthorizeView Roles="Supervisor, Admin, Master, DriverSupervisor, Manager" Context="auth">
+                                                <button type="button" role="menuitem" @onclick="() => { ToggleActionMenu(truck.Id); OpenDriverAssignmentModal(truck); }"
+                                                    class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
                                                     @(truck.DriverId is null ? "Add Driver" : "Edit Driver")
                                                 </button>
-                                                <button 
-                                                    @onclick="() => EditTruck(truck.Id)" 
-                                                    class="font-medium text-blue-600 dark:text-blue-400 hover:underline">
+                                                <button type="button" role="menuitem" @onclick="() => { ToggleActionMenu(truck.Id); EditTruck(truck.Id); }"
+                                                    class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
                                                     Edit
                                                 </button>
-                                            </AuthorizeView>                                            
-                                        </div>
+                                            </AuthorizeView>
+                                        </RowActionMenu>
                                     </td>
                                 </tr>
                             }
@@ -150,7 +141,7 @@
                         else
                         {
                             <tr>
-                                <td colspan="12" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                                <td colspan="8" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
                                     @if (AppState.IsBusy)
                                     {
                                         <div class="flex justify-center items-center">
@@ -267,8 +258,14 @@
     private Driver? selectedDriver;
     private string? selectedDriverName;
     private int assignmentAutocompleteKey;
+    private Guid? openActionMenuId;
 
-    
+    private void ToggleActionMenu(Guid truckId)
+    {
+        openActionMenuId = openActionMenuId == truckId ? null : truckId;
+    }
+
+
 
     protected override async Task OnInitializedAsync()
     {        

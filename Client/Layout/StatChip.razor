@@ -1,0 +1,19 @@
+<div class="relative rounded-xl px-3.5 py-2.5 @ColorClass min-w-0">
+    @if (!string.IsNullOrEmpty(BadgeText))
+    {
+        <span class="absolute -top-2 -right-2 text-[10px] font-semibold px-1.5 py-0.5 rounded-full shadow whitespace-nowrap @BadgeColorClass">@BadgeText</span>
+    }
+    <div class="text-[11px] font-medium text-white/80 truncate">@Label</div>
+    <div class="text-lg font-bold text-white leading-tight truncate">
+        @Value <span class="text-xs font-normal text-white/70">@Unit</span>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public string? Unit { get; set; }
+    [Parameter] public string ColorClass { get; set; } = "bg-blue-600";
+    [Parameter] public string? BadgeText { get; set; }
+    [Parameter] public string BadgeColorClass { get; set; } = "bg-emerald-500 text-white";
+}

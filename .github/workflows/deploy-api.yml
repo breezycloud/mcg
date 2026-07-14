@@ -32,11 +32,6 @@ jobs:
                   -o ./publish \
                   /p:EnvironmentName=Production
 
-          - name: Copy .env to Publish Directory
-            run: |
-              cp Api/.env ./publish/
-              echo "✅ Copied .env to publish directory"
-
           - name: Upload Api via SSH
             uses: appleboy/scp-action@v0.1.7
             with:
@@ -70,8 +65,9 @@ jobs:
               password: ${{ secrets.VPS_PASSWORD }}
               script: |
                   echo "✅ Deployed files to VPS"
+                  echo "🔐 Fixing file ownership..."
+                  sudo chown -R www-data:www-data ${{ secrets.API_TARGET }}
                   echo "🔄 Restarting mcc-api.service..."
-                  sudo systemctl stop mcc-api.service            
-                  sudo systemctl start mcc-api.service
+                  sudo systemctl restart mcc-api.service
                   sudo systemctl status mcc-api.service --no-pager -l --lines=10
                   echo "✅ Deployment complete!"

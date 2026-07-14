@@ -48,7 +48,7 @@
                 </div>
 
                 <!-- Company + Employee Info -->
-                <div class="px-6 py-3 bg-gray-50 border-b border-gray-200 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+                <div class="px-6 py-3 bg-gray-50 border-b border-gray-200 grid grid-cols-1 sm:grid-cols-4 gap-3 text-sm">
                     <div>
                         <span class="text-gray-500">Company:</span>
                         <span class="ml-1 font-medium text-gray-900">@(Configuration["CompanyName"] ?? "Atlantic Co., Ltd.")</span>
@@ -59,22 +59,20 @@
                             @(_report.Employee is not null ? $"{_report.Employee.FirstName} {_report.Employee.LastName}".Trim() : "—")
                         </span>
                     </div>
-                    <div class="flex gap-4">
-                        @if (_report.Department.HasValue)
-                        {
-                            <div>
-                                <span class="text-gray-500">Dept:</span>
-                                <span class="ml-1 font-medium text-gray-900">@_report.Department</span>
-                            </div>
-                        }
-                        @if (_report.Employee is not null)
-                        {
-                            <div>
-                                <span class="text-gray-500">Title:</span>
-                                <span class="ml-1 font-medium text-gray-900">@_report.Employee.Role</span>
-                            </div>
-                        }
-                    </div>
+                    @if (_report.Department.HasValue)
+                    {
+                        <div>
+                            <span class="text-gray-500">Dept:</span>
+                            <span class="ml-1 font-medium text-gray-900">@_report.Department</span>
+                        </div>
+                    }
+                    @if (_report.Employee is not null)
+                    {
+                        <div>
+                            <span class="text-gray-500">Title:</span>
+                            <span class="ml-1 font-medium text-gray-900">@_report.Employee.Role</span>
+                        </div>
+                    }
                 </div>
 
                 <!-- Work Tasks Table -->
@@ -83,8 +81,8 @@
                         <thead>
                             <tr class="bg-gray-100">
                                 <th class="border border-gray-300 px-4 py-2 text-left text-gray-700 w-8">#</th>
-                                <th class="border border-gray-300 px-4 py-2 text-left text-gray-700">Planned Work Tasks / Temporary Assignments</th>
-                                <th class="border border-gray-300 px-4 py-2 text-left text-gray-700">Actual Job Responsibilities</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-gray-700 w-[46%]">Planned Work Tasks / Temporary Assignments</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-gray-700 w-[46%]">Actual Job Responsibilities</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -128,8 +126,8 @@
                             <thead>
                                 <tr class="bg-gray-100">
                                     <th class="border border-gray-300 px-4 py-2 text-left text-gray-700 w-8">#</th>
-                                    <th class="border border-gray-300 px-4 py-2 text-left text-gray-700">Tomorrow's Work Plan</th>
-                                    <th class="border border-gray-300 px-4 py-2 text-left text-gray-700">Recommendations</th>
+                                    <th class="border border-gray-300 px-4 py-2 text-left text-gray-700 w-[46%]">Tomorrow's Work Plan</th>
+                                    <th class="border border-gray-300 px-4 py-2 text-left text-gray-700 w-[46%]">Recommendations</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -197,7 +195,19 @@
         .no-print, nav, aside, header, footer,
         aside, .no-print { display: none !important; }
         body, html { background: white !important; margin: 0; padding: 0; }
-        section { background: white !important; padding: 0 !important; }
+        section {
+            background: white !important;
+            padding: 0 !important;
+            min-height: 0 !important;
+        }
+
+        /* The screen layout centers the report in a max-w-4xl column with side padding —
+           on print that just wastes the A4 page's usable width. Let it fill the page. */
+        section > div {
+            max-width: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
 
         /* Full-width printable container */
         .report-container {

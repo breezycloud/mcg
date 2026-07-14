@@ -19,6 +19,9 @@ public interface ITripService
     ValueTask ExportLoadingInfoCsvAsync(ReportFilter request, CancellationToken cancellationToken);
     Task<GridDataResponse<Trip>?> GetPagedAsync(GridDataRequest request, CancellationToken cancellationToken);
     Task<Trip[]> GetTripsByDateRangeAsync(ReportFilter filter, CancellationToken cancellationToken);
+    Task<List<StationReportDto>> GetStationReportAsync(StationReportFilter filter, CancellationToken cancellationToken);
+    Task<List<TruckTripReportDto>> GetTruckReportAsync(TruckTripReportFilter filter, CancellationToken cancellationToken);
+    Task<List<DriverTripReportDto>> GetDriverReportAsync(DriverTripReportFilter filter, CancellationToken cancellationToken);
     Task<string?> GenerateDispatchIdAsync(Guid truckId, DateOnly date, CancellationToken cancellationToken);
     Task<bool> DispatchExistAsync(Guid truckId, DateOnly date, CancellationToken cancellationToken);
     ValueTask DownloadLoadingFilesAsync(ReportFilter filter, CancellationToken cancellationToken);

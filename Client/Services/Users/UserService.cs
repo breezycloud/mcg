@@ -11,30 +11,21 @@ public class UserService(IHttpClientFactory _httpClient) : IUserService
 {
     public async Task<bool> AddAsync(User model, CancellationToken cancellationToken)
     {
-        try
+        using var response = await _httpClient.CreateClient("AppUrl").PostAsJsonAsync("Users", model, cancellationToken);
+        if (!response.IsSuccessStatusCode)
         {
-            using var response = await _httpClient.CreateClient("AppUrl").PostAsJsonAsync("Users", model, cancellationToken);
-            response.EnsureSuccessStatusCode();
-            return response.IsSuccessStatusCode;
+            throw new InvalidOperationException(await ReadErrorMessageAsync(response, cancellationToken));
         }
-        catch (System.Exception)
-        {
-
-            throw;
-        }
+        return response.IsSuccessStatusCode;
     }
     public async Task<bool> UpdateAsync(User model, CancellationToken cancellationToken)
     {
-        try
+        using var response = await _httpClient.CreateClient("AppUrl").PutAsJsonAsync($"Users/{model.Id}", model, cancellationToken);
+        if (!response.IsSuccessStatusCode)
         {
-            using var response = await _httpClient.CreateClient("AppUrl").PutAsJsonAsync($"Users/{model.Id}", model, cancellationToken);
-            response.EnsureSuccessStatusCode();
-            return response.IsSuccessStatusCode;
+            throw new InvalidOperationException(await ReadErrorMessageAsync(response, cancellationToken));
         }
-        catch (System.Exception)
-        {
-            throw;
-        }
+        return response.IsSuccessStatusCode;
     }
 
     public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken)
@@ -169,5 +160,16 @@ public class UserService(IHttpClientFactory _httpClient) : IUserService
 
             throw;
         }
+    }
+
+    private static async Task<string> ReadErrorMessageAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        var content = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            return "Operation failed.";
+        }
+
+        return content.Trim().Trim('"');
     }
 }

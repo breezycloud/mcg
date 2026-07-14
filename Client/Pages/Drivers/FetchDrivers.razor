@@ -1,6 +1,6 @@
 @page "/drivers"
 @inject IDriverService DriverService
-@attribute [Authorize(Roles = "Supervisor, Admin, Master, Nrl, DriverSupervisor")]
+@attribute [Authorize(Roles = "Supervisor, Admin, Master, Nrl, DriverSupervisor, Manager")]
 <PageTitle>Drivers</PageTitle>
 
 
@@ -25,7 +25,7 @@
                             @bind-value="@request.SearchTerm" @bind-value:event="oninput" @onkeyup="async () => await HandleSearch(request.SearchTerm!)" />
                     </div>
                 </div>
-                <AuthorizeView Roles="Supervisor, Admin, Master, DriverSupervisor" Context="auth">
+                <AuthorizeView Roles="Supervisor, Admin, Master, DriverSupervisor, Manager" Context="auth">
                     <Authorized>
                         <div class="flex flex-col items-stretch justify-end flex-shrink-0 w-full space-y-2 md:w-auto md:flex-row md:space-y-0 md:items-center md:space-x-3">
                             <a 
@@ -37,20 +37,40 @@
                                 </svg>
                                 Report
                             </a>
-                            <AuthorizeView Roles="Supervisor, Admin, Master">
-                                <button 
-                                    @onclick="AddDriver" 
-                                    type="button" 
-                                    class="flex items-center justify-center text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">
-                                    <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                                        <path clip-rule="evenodd" fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" />
-                                    </svg>
-                                    Add Driver
-                                </button>                        `
-                            </AuthorizeView>                            
+                            <AuthorizeView Roles="Supervisor, Admin, Master, Manager">
+                                <div class="relative">
+                                    <button
+                                        @onclick="ToggleActionMenu"
+                                        type="button"
+                                        class="flex items-center justify-center text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">
+                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                                        </svg>
+                                        Actions
+                                    </button>
+                                    <div class="@(isActionMenuOpen ? "block" : "hidden") absolute right-0 top-12 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg z-20 border border-gray-200 dark:border-gray-700">
+                                        <div class="py-1">
+                                            <button type="button" @onclick="AddDriver"
+                                                class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                                <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                                    <path clip-rule="evenodd" fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" />
+                                                </svg>
+                                                Add Driver
+                                            </button>
+                                            <button type="button" @onclick="GoToImportDrivers"
+                                                class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                                <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                                    <path d="M12 16l-6-6h4V4h4v6h4l-6 6zm-8 2h16v2H4v-2z" />
+                                                </svg>
+                                                Import Drivers
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </AuthorizeView>
                         </div>
                     </Authorized>
-                </AuthorizeView>                
+                </AuthorizeView>
             </div>
 
             <!-- Table -->
@@ -95,27 +115,24 @@
                                         </span>
                                     </td>
                                     <td class="px-6 py-4 text-right">
-                                        <div class="flex justify-end space-x-3">
-                                            <button 
-                                                @onclick="(() => ViewDriver(driver.Id))" 
-                                                class="font-medium text-green-600 dark:text-green-500 hover:underline">
+                                        <RowActionMenu IsOpen="openActionMenuId == driver.Id" OnToggle="() => ToggleActionMenu(driver.Id)" TriggerLabel="Driver actions">
+                                            <button type="button" role="menuitem" @onclick="() => { ToggleActionMenu(driver.Id); ViewDriver(driver.Id); }"
+                                                class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
                                                 View
                                             </button>
-                                            <AuthorizeView Roles="Supervisor, DriverSupervisor, Admin, Master">
+                                            <AuthorizeView Roles="Supervisor, DriverSupervisor, Admin, Master, Manager">
                                                 <Authorized>
-                                                    <button 
-                                                        @onclick="() => EditDriver(driver.Id)" 
-                                                        class="font-medium text-blue-600 dark:text-blue-400 hover:underline">
+                                                    <button type="button" role="menuitem" @onclick="() => { ToggleActionMenu(driver.Id); EditDriver(driver.Id); }"
+                                                        class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
                                                         Edit
                                                     </button>
                                                 </Authorized>
-                                            </AuthorizeView>                                            
-                                            @* <button 
-                                                @onclick="() => DeleteDriver(driver.Id)" 
-                                                class="font-medium text-red-600 dark:text-red-500 hover:underline">
+                                            </AuthorizeView>
+                                            @* <button type="button" @onclick="() => { ToggleActionMenu(driver.Id); DeleteDriver(driver.Id); }"
+                                                class="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700">
                                                 Delete
                                             </button> *@
-                                        </div>
+                                        </RowActionMenu>
                                     </td>
                                 </tr>
                             }
@@ -171,8 +188,13 @@
 @code {
     private GridDataResponse<Driver>? drivers = null;
     private GridDataRequest request = new();
+    private bool isActionMenuOpen;
+    private Guid? openActionMenuId;
 
-    
+    private void ToggleActionMenu(Guid driverId)
+    {
+        openActionMenuId = openActionMenuId == driverId ? null : driverId;
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -195,20 +217,36 @@
     private async Task LoadDrivers()
     {
         AppState.IsBusy = true;
-        try 
+        try
         {
             drivers = await DriverService.GetPagedAsync(request, AppState.GetCancellationToken());
+        }
+        catch
+        {
+            ToastService.ShowError("Failed to load drivers");
         }
         finally
         {
             AppState.IsBusy = false;
         }
-        
+
+    }
+
+    private void ToggleActionMenu()
+    {
+        isActionMenuOpen = !isActionMenuOpen;
     }
 
     private void AddDriver()
     {
+        isActionMenuOpen = false;
         nav.NavigateTo("/drivers/add");
+    }
+
+    private void GoToImportDrivers()
+    {
+        isActionMenuOpen = false;
+        nav.NavigateTo("/drivers/import");
     }
 
     private void EditDriver(Guid id)

@@ -1,0 +1,69 @@
+@* Shared row action-menu trigger + dropdown, used by every list page's "⋮" column. Previously
+   this exact markup was copy-pasted into 10 different files with no accessible name, no
+   aria-haspopup/aria-expanded, and no Escape handling — fixing it once here fixes it everywhere.
+   Open/closed state is still owned by the caller (a single "which row is open" field per page,
+   so opening one row's menu closes any other), this component just renders the trigger/dropdown
+   chrome and wires up focus + keyboard behavior around whatever menu items the caller supplies. *@
+@inject IJSRuntime JS
+@implements IDisposable
+
+<div class="relative inline-block text-left">
+    <button type="button" id="@_triggerId" @onclick="HandleToggle"
+            aria-label="@TriggerLabel" aria-haspopup="menu" aria-expanded="@(IsOpen ? "true" : "false")"
+            class="p-1.5 rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+            <path d="M10 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4z" />
+        </svg>
+    </button>
+    <div id="@_menuId" role="menu" aria-label="@TriggerLabel"
+         class="@(IsOpen ? "block" : "hidden") absolute right-0 mt-1 w-32 bg-white dark:bg-gray-800 rounded-lg shadow-lg z-20 border border-gray-200 dark:border-gray-700">
+        <div class="py-1">
+            @ChildContent
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public bool IsOpen { get; set; }
+    [Parameter, EditorRequired] public EventCallback OnToggle { get; set; }
+    [Parameter] public string TriggerLabel { get; set; } = "Row actions";
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private readonly string _triggerId = $"row-menu-trigger-{Guid.NewGuid():N}";
+    private readonly string _menuId = $"row-menu-{Guid.NewGuid():N}";
+    private bool _wasOpen;
+    private DotNetObjectReference<RowActionMenu>? _dotNetRef;
+
+    private async Task HandleToggle()
+    {
+        await OnToggle.InvokeAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (IsOpen && !_wasOpen)
+        {
+            _dotNetRef ??= DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("rowMenu.activate", _menuId, _triggerId, _dotNetRef);
+        }
+        else if (!IsOpen && _wasOpen)
+        {
+            await JS.InvokeVoidAsync("rowMenu.deactivate", _menuId);
+        }
+        _wasOpen = IsOpen;
+    }
+
+    [JSInvokable]
+    public async Task OnEscapePressed()
+    {
+        if (IsOpen)
+        {
+            await OnToggle.InvokeAsync();
+        }
+    }
+
+    public void Dispose()
+    {
+        _dotNetRef?.Dispose();
+    }
+}

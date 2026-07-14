@@ -78,23 +78,20 @@
                                     <td class="px-6 py-4">@user.CreatedAt.ToString("MMM dd, yyyy")</td>
                                     <td class="px-6 py-4">@(user.UpdatedAt?.ToString("MMM dd, yyyy") ?? "Never")</td>
                                     <td class="px-6 py-4 text-right">
-                                        <div class="flex justify-end space-x-3">
-                                            <button 
-                                                @onclick="() => EditUser(user)" 
-                                                class="font-medium text-blue-600 dark:text-blue-400 hover:underline">
+                                        <RowActionMenu IsOpen="openActionMenuId == user.Id" OnToggle="() => ToggleActionMenu(user.Id)" TriggerLabel="User actions">
+                                            <button type="button" role="menuitem" @onclick="() => { ToggleActionMenu(user.Id); EditUser(user); }"
+                                                class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
                                                 Edit
                                             </button>
-                                            <button 
-                                                @onclick="() => OnView(user)" 
-                                                class="font-medium text-gray-600 dark:text-gray-400 hover:underline">
+                                            <button type="button" role="menuitem" @onclick="() => { ToggleActionMenu(user.Id); OnView(user); }"
+                                                class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
                                                 View
                                             </button>
-                                            @* <button 
-                                                @onclick="() => DeleteUser(user.Id)" 
-                                                class="font-medium text-red-600 dark:text-red-500 hover:underline">
+                                            @* <button type="button" @onclick="() => { ToggleActionMenu(user.Id); DeleteUser(user.Id); }"
+                                                class="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700">
                                                 Delete
                                             </button> *@
-                                        </div>
+                                        </RowActionMenu>
                                     </td>
                                 </tr>
                             }
@@ -174,6 +171,12 @@
 
     private bool DataMode = true;
     private MaintenanceSite[]? Sites = [];
+    private Guid? openActionMenuId;
+
+    private void ToggleActionMenu(Guid userId)
+    {
+        openActionMenuId = openActionMenuId == userId ? null : userId;
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -237,20 +240,19 @@
     }
 
     private async Task HandleSave(User user)
-    {        
+    {
+        if (AppState.IsProcessing) return;
+
         bool result = false;
+        AppState.IsProcessing = true;
         try
-        {            
+        {
 
             if (!EditMode)
             {
+                // Login-credentials email is now sent server-side by UsersController.PostUser
+                // itself (via the RabbitMQ/FluentEmail pipeline) — no separate client call needed.
                 result = await UserService.AddAsync(user, AppState.GetCancellationToken());
-                if (result)
-                {
-                    var emailRequest = new EmailRequest { Email = user.Email!, Name = user.LastName!, templateId = 1};
-                    await UserService.SendEmailAsync(emailRequest, AppState.GetCancellationToken());
-                }
-                
             }
             else
             {
@@ -260,25 +262,22 @@
             if (result)
                 ToastService.ShowSuccess($"User successfully {(EditMode ? "updated" : "added")}", 5);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            ToastService.ShowError("error occurred");
+            ToastService.ShowError(ex.Message);
         }
         finally
         {
+            AppState.IsProcessing = false;
             if (result)
             {
                 EntryMode = false;
                 EditMode = false;
                 selectedUser = null;
-                if (result)
-                {
-                    DataMode = true;
-                    await LoadUsers();
-                }
+                DataMode = true;
+                await LoadUsers();
             }
-            
-        }        
+        }
     }
 
     private void CancelView()

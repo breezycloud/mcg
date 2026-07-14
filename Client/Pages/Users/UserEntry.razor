@@ -2,6 +2,7 @@
 @using Shared.Extensions
 @using global::Client.Handlers
 @inject IJSRuntime js
+@inject IUserService UserService
 <div class="max-w-2xl mx-auto p-4 sm:p-6">
     <div class="bg-white shadow rounded-lg dark:bg-gray-800">
         <!-- Header -->
@@ -109,6 +110,32 @@
                 }
             </div>
 
+            @* Supervisor — who this user's daily reports are visible to. Any role can be a
+               supervisor; visibility is driven by this relationship, not by role name. *@
+            <div>
+                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    Supervisor
+                    <span class="ml-1 text-xs text-gray-400 font-normal">(optional — who this user's daily reports go to)</span>
+                </label>
+                <Autocomplete TItem="User"
+                    SearchFunc="SearchSupervisors"
+                    SelectedChanged="OnSupervisorSelected"
+                    Placeholder="Search by name..."
+                    InitialText="@selectedSupervisorName">
+                    <OptionTemplate Context="user">
+                        <span>@user.FirstName @user.LastName
+                            <span class="ml-1 text-xs text-gray-400">(@StringConverter.ToDescription(user.Role))</span>
+                        </span>
+                    </OptionTemplate>
+                </Autocomplete>
+                @if (CurrentUser.SupervisorId.HasValue)
+                {
+                    <button type="button" @onclick="ClearSupervisor" class="mt-1 text-xs text-red-600 dark:text-red-400 hover:underline">
+                        Clear supervisor
+                    </button>
+                }
+            </div>
+
             @* Driver Supervisor Managed Products *@
             @if (CurrentUser.Role == UserRole.DriverSupervisor)
             {
@@ -181,8 +208,10 @@
 
     private Dictionary<string, string> errors = new();
     private HashSet<Product> SelectedManagedProducts = new();
+    private string? selectedSupervisorName;
+    private Guid? _lastResolvedSupervisorId;
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
         // Initialize managed products selection when editing
         if (EditMode && CurrentUser.Role == UserRole.DriverSupervisor && CurrentUser.ManagedProducts?.Count > 0)
@@ -193,6 +222,38 @@
         {
             SelectedManagedProducts.Clear();
         }
+
+        // Resolve the supervisor's display name once per SupervisorId change — CurrentUser
+        // comes from GetUser(id), which doesn't eager-load the Supervisor navigation property.
+        if (CurrentUser.SupervisorId != _lastResolvedSupervisorId)
+        {
+            _lastResolvedSupervisorId = CurrentUser.SupervisorId;
+            selectedSupervisorName = CurrentUser.SupervisorId.HasValue
+                ? (await UserService.GetAsync(CurrentUser.SupervisorId.Value, CancellationToken.None)) is { } supervisor
+                    ? $"{supervisor.FirstName} {supervisor.LastName}"
+                    : null
+                : null;
+        }
+    }
+
+    private async Task<List<User>> SearchSupervisors(string query, int page, CancellationToken ct)
+    {
+        var request = new GridDataRequest { SearchTerm = query, Page = page, PageSize = 10 };
+        var response = await UserService.GetPagedAsync(request, ct);
+        // A user can't supervise themself
+        return (response?.Data ?? []).Where(u => u.Id != CurrentUser.Id).ToList();
+    }
+
+    private void OnSupervisorSelected(User? user)
+    {
+        CurrentUser.SupervisorId = user?.Id;
+        selectedSupervisorName = user is not null ? $"{user.FirstName} {user.LastName}" : null;
+    }
+
+    private void ClearSupervisor()
+    {
+        CurrentUser.SupervisorId = null;
+        selectedSupervisorName = null;
     }
 
     private void OnRoleChanged()

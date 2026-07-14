@@ -32,6 +32,7 @@
                     <DischargeCard Data="discharge"
                                    OnDelete="DeleteDischarge"
                                    OnEdit="EditDischarge"
+                                   ShowDeleteButton="true"
                                    ShowUpload="true"
                                    ShowFileDelete="true"
                                    OnFilesUploaded="@(files => SaveDischargeFiles(discharge, files))"

@@ -5,7 +5,7 @@
 @using System.Text
 @inject IIncidentService IncidentService
 @inject IIncidentTypeService IncidentTypeService
-@attribute [Authorize(Roles ="Supervisor, Monitoring, Admin, Master")]
+@attribute [Authorize(Roles ="Supervisor, Monitoring, Admin, Master, Manager")]
 <PageTitle>Incidents</PageTitle>
 
 
@@ -41,7 +41,7 @@
                         <option value="@status">@status</option>
                     }
                 </select>
-                <AuthorizeView Roles="Admin, Supervisor, Monitoring, Master">
+                <AuthorizeView Roles="Admin, Supervisor, Monitoring, Master, Manager">
                     <div class="flex flex-col items-stretch justify-end flex-shrink-0 w-full space-y-2 md:w-auto md:flex-row md:space-y-0 md:items-center md:space-x-3">                    
                         <a 
                             href="incident-report" 
@@ -117,28 +117,25 @@
                                     </span>                                    
                                 </td>
                                 <td class="px-6 py-4 text-right">
-                                    <div class="flex justify-end space-x-3">
-                                       <AuthorizeView Roles="Admin, Master, Monitoring">
+                                    <RowActionMenu IsOpen="openActionMenuId == request.Id" OnToggle="() => ToggleActionMenu(request.Id)" TriggerLabel="Incident actions">
+                                        <AuthorizeView Roles="Admin, Master, Monitoring, Manager">
                                             @if(request.Status != IncidentStatus.Closed)
                                             {
-                                                <button 
-                                                    @onclick="() => EditIncident(request.Id)" 
-                                                    class="font-medium text-blue-600 dark:text-blue-400 hover:underline">
+                                                <button type="button" role="menuitem" @onclick="() => { ToggleActionMenu(request.Id); EditIncident(request.Id); }"
+                                                    class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
                                                     Edit
                                                 </button>
                                             }
-                                       </AuthorizeView>
-                                        <button 
-                                            @onclick="() => ViewIncident(request.Id)" 
-                                            class="font-medium text-gray-600 dark:text-gray-400 hover:underline">
+                                        </AuthorizeView>
+                                        <button type="button" role="menuitem" @onclick="() => { ToggleActionMenu(request.Id); ViewIncident(request.Id); }"
+                                            class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
                                             View
                                         </button>
-                                        @* <button 
-                                            @onclick="() => DeleteIncident(request.Id)" 
-                                            class="font-medium text-red-600 dark:text-red-500 hover:underline">
+                                        @* <button type="button" @onclick="() => { ToggleActionMenu(request.Id); DeleteIncident(request.Id); }"
+                                            class="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700">
                                             Delete
                                         </button> *@
-                                    </div>
+                                    </RowActionMenu>
                                 </td>
                             </tr>
                         }
@@ -203,7 +200,14 @@
 
     private MaintenanceSite[]? Sites;
     private MaintenanceSite? Site = new();
+    private Guid? openActionMenuId;
     [CascadingParameter] public Task<AuthenticationState>? authenticationState { get; set; }
+
+    private void ToggleActionMenu(Guid incidentId)
+    {
+        openActionMenuId = openActionMenuId == incidentId ? null : incidentId;
+    }
+
     protected override async Task OnInitializedAsync()
     {
         // Load trucks and sites here
@@ -291,7 +295,7 @@
         {
             IncidentStatus.New => "bg-yellow-100 rounded text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
             IncidentStatus.Treated => "bg-blue-100 rounded text-blue-800 dark:bg-blue-900 dark:text-blue-300",
-            IncidentStatus.Resolved => "bg-green-100 rounded text-green-800 dark:bg-green-900 dark:text-green-300",
+            IncidentStatus.Reported or IncidentStatus.Resolved => "bg-green-100 rounded text-green-800 dark:bg-green-900 dark:text-green-300",
             IncidentStatus.Closed => "bg-red-100 rounded text-red-800 dark:bg-red-900 dark:text-red-300",
             _ => "bg-gray-100 rounded text-gray-800 dark:bg-gray-700 dark:text-gray-300"
         };

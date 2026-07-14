@@ -20,6 +20,8 @@ public class EmailPublisherService : IDisposable
             Password = config.Value.Password,
             Port = config.Value.Port
         };
+
+
         _connection = factory.CreateConnection();
         _channel = _connection.CreateModel();
 

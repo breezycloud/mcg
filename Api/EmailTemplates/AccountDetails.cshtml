@@ -3,27 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Account Login Details</title>
+    <title>Welcome to MCC</title>
     <style type="text/css">
-        body { 
-            font-family: Arial, sans-serif; 
-            line-height: 1.6; 
-            color: #333; 
-            max-width: 600px; 
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
             min-width: 500px;
-            margin: 0 auto; 
-            padding: 20px; 
+            margin: 0 auto;
+            padding: 20px;
         }
         .container {
             background-color: #f4f4f4;
             border-radius: 8px;
             padding: 30px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        .logo {
-            max-width: 200px; 
-            margin: 0 auto 20px;
-            display: block;
         }
         .header {
             background-color: #4CAF50;
@@ -36,21 +31,6 @@
             background-color: white;
             padding: 20px;
             border-radius: 0 0 8px 8px;
-        }
-        .button {
-            display: inline-block;
-            background-color: #4CAF50;
-            color: white !important;
-            padding: 10px 20px;
-            text-decoration: none;
-            border-radius: 5px;
-            margin: 20px 0;
-        }
-        .footer {
-            text-align: center;
-            font-size: 0.8em;
-            color: #777;
-            margin-top: 20px;
         }
         .details-table {
             width: 100%;
@@ -65,34 +45,68 @@
             font-weight: bold;
             width: 150px;
         }
+        .credential {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .notice {
+            background-color: #fff8e1;
+            border-left: 4px solid #f0ad4e;
+            padding: 10px 15px;
+            margin: 20px 0;
+            font-size: 0.95em;
+        }
+        .footer {
+            text-align: center;
+            font-size: 0.8em;
+            color: #777;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
+    @if (Model.IsTestEnvironment)
+    {
+        <div style="background-color:#fff3cd; color:#856404; padding:12px 20px; text-align:center; font-weight:bold; border:1px solid #f0ad4e; border-radius:8px; margin-bottom:15px;">
+            &#9888; TEST ENVIRONMENT &mdash; This email was sent from a staging/test system, not the live production system. No action is needed if you weren't expecting this.
+        </div>
+    }
     <div class="container">
+        <div class="header">
+            <h2>Welcome to MCC</h2>
+        </div>
         <div class="content">
             <p>Dear @Model.Name,</p>
-            
-            <p>Your account has been registered. Below are your login details:</p>
-            
+
+            <p>Your account has been created and is ready to use. Here are your login details:</p>
+
             <table class="details-table">
                 <tr>
                     <td class="label">Email:</td>
-                    <td>@Model.Email</td>
+                    <td><span class="credential">@Model.Email</span></td>
                 </tr>
                 <tr>
-                    <td class="label">Password:</td>
-                    <td>@Model.Password</td>
+                    <td class="label">Temporary password:</td>
+                    <td><span class="credential">@Model.Password</span></td>
                 </tr>
                 <tr>
-                    <td class="label">Portal Link:</td>
+                    <td class="label">Portal:</td>
                     <td><a href="@Model.PortalUrl">@Model.PortalUrl</a></td>
                 </tr>
             </table>
-            
-            <p>Please log in using the above credentials. For security, we recommend changing your password after your first login.</p>
-            
+
+            <p style="text-align: center; margin: 30px 0;">
+                <a href="@Model.PortalUrl" style="background-color: #4CAF50; color: white; padding: 12px 32px; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: bold; display: inline-block;">Sign in to your account</a>
+            </p>
+
+            <div class="notice">
+                For your security, you'll be asked to set your own password the first time you sign in — the temporary password above will stop working once you do.
+            </div>
+
             <p>If you have any questions or need assistance, please contact our support team at @Model.SupportEmail.</p>
-            
+
             <p>Best regards,<br>
             The MCC Team</p>
         </div>

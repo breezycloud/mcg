@@ -1,6 +1,6 @@
 @page "/refuelling"
 @inject IRefuelInfoService RefuellingService
-@attribute [Authorize(Roles = "Supervisor, Admin, Master")]
+@attribute [Authorize(Roles = "Supervisor, Admin, Master, Manager")]
 <PageTitle>Refuelling Info</PageTitle>
 
 
@@ -25,7 +25,7 @@
                             @bind-value="@request.SearchTerm" @bind-value:event="oninput" @onkeyup="async () => await HandleSearch(request.SearchTerm!)" />
                     </div>
                 </div>
-                <AuthorizeView Roles="Supervisor, Admin, Master" Context="auth">
+                <AuthorizeView Roles="Supervisor, Admin, Master, Manager" Context="auth">
                     <Authorized>
                         <div class="flex flex-col items-stretch justify-end flex-shrink-0 w-full space-y-2 md:w-auto md:flex-row md:space-y-0 md:items-center md:space-x-3">
                             <button 
@@ -176,15 +176,19 @@
     private async Task Loadrefuelling()
     {
         AppState.IsBusy = true;
-        try 
+        try
         {
             refuelling = await RefuellingService.GetPagedAsync(request, AppState.GetCancellationToken());
+        }
+        catch
+        {
+            ToastService.ShowError("Failed to load refuel records");
         }
         finally
         {
             AppState.IsBusy = false;
         }
-        
+
     }
 
     private void AddInfo()

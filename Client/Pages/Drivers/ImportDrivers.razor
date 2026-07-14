@@ -1,0 +1,276 @@
+@page "/drivers/import"
+@inject IDriverService DriverService
+@inject IExportService ExportService
+@attribute [Authorize(Roles = "Supervisor, Admin, Master, DriverSupervisor, Manager")]
+<PageTitle>Import Drivers</PageTitle>
+
+<div class="px-4 lg:px-12 py-6">
+    <div class="bg-white dark:bg-gray-800 relative shadow-md sm:rounded-lg overflow-hidden p-6">
+        <div class="mb-6 flex items-center justify-between">
+            <div>
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white">Import Drivers</h2>
+                <p class="text-sm text-gray-500 dark:text-gray-400">
+                    CSV columns, in order: First Name, Last Name, Phone Number, License Number, Expiry Date,
+                    Motor Mate Name, Motor Mate Phone, Assigned Truck (plate number, optional).
+                </p>
+            </div>
+            <div class="flex items-center gap-2">
+                <button type="button" @onclick="DownloadTemplate"
+                    class="flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600">
+                    <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                        <path fill-rule="evenodd" clip-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" />
+                    </svg>
+                    Download Template
+                </button>
+                <button type="button" @onclick="GoToDrivers"
+                    class="px-4 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600">
+                    Back to Drivers
+                </button>
+            </div>
+        </div>
+
+        @if (commitResponse is null)
+        {
+            <div class="mb-6">
+                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">CSV File</label>
+                <InputFile OnChange="HandleFileSelected" accept=".csv"
+                    class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 dark:bg-gray-700 dark:border-gray-600" />
+                @if (!string.IsNullOrEmpty(loadError))
+                {
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-500">@loadError</p>
+                }
+            </div>
+
+            @if (isLoading)
+            {
+                <div class="flex items-center gap-2 text-gray-500">
+                    <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                    </svg>
+                    Processing file...
+                </div>
+            }
+
+            @if (previewResponse is not null)
+            {
+                <div class="mb-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-4">
+                        <div class="text-2xl font-bold text-blue-700 dark:text-blue-300">@previewResponse.NewCount</div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">New drivers</div>
+                    </div>
+                    <div class="bg-amber-50 dark:bg-amber-900/30 rounded-lg p-4">
+                        <div class="text-2xl font-bold text-amber-700 dark:text-amber-300">@previewResponse.UpdateCount</div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">Existing (will update)</div>
+                    </div>
+                    <div class="bg-red-50 dark:bg-red-900/30 rounded-lg p-4">
+                        <div class="text-2xl font-bold text-red-700 dark:text-red-300">@previewResponse.ErrorCount</div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">Rows with errors (skipped)</div>
+                    </div>
+                    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                        <div class="text-2xl font-bold text-gray-700 dark:text-gray-300">@previewResponse.WarningCount</div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">Rows with warnings</div>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-lg mb-4">
+                    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-400">
+                            <tr>
+                                <th class="px-4 py-2">Row</th>
+                                <th class="px-4 py-2">Name</th>
+                                <th class="px-4 py-2">Phone</th>
+                                <th class="px-4 py-2">License</th>
+                                <th class="px-4 py-2">Expiry</th>
+                                <th class="px-4 py-2">Motor Mate</th>
+                                <th class="px-4 py-2">Truck</th>
+                                <th class="px-4 py-2">Action</th>
+                                <th class="px-4 py-2">Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var row in previewResponse.Rows)
+                            {
+                                <tr class="border-b dark:border-gray-700 @(row.HasErrors ? "bg-red-50 dark:bg-red-900/20" : row.Warnings.Any() ? "bg-amber-50 dark:bg-amber-900/10" : "")">
+                                    <td class="px-4 py-2">@row.RowNumber</td>
+                                    <td class="px-4 py-2">@row.FirstName @row.LastName</td>
+                                    <td class="px-4 py-2">@row.PhoneNo</td>
+                                    <td class="px-4 py-2">@row.LicenseNo</td>
+                                    <td class="px-4 py-2">@row.ExpiryDate?.ToString("MMM dd, yyyy")</td>
+                                    <td class="px-4 py-2">@row.MotorMateName</td>
+                                    <td class="px-4 py-2">@row.AssignedTruckPlate</td>
+                                    <td class="px-4 py-2">
+                                        @if (row.HasErrors)
+                                        {
+                                            <span class="text-red-600 dark:text-red-400 font-medium">Skip</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="@(row.Action == "Create" ? "text-blue-600 dark:text-blue-400" : "text-amber-600 dark:text-amber-400") font-medium">@row.Action</span>
+                                        }
+                                    </td>
+                                    <td class="px-4 py-2 text-xs">
+                                        @foreach (var e in row.Errors)
+                                        {
+                                            <div class="text-red-600 dark:text-red-400">@e</div>
+                                        }
+                                        @foreach (var w in row.Warnings)
+                                        {
+                                            <div class="text-amber-600 dark:text-amber-400">@w</div>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="flex justify-end gap-4">
+                    <button type="button" @onclick="Reset"
+                        class="px-5 py-2.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600">
+                        Cancel
+                    </button>
+                    <button type="button" @onclick="Commit" disabled="@(isCommitting || previewResponse.NewCount + previewResponse.UpdateCount == 0)"
+                        class="px-5 py-2.5 text-sm font-medium text-white bg-blue-700 rounded-lg hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-700 disabled:opacity-50">
+                        @(isCommitting ? "Importing..." : $"Confirm Import ({previewResponse.NewCount + previewResponse.UpdateCount} rows)")
+                    </button>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="mb-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Import Complete</h3>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-4">
+                        <div class="text-2xl font-bold text-blue-700 dark:text-blue-300">@commitResponse.CreatedCount</div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">Drivers created</div>
+                    </div>
+                    <div class="bg-amber-50 dark:bg-amber-900/30 rounded-lg p-4">
+                        <div class="text-2xl font-bold text-amber-700 dark:text-amber-300">@commitResponse.UpdatedCount</div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">Drivers updated</div>
+                    </div>
+                    <div class="bg-red-50 dark:bg-red-900/30 rounded-lg p-4">
+                        <div class="text-2xl font-bold text-red-700 dark:text-red-300">@commitResponse.SkippedCount</div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">Rows skipped (errors)</div>
+                    </div>
+                    <div class="bg-purple-50 dark:bg-purple-900/30 rounded-lg p-4">
+                        <div class="text-2xl font-bold text-purple-700 dark:text-purple-300">@commitResponse.MotorMatesCreated</div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">Motor mates created</div>
+                    </div>
+                    <div class="bg-purple-50 dark:bg-purple-900/30 rounded-lg p-4">
+                        <div class="text-2xl font-bold text-purple-700 dark:text-purple-300">@commitResponse.MotorMateHistoryEntries</div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">Motor mate changes logged</div>
+                    </div>
+                    <div class="bg-green-50 dark:bg-green-900/30 rounded-lg p-4">
+                        <div class="text-2xl font-bold text-green-700 dark:text-green-300">@commitResponse.TrucksAssigned</div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">Truck assignments updated</div>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-4">
+                    <button type="button" @onclick="Reset"
+                        class="px-5 py-2.5 text-sm font-medium text-white bg-blue-700 rounded-lg hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-700">
+                        Import Another File
+                    </button>
+                    <button type="button" @onclick="GoToDrivers"
+                        class="px-5 py-2.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600">
+                        Go to Drivers
+                    </button>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private byte[]? csvBytes;
+    private string? fileName;
+    private bool isLoading;
+    private bool isCommitting;
+    private string? loadError;
+    private DriverImportPreviewResponse? previewResponse;
+    private DriverImportCommitResponse? commitResponse;
+
+    private const long MaxFileSizeBytes = 5 * 1024 * 1024; // 5 MB
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        loadError = null;
+        previewResponse = null;
+        isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            var file = e.File;
+            fileName = file.Name;
+            using var stream = file.OpenReadStream(MaxFileSizeBytes);
+            using var memoryStream = new MemoryStream();
+            await stream.CopyToAsync(memoryStream);
+            csvBytes = memoryStream.ToArray();
+
+            previewResponse = await DriverService.PreviewImportAsync(csvBytes, fileName, AppState.GetCancellationToken());
+        }
+        catch (Exception ex)
+        {
+            loadError = $"Could not process file: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task Commit()
+    {
+        if (csvBytes is null || fileName is null) return;
+
+        isCommitting = true;
+        StateHasChanged();
+        try
+        {
+            commitResponse = await DriverService.CommitImportAsync(csvBytes, fileName, AppState.GetCancellationToken());
+            if (commitResponse is not null)
+            {
+                ToastService.ShowSuccess($"Imported {commitResponse.CreatedCount + commitResponse.UpdatedCount} drivers", 5);
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Import failed: {ex.Message}");
+        }
+        finally
+        {
+            isCommitting = false;
+            StateHasChanged();
+        }
+    }
+
+    private void Reset()
+    {
+        csvBytes = null;
+        fileName = null;
+        previewResponse = null;
+        commitResponse = null;
+        loadError = null;
+    }
+
+    private void GoToDrivers()
+    {
+        nav.NavigateTo("drivers");
+    }
+
+    private async Task DownloadTemplate()
+    {
+        var lines = new[]
+        {
+            "First Name,Last Name,Phone Number,License Number,Expiry Date,Motor Mate,Phone Number,Assigned Truck",
+            "John,Doe,08012345678,LIC-001234,2027-12-31,Musa Bello,08087654321,T 29001 LA",
+            "Grace,Okafor,08023456789,LIC-005678,2026-06-30,,,",
+        };
+        var content = string.Join("\r\n", lines) + "\r\n";
+        var bytes = System.Text.Encoding.UTF8.GetBytes(content);
+        await ExportService.ExportCsvContent(bytes, "driver_import_template.csv");
+    }
+}

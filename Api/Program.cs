@@ -1,4 +1,5 @@
 using System.Configuration;
+using System.Security.Claims;
 using System.Text;
 using System.Threading.RateLimiting;
 using Api.Context;
@@ -8,14 +9,21 @@ using Api.Hubs;
 using Api.Interceptors;
 using Shared.Hubs;
 using Api.Logging;
+using Api.Services.ControlRoom;
 using Api.Services.Dashboards;
+using Api.Services.Discharges;
 using Api.Services.Messages;
+using Api.Services.Drivers;
+using Api.Services.Stations;
+using Api.Services.Trucks;
 using Api.Util;
 using FluentEmail.Core;
 using FluentEmail.Core.Interfaces;
 using FluentEmail.MailKitSmtp;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
@@ -23,126 +31,24 @@ using Microsoft.IdentityModel.Tokens;
 using Npgsql;
 using RazorLight;
 using Shared.Helpers;
+using Shared.Interfaces.ControlRoom;
 using Shared.Interfaces.Dashboards;
+using Shared.Interfaces.Drivers;
+using Shared.Interfaces.Stations;
+using Shared.Interfaces.Trucks;
 using Shared.Models.MessageBroker;
-
-static IReadOnlyDictionary<string, string> LoadEnvFile(string path)
-{
-    var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-    if (!File.Exists(path))
-        return result;
-
-    foreach (var line in File.ReadAllLines(path))
-    {
-        var trimmed = line.Trim();
-        if (string.IsNullOrEmpty(trimmed) || trimmed.StartsWith('#'))
-            continue;
-
-        var eqIndex = trimmed.IndexOf('=');
-        if (eqIndex < 0)
-            continue;
-
-        var key = trimmed[..eqIndex].TrimEnd();
-        var value = trimmed[(eqIndex + 1)..].TrimStart();
-        if (string.IsNullOrEmpty(key))
-            continue;
-
-        result[key] = value;
-    }
-    return result;
-}
-
-// --- Idempotent .env loading ------------------------------------------------
-var envDir = Directory.GetCurrentDirectory();
-
-#if DEBUG
-var envPath = Path.Combine(envDir, ".env.local");
-#else
-var envPath = Path.Combine(envDir, ".env");
-#endif
-var envVars = LoadEnvFile(envPath);
-
-// Map .env variable names to .NET configuration names so Configuration[] picks them up.
-// This is idempotent: if the env var is already set (systemd, Docker, etc.), we do nothing.
-static void MapEnvToConfig(string envName, IReadOnlyDictionary<string, string> env, string dotNetKey)
-{
-    if (string.IsNullOrEmpty(envName) || env == null)
-        return;
-
-    if (!env.TryGetValue(envName, out var value) || string.IsNullOrWhiteSpace(value))
-        return;
-
-    // Only set if not already present so higher-priority sources (systemd, Docker) win
-    if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable(dotNetKey)))
-    {
-        Environment.SetEnvironmentVariable(dotNetKey, value);
-    }
-}
-
-MapEnvToConfig("APP_KEY", envVars, "App__Key");
-MapEnvToConfig("EXTERNAL_API_KEY", envVars, "ExternalApiKeys__ValidKeys__0");
-MapEnvToConfig("BREVO_MAKULLI", envVars, "Brevo__Makulli");
-MapEnvToConfig("BREVO_EMAIL", envVars, "SMTP__Email");
-MapEnvToConfig("BREVO_SMTP_KEY", envVars, "SMTP__Password");
-MapEnvToConfig("POSTGRES_PASSWORD", envVars, "ConnectionStrings__PostgresPassword");
-MapEnvToConfig("RABBITMQ_USER", envVars, "RabbitMQ__UserName");
-MapEnvToConfig("RABBITMQ_PASSWORD", envVars, "RabbitMQ__Password");
-MapEnvToConfig("RABBITMQ_HOST", envVars, "RabbitMQ__HostName");
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- Idempotent config helper -----------------------------------------------
-// Hierarchy ( strongest -> weakest ):
-//   1. .NET Configuration (appsettings, CLI args, user secrets)
-//   2. Raw environment variable
-//   3. .env file (local fallback for non-Docker runs)
-string? GetConfig(string dotNetKey, string? envFallbackName = null)
-{
-    // 1. Check .NET Configuration
-    var value = builder.Configuration[dotNetKey];
-    if (!string.IsNullOrWhiteSpace(value))
-        return value;
 
-    // 2. Check standard environment variable (Docker, systemd, etc.)
-    if (!string.IsNullOrEmpty(envFallbackName))
-    {
-        value = Environment.GetEnvironmentVariable(envFallbackName);
-        if (!string.IsNullOrWhiteSpace(value))
-            return value;
-    }
-
-    // 3. Check .env file
-    if (!string.IsNullOrEmpty(envFallbackName))
-    {
-        if (envVars.TryGetValue(envFallbackName, out var envValue) && !string.IsNullOrWhiteSpace(envValue))
-            return envValue;
-    }
-
-    return null;
-}
-
-string RequireConfig(string dotNetKey, string? envFallbackName = null)
-{
-    var value = GetConfig(dotNetKey, envFallbackName);
-    if (!string.IsNullOrWhiteSpace(value))
-        return value;
-
-    throw new InvalidOperationException(
-        $"Configuration '{dotNetKey}' is not configured. " +
-        $"Please set it in appsettings, user secrets, via the '{envFallbackName}' environment variable, or in the .env file.");
-}
-
-var brevoKey = GetConfig("Brevo:Makulli", "BREVO_MAKULLI");
-if (!string.IsNullOrWhiteSpace(brevoKey))
-{
-    brevo_csharp.Client.Configuration.Default.ApiKey.Add("api-key", brevoKey);
-}
-
+brevo_csharp.Client.Configuration.Default.ApiKey.Add("api-key", builder.Configuration["Brevo:Makulli"]!);
+// Add services to the container.
+// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.Configure<MessageBrokerSetting>(builder.Configuration?.GetSection("RabbitMQ"));
-
-// JWT key — idempotent: will use whatever is already configured, falling back to .env
-var jwtKey = RequireConfig("App:Key", "APP_KEY");
-var key = Encoding.ASCII.GetBytes(jwtKey);
+var key = Encoding.ASCII.GetBytes(builder.Configuration["App:Key"]!);
+var jwtIssuer = builder.Configuration["App:Issuer"]!;
+var jwtAudience = builder.Configuration["App:Audience"]!;
+var uploadsPublicUrl = builder.Configuration["FileStorage:PublicUrl"]!;
 string MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 builder.Services.AddCors(options =>
@@ -203,11 +109,13 @@ var dataSourceBuilder = new NpgsqlDataSourceBuilder(ConnectionString);
 dataSourceBuilder.EnableDynamicJson();
 await using var dataSource = dataSourceBuilder.Build();
 builder.Services.AddSingleton<AuditInterceptor>();
+builder.Services.AddSingleton<DashboardChangeNotifierInterceptor>();
 builder.Services.AddDbContextFactory<AppDbContext>((sp, options) =>
 {
     var auditInterceptor = sp.GetRequiredService<AuditInterceptor>();
+    var dashboardNotifier = sp.GetRequiredService<DashboardChangeNotifierInterceptor>();
     options.UseNpgsql(dataSource, o => { o.SetPostgresVersion(16, 4); o.EnableRetryOnFailure(); })
-           .AddInterceptors(auditInterceptor);
+           .AddInterceptors(auditInterceptor, dashboardNotifier);
 });
 builder.Services.AddAuthentication(x =>
 {
@@ -221,22 +129,51 @@ builder.Services.AddAuthentication(x =>
     {
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(key),
-        ValidateIssuer = false,
-        ValidateAudience = false,
+        ValidateIssuer = true,
+        ValidIssuer = jwtIssuer,
+        ValidateAudience = true,
+        ValidAudience = jwtAudience,
     };
-    // SignalR sends the JWT via the access_token query string parameter (WebSocket doesn't support headers)
     x.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
     {
+        // WebSockets (SignalR) can't send an Authorization header, so the hub connection sends
+        // the JWT via ?access_token= instead. The uploads path accepts the same query param for
+        // the same reason: it's rendered through plain <img>/<embed>/<iframe> tags, which also
+        // can't attach a header — see Client/Layout/FileListView.razor.
         OnMessageReceived = context =>
         {
             var accessToken = context.Request.Query["access_token"];
             var path = context.HttpContext.Request.Path;
             if (!string.IsNullOrEmpty(accessToken) &&
-                path.StartsWithSegments("/hubs"))
+                (path.StartsWithSegments("/hubs") || path.StartsWithSegments(uploadsPublicUrl)))
             {
                 context.Token = accessToken;
             }
             return Task.CompletedTask;
+        },
+        // A deactivated account's already-issued token was otherwise valid for up to the rest of
+        // its (previously 30-day) lifetime — deactivating a user in UsersController had no effect
+        // on requests already carrying their token. This makes deactivation take effect on that
+        // user's very next request instead.
+        OnTokenValidated = async context =>
+        {
+            var userIdClaim = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!Guid.TryParse(userIdClaim, out var userId))
+            {
+                context.Fail("Invalid token.");
+                return;
+            }
+
+            var dbContext = context.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
+            var isActive = await dbContext.Users.AsNoTracking()
+                .Where(u => u.Id == userId)
+                .Select(u => (bool?)u.IsActive)
+                .FirstOrDefaultAsync();
+
+            if (isActive is not true)
+            {
+                context.Fail("Account is inactive or no longer exists.");
+            }
         }
     };
 });
@@ -253,15 +190,17 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddHttpClient();
 builder.Services.AddSingleton<ILoggerProvider, ApplicationLoggerProvider>();
 builder.Services.AddTransient<IDashboardService, DashboardService>();
+builder.Services.AddTransient<IControlRoomService, ControlRoomService>();
+builder.Services.AddTransient<ITruckReportService, TruckReportService>();
+builder.Services.AddTransient<IDriverReportService, DriverReportService>();
+builder.Services.AddTransient<IStationReportService, StationReportService>();
+builder.Services.AddScoped<ShortageNotificationService>();
 
-// if (!builder.Environment.IsDevelopment())
-// {
-//     builder.Services.AddScoped<EmailPublisherService>();
-//     builder.Services.AddHostedService<EmailConsumerService>();
-// }
-
-builder.Services.AddScoped<EmailPublisherService>();
-builder.Services.AddHostedService<EmailConsumerService>();
+if (!builder.Environment.IsDevelopment())
+{
+    builder.Services.AddScoped<EmailPublisherService>();
+    builder.Services.AddHostedService<EmailConsumerService>();
+}
 
 builder.Services.AddSingleton(sp =>
 {
@@ -294,7 +233,11 @@ var client = new SmtpClientOptions()
 builder.Services.AddSingleton<ISender>(x => new MailKitSender(client));
 
 builder.Services.AddTransient<IFluentEmailFactory, FluentEmailFactory>();
-builder.Services.AddFluentEmail("mustapha.aliyu@mcg.com.cn")
+// Brevo only relays mail from a verified sender — must match the domain-authenticated
+// address configured in the Brevo dashboard, not an arbitrary address.
+var senderEmail = builder.Configuration["Brevo:SenderEmail"] ?? "mis@atlanticlogistics-atv.com.ng";
+var senderName = builder.Configuration["Brevo:SenderName"];
+builder.Services.AddFluentEmail(senderEmail, senderName)
     .AddRazorRenderer()
     .AddMailKitSender(client);
 
@@ -302,6 +245,11 @@ builder.Services.AddFluentEmail("mustapha.aliyu@mcg.com.cn")
 
 
 var app = builder.Build();
+
+// Resolved once, here — a normal top-level resolution, not nested inside anything else. See
+// DashboardChangeNotifierInterceptor's doc comment for why it can't safely resolve this itself.
+DashboardChangeNotifierInterceptor.HubContext = app.Services.GetRequiredService<IHubContext<DashboardHub>>();
+
 await SeedData.EnsureSeeded(app.Services);
 
 //app.UseResponseCompression();
@@ -317,9 +265,18 @@ else
     app.UseHsts();
 }
 
+// KnownNetworks/KnownProxies are deliberately left at their secure default (loopback only,
+// ForwardLimit defaults to 1). This API is only ever reverse-proxied by an nginx instance
+// running on the same host (see .github/workflows/staging-deploy-api.yml, which reloads a
+// host-level nginx service), which connects via 127.0.0.1 — already within the default trust
+// list. Widening this to trust non-loopback sources would let any external caller forge
+// X-Forwarded-For and manipulate the rate limiter's per-IP partitioning below. If nginx is ever
+// moved off the same host (e.g. into its own container/network), this assumption breaks and
+// KnownProxies must be updated to name it explicitly — do not just clear the trust lists.
 app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
-    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+    ForwardLimit = 1
 });
 
 if (!app.Environment.IsDevelopment())
@@ -330,7 +287,6 @@ if (!app.Environment.IsDevelopment())
 // app.UseBlazorFrameworkFiles();
 app.MapStaticAssets();
 
-// Serve uploaded files from the configured upload directory
 var rawUploadPath = app.Configuration["FileStorage:UploadPath"]!;
 var uploadPath = Path.IsPathRooted(rawUploadPath)
     ? rawUploadPath
@@ -339,20 +295,55 @@ var publicUrl = app.Configuration["FileStorage:PublicUrl"]!;
 if (!Directory.Exists(uploadPath))
     Directory.CreateDirectory(uploadPath);
 
-app.UseStaticFiles(new StaticFileOptions
-{
-    FileProvider = new PhysicalFileProvider(uploadPath),
-    RequestPath = publicUrl
-});
-
 app.UseRouting();
+
+// CORS must run before Authentication/Authorization: a request that gets rejected by auth
+// short-circuits before reaching any later middleware, so if UseCors ran after them, that 401/403
+// response would go out with no Access-Control-Allow-Origin header — the browser then blocks the
+// caller from ever reading the status code and Blazor's HttpClient surfaces a generic
+// "TypeError: Failed to fetch" instead of a normal 401 the client code could handle.
+app.UseCors(MyAllowSpecificOrigins);
 
 // Rate limiter must be after UseRouting (needs route metadata) and before UseAuthentication
 app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseCors(MyAllowSpecificOrigins);
+
+// Uploaded trip/service documents used to be mounted here unconditionally, before
+// UseAuthentication/UseAuthorization even ran — anyone who could guess or otherwise obtain a
+// ServerFileName (e.g. via the trip listing, before that was locked down) could download it with
+// no credentials at all. Now gated behind the same JWT auth as the rest of the API; the client
+// authenticates by appending its token as ?access_token= (see OnMessageReceived above), since a
+// plain <img>/<embed>/<iframe> src can't carry an Authorization header.
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments(uploadsPublicUrl))
+    {
+        if (context.User.Identity?.IsAuthenticated != true)
+        {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return;
+        }
+    }
+    await next();
+});
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(uploadPath),
+    RequestPath = publicUrl
+});
+// UseExceptionHandler("/Error") above pointed at an endpoint that didn't exist — the built-in
+// fallback happened to serve the SPA shell instead of leaking a raw exception, but API callers
+// (fetch/HttpClient) got a garbled non-JSON response instead of a structured error.
+app.Map("/Error", (HttpContext context) =>
+{
+    var feature = context.Features.Get<IExceptionHandlerPathFeature>();
+    var logger = context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("GlobalExceptionHandler");
+    logger.LogError(feature?.Error, "Unhandled exception on {Path}", feature?.Path);
+    return Results.Problem(statusCode: StatusCodes.Status500InternalServerError, title: "An unexpected error occurred.");
+});
+
 app.MapRazorPages();
 app.MapControllers();
 app.MapHub<AppHub>("/hubs/app");

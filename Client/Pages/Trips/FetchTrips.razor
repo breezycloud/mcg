@@ -2,7 +2,7 @@
 @using Shared.Enums
 @inject ITripService TripService
 @inject IDestinationService DestinationService
-@attribute [Authorize(Roles = "Monitoring, Admin, Master, Supervisor, Nrl, DriverSupervisor")]
+@attribute [Authorize(Roles = "Monitoring, Admin, Master, Supervisor, Nrl, DriverSupervisor, Manager")]
 <PageTitle>Trips</PageTitle>
 
 <section class="bg-gray-50 dark:bg-gray-900 rounded-lg">
@@ -110,7 +110,7 @@
                                             <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                                                 <path clip-rule="evenodd" fill-rule="evenodd" d="M10 2a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V3a1 1 0 011-1z" />
                                             </svg>
-                                            @("Export Loading Trips")
+                                            @("Export Dispatch Info")
                                         }
                                     </button>
                                     <button 
@@ -134,7 +134,7 @@
                                             @("Export Loading Info")
                                         }
                                     </button>
-                                    <AuthorizeView Roles="Admin, Master" Context="auth">
+                                    <AuthorizeView Roles="Admin, Master, Manager" Context="auth">
                                         <Authorized>
                                             <button 
                                                 @onclick="DownloadLoadingFiles"
@@ -159,7 +159,7 @@
                                             </button>
                                         </Authorized>
                                     </AuthorizeView>
-                                    <AuthorizeView Roles="Master, Admin, Supervisor, DriverSupervisor" Context="auth">
+                                    <AuthorizeView Roles="Master, Admin, Supervisor, DriverSupervisor, Manager" Context="auth">
                                         <Authorized>
                                             <button 
                                                 @onclick="@(() => nav.NavigateTo("/trips/batch-dispatch"))" 
@@ -280,21 +280,21 @@
                                         </td>
                                         <!-- Actions -->
                                         <td class="px-4 py-4 text-right">
-                                        <div class="space-x-2">
-                                            <button @onclick="() => ViewTrip(trip)"  class="font-medium text-green-600 dark:text-green-500 hover:underline">
-                                                    View
-                                                </button>
-                                                <AuthorizeView Roles="Monitoring, Admin, Master, Supervisor, DriverSupervisor">
-                                                    @if (trip.Status != TripStatus.Completed)
-                                                    {
-                                                        <button 
-                                                            @onclick="() => EditStatus(trip)" 
-                                                            class="font-medium text-blue-600 dark:text-blue-400 hover:underline">
-                                                            Update
-                                                        </button>
-                                                    }                                        
-                                                </AuthorizeView>        
-                                            </div>
+                                        <RowActionMenu IsOpen="openRowMenuId == trip.Id" OnToggle="() => ToggleRowMenu(trip.Id)" TriggerLabel="Trip actions">
+                                            <button type="button" role="menuitem" @onclick="() => { ToggleRowMenu(trip.Id); ViewTrip(trip); }"
+                                                class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                                View
+                                            </button>
+                                            <AuthorizeView Roles="Monitoring, Admin, Master, Supervisor, DriverSupervisor, Manager">
+                                                @if (trip.Status != TripStatus.Completed)
+                                                {
+                                                    <button type="button" role="menuitem" @onclick="() => { ToggleRowMenu(trip.Id); EditStatus(trip); }"
+                                                        class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                                        Update
+                                                    </button>
+                                                }
+                                            </AuthorizeView>
+                                        </RowActionMenu>
                                         </td>
                                     </tr>
                                 }

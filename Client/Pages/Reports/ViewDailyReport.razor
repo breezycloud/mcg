@@ -1,4 +1,5 @@
 @page "/view-daily-report/{Id:guid}"
+@using Client.Pages.Modals
 @attribute [Authorize]
 @inject IDailyReportService DailyReportService
 @inject IJSRuntime JS
@@ -76,7 +77,7 @@
                     </button>
                     <AuthorizeView Roles="Admin,Master" Context="delAuth">
                         <Authorized>
-                            <button type="button" @onclick="() => _showDeleteModal = true"
+                            <button type="button" @onclick="() => deleteModal.Show()"
                                 class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors">
                                 Delete
                             </button>
@@ -104,7 +105,7 @@
                 </div>
 
                 <!-- Company + Employee Info -->
-                <div class="px-6 py-3 bg-gray-50 dark:bg-gray-750 border-b border-gray-200 dark:border-gray-700 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+                <div class="px-6 py-3 bg-gray-50 dark:bg-gray-750 border-b border-gray-200 dark:border-gray-700 grid grid-cols-1 sm:grid-cols-4 gap-3 text-sm">
                     <div>
                         <span class="text-gray-500 dark:text-gray-400">Company:</span>
                         <span class="ml-1 font-medium text-gray-900 dark:text-white">@(Configuration["CompanyName"] ?? "Atlantic Co., Ltd.")</span>
@@ -115,22 +116,20 @@
                             @(_report.Employee is not null ? $"{_report.Employee.FirstName} {_report.Employee.LastName}".Trim() : "—")
                         </span>
                     </div>
-                    <div class="flex gap-4">
-                        @if (_report.Department.HasValue)
-                        {
-                            <div>
-                                <span class="text-gray-500 dark:text-gray-400">Dept:</span>
-                                <span class="ml-1 font-medium text-gray-900 dark:text-white">@_report.Department</span>
-                            </div>
-                        }
-                        @if (_report.Employee is not null)
-                        {
-                            <div>
-                                <span class="text-gray-500 dark:text-gray-400">Title:</span>
-                                <span class="ml-1 font-medium text-gray-900 dark:text-white">@_report.Employee.Role</span>
-                            </div>
-                        }
-                    </div>
+                    @if (_report.Department.HasValue)
+                    {
+                        <div>
+                            <span class="text-gray-500 dark:text-gray-400">Dept:</span>
+                            <span class="ml-1 font-medium text-gray-900 dark:text-white">@_report.Department</span>
+                        </div>
+                    }
+                    @if (_report.Employee is not null)
+                    {
+                        <div>
+                            <span class="text-gray-500 dark:text-gray-400">Title:</span>
+                            <span class="ml-1 font-medium text-gray-900 dark:text-white">@_report.Employee.Role</span>
+                        </div>
+                    }
                 </div>
 
                 <!-- Work Tasks Table -->
@@ -139,9 +138,8 @@
                         <thead>
                             <tr class="bg-gray-100 dark:bg-gray-700">
                                 <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left text-gray-700 dark:text-gray-300 w-8">#</th>
-                                <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left text-gray-700 dark:text-gray-300">Planned Work Tasks / Temporary Assignments</th>
-                                <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left text-gray-700 dark:text-gray-300">Actual Job Responsibilities</th>
-                                <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center text-gray-700 dark:text-gray-300 w-28 no-print">Status</th>
+                                <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left text-gray-700 dark:text-gray-300 w-[46%]">Planned Work Tasks / Temporary Assignments</th>
+                                <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left text-gray-700 dark:text-gray-300 w-[46%]">Actual Job Responsibilities</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -152,7 +150,6 @@
                             {
                                 if (string.IsNullOrWhiteSpace(task.Text) && string.IsNullOrWhiteSpace(task.ActualNote)) continue;
                                 workRowNum++;
-                                var capturedTask = task;
                                 <tr class="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750">
                                     <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-gray-500 text-center">@workRowNum.</td>
                                     <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-gray-700 dark:text-gray-300">
@@ -161,21 +158,11 @@
                                     <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-gray-700 dark:text-gray-300">
                                         @task.ActualNote
                                     </td>
-                                    <!-- Interactive status chip (no-print: hide on print, show inline element) -->
-                                    <td class="border border-gray-300 dark:border-gray-600 px-2 py-2 text-center no-print">
-                                        <button type="button"
-                                            @onclick="async () => await ToggleWorkTaskStatus(capturedTask)"
-                                            disabled="@(_isTogglingTask || !_isOwnerOrManager)"
-                                            title="@(_isOwnerOrManager ? "Click to change status" : "Only the assigned employee or a manager can update task status")"
-                                            class="px-2.5 py-1 rounded-full text-xs font-semibold transition-colors disabled:cursor-default @GetTaskStatusCss(capturedTask.Status)">
-                                            @capturedTask.Status
-                                        </button>
-                                    </td>                                    
                                 </tr>
                             }
                             @if (workRowNum == 0)
                             {
-                                <tr><td colspan="5" class="px-4 py-3 text-center text-xs text-gray-400">No tasks recorded</td></tr>
+                                <tr><td colspan="4" class="px-4 py-3 text-center text-xs text-gray-400">No tasks recorded</td></tr>
                             }
                         </tbody>
                     </table>
@@ -200,9 +187,8 @@
                             <thead>
                                 <tr class="bg-gray-100 dark:bg-gray-700">
                                     <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left text-gray-700 dark:text-gray-300 w-8">#</th>
-                                    <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left text-gray-700 dark:text-gray-300">Tomorrow's Work Plan</th>
-                                    <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left text-gray-700 dark:text-gray-300">Recommendations</th>
-                                    <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center text-gray-700 dark:text-gray-300 w-28 no-print">Status</th>
+                                    <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left text-gray-700 dark:text-gray-300 w-[46%]">Tomorrow's Work Plan</th>
+                                    <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left text-gray-700 dark:text-gray-300 w-[46%]">Recommendations</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -213,20 +199,10 @@
                                 {
                                     if (string.IsNullOrWhiteSpace(task.Text) && string.IsNullOrWhiteSpace(task.ActualNote)) continue;
                                     tmrRowNum++;
-                                    var capturedTask = task;
                                     <tr class="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750">
                                         <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-gray-500 text-center">@tmrRowNum.</td>
                                         <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-gray-700 dark:text-gray-300">@task.Text</td>
                                         <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-gray-700 dark:text-gray-300">@task.ActualNote</td>
-                                        <td class="border border-gray-300 dark:border-gray-600 px-2 py-2 text-center no-print">
-                                            <button type="button"
-                                                @onclick="async () => await ToggleTomorrowTaskStatus(capturedTask)"
-                                                disabled="@(_isTogglingTask || !_isOwnerOrManager)"
-                                                title="@(_isOwnerOrManager ? "Click to change status" : "Only the assigned employee or a manager can update task status")"
-                                                class="px-2.5 py-1 rounded-full text-xs font-semibold transition-colors disabled:cursor-default @GetTaskStatusCss(capturedTask.Status)">
-                                                @capturedTask.Status
-                                            </button>
-                                        </td>
                                     </tr>
                                 }
                             </tbody>
@@ -267,25 +243,25 @@
                             </div>
                         }
 
-                        <!-- Managers can add/edit the feedback -->
-                        <AuthorizeView Roles="Admin,Master,Supervisor" Context="reviewAuth">
-                            <Authorized>
-                                <textarea @bind="_reviewComment"
-                                    class="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-                                    rows="3"
-                                    placeholder="Add feedback for this report..."
-                                    maxlength="2000" />
-                                <div class="mt-2 flex items-center justify-between">
-                                    <span class="text-xs text-gray-400">@(_reviewComment?.Length ?? 0) / 2000</span>
-                                    <button type="button" @onclick="SaveReview"
-                                        disabled="@(_isReviewing || string.IsNullOrWhiteSpace(_reviewComment))"
-                                        class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center gap-1.5">
-                                        @if (_isReviewing) { <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> }
-                                        Save Feedback
-                                    </button>
-                                </div>
-                            </Authorized>
-                        </AuthorizeView>
+                        <!-- Admin/Master, or this report owner's Supervisor, can add/edit the feedback.
+                             Role-agnostic — driven by User.SupervisorId, not a fixed role list. -->
+                        @if (_canReview)
+                        {
+                            <textarea @bind="_reviewComment"
+                                class="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                                rows="3"
+                                placeholder="Add feedback for this report..."
+                                maxlength="2000" />
+                            <div class="mt-2 flex items-center justify-between">
+                                <span class="text-xs text-gray-400">@(_reviewComment?.Length ?? 0) / 2000</span>
+                                <button type="button" @onclick="SaveReview"
+                                    disabled="@(_isReviewing || string.IsNullOrWhiteSpace(_reviewComment))"
+                                    class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center gap-1.5">
+                                    @if (_isReviewing) { <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> }
+                                    Save Feedback
+                                </button>
+                            </div>
+                        }
                     </div>
                 </div>
             </div>
@@ -293,28 +269,9 @@
     </div>
 </section>
 
-<!-- Delete Modal -->
-@if (_showDeleteModal)
-{
-    <div class="fixed inset-0 z-50 min-h-screen w-full grid place-items-center bg-black/50 p-4">
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 max-w-sm w-full">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Delete Report</h3>
-            <p class="text-sm text-gray-600 dark:text-gray-300 mb-5">
-                Are you sure you want to permanently delete this report?
-            </p>
-            <div class="flex justify-end gap-3">
-                <button type="button" @onclick="() => _showDeleteModal = false"
-                    class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                    Cancel
-                </button>
-                <button type="button" @onclick="DeleteReport" disabled="@_isDeleting"
-                    class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors">
-                    @(_isDeleting ? "Deleting..." : "Delete")
-                </button>
-            </div>
-        </div>
-    </div>
-}
+<ConfirmationModal @ref="deleteModal" Title="Delete Report"
+                    Message="Are you sure you want to permanently delete this report?"
+                    OnClose="HandleDeleteModalClose" />
 
 <style>
     @@media print {
@@ -322,7 +279,19 @@
         .no-print, nav, aside, header, footer,
         aside, .no-print { display: none !important; }
         body, html { background: white !important; margin: 0; padding: 0; }
-        section { background: white !important; padding: 0 !important; }
+        section {
+            background: white !important;
+            padding: 0 !important;
+            min-height: 0 !important;
+        }
+
+        /* The screen layout centers the report in a max-w-4xl column with side padding —
+           on print that just wastes the A4 page's usable width. Let it fill the page. */
+        section > div {
+            max-width: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
 
         /* Full-width printable container — remove rounded corners and shadows */
         .report-container {
@@ -356,10 +325,6 @@
         /* Column widths: narrow S/N, equal split for task columns */
         .tasks-table th:first-child,
         .tasks-table td:first-child { width: 24px; text-align: center; }
-
-        /* Hide interactive status column, show plain-text status column */
-        .no-print { display: none !important; }
-        .print-only { display: table-cell !important; }
 
         /* Header rows: light grey fill (matches Word template) */
         .tasks-table thead tr {
@@ -415,12 +380,10 @@
     private DailyReport? _report;
     private bool _isLoading;
     private bool _isSubmitting;
-    private bool _isDeleting;
     private bool _isReviewing;
     private bool _isReverting;
-    private bool _isTogglingTask;
-    private bool _isOwnerOrManager;
-    private bool _showDeleteModal;
+    private bool _canReview;
+    private ConfirmationModal deleteModal = default!;
     private string? _reviewComment;
 
     protected override async Task OnInitializedAsync()
@@ -431,17 +394,17 @@
             _report = await DailyReportService.GetAsync(Id, default);
             _reviewComment = _report?.ManagerComment;
 
-            // Determine if the current user can toggle task statuses:
-            // only the assigned employee or Admin/Master/Supervisor
             var authState = await CustomAuthenticationProvider.GetAuthenticationStateAsync();
             var claims = authState.User;
             var role = claims.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
             var currentUserIdStr = claims.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            bool isManager = role is "Admin" or "Master" or "Supervisor";
-            bool isOwner   = _report is not null
-                          && Guid.TryParse(currentUserIdStr, out var uid)
-                          && _report.EmployeeId == uid;
-            _isOwnerOrManager = isOwner || isManager;
+            Guid.TryParse(currentUserIdStr, out var uid);
+
+            // Review capability mirrors the API's rule exactly: Admin/Master, or whoever
+            // this report's employee has set as their Supervisor — role-agnostic.
+            bool isAdminOrMaster = role is "Admin" or "Master";
+            bool isReportSupervisor = _report?.Employee?.SupervisorId == uid;
+            _canReview = isAdminOrMaster || isReportSupervisor;
         }
         catch
         {
@@ -495,61 +458,6 @@
         StateHasChanged();
     }
 
-    // ─── Task status toggling ────────────────────────────────────────────────
-
-    private async Task ToggleWorkTaskStatus(ReportTask task)
-    {
-        if (_report is null || _isTogglingTask) return;
-        CycleStatus(task);
-        await SaveTasksAsync();
-    }
-
-    private async Task ToggleTomorrowTaskStatus(ReportTask task)
-    {
-        if (_report is null || _isTogglingTask) return;
-        CycleStatus(task);
-        await SaveTasksAsync();
-    }
-
-    private static void CycleStatus(ReportTask task)
-    {
-        task.Status = task.Status switch
-        {
-            TaskItemStatus.Pending    => TaskItemStatus.InProgress,
-            TaskItemStatus.InProgress => TaskItemStatus.Done,
-            _                         => TaskItemStatus.Pending
-        };
-    }
-
-    private async Task SaveTasksAsync()
-    {
-        if (_report is null) return;
-        _isTogglingTask = true;
-        try
-        {
-            await DailyReportService.UpdateTasksAsync(_report.Id, _report, default);
-        }
-        catch (Exception ex)
-        {
-            ToastService.ShowError($"Failed to save task status: {ex.Message}");
-        }
-        finally
-        {
-            _isTogglingTask = false;
-        }
-        StateHasChanged();
-    }
-
-    private static string GetTaskStatusCss(TaskItemStatus status) => status switch
-    {
-        TaskItemStatus.Pending    => "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600",
-        TaskItemStatus.InProgress => "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800/50",
-        TaskItemStatus.Done       => "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-800/50",
-        _                         => "bg-gray-100 text-gray-600"
-    };
-
-    // ─────────────────────────────────────────────────────────────────────────
-
     private async Task SaveReview()
     {
         if (_report is null || string.IsNullOrWhiteSpace(_reviewComment)) return;
@@ -579,23 +487,25 @@
         StateHasChanged();
     }
 
-    private async Task DeleteReport()
+    private async Task HandleDeleteModalClose(bool confirmed)
     {
-        if (_report is null) return;
-        _isDeleting = true;
+        if (!confirmed || _report is null) return;
+
         try
         {
-            await DailyReportService.DeleteAsync(_report.Id, default);            ToastService.ShowSuccess("Report deleted");
+            await DailyReportService.DeleteAsync(_report.Id, default);
+            ToastService.ShowSuccess("Report deleted");
+
+            // Deleting a report can remove one that was still counted as pending review —
+            // re-fetch from the server rather than assume, since AppState is shared and
+            // other tabs/managers may have changed the underlying count too.
+            AppState.DailyReportBadgeCount = await DailyReportService.GetPendingReviewCountAsync(default);
+
             nav.NavigateTo("/daily-reports");
         }
         catch
         {
             ToastService.ShowError("Failed to delete report");
-        }
-        finally
-        {
-            _isDeleting = false;
-            _showDeleteModal = false;
         }
     }
 

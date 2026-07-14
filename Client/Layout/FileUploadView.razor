@@ -94,7 +94,10 @@
 @code {
     [Parameter] public FileUploadModel Model { get; set; } = new();
 
-    [Inject] public HttpClient Http { get; set; } = default!;
+    // Named "AppUrl" client carries the CustomAuthorizationHandler that attaches the bearer
+    // token — the plain injected HttpClient does not, so an upload sent through it would 401
+    // against this [Authorize]-protected endpoint.
+    [Inject] public IHttpClientFactory HttpClientFactory { get; set; } = default!;
 
     // Events
     [Parameter] public EventCallback<List<UploadedFile>> OnFilesSelected { get; set; }
@@ -192,16 +195,26 @@
 
                 try
                 {
-                    using var formData = new MultipartFormDataContent();
+                    // Buffered into a byte array up front rather than streamed live from
+                    // BrowserFile.OpenReadStream() — CustomAuthorizationHandler retries a request
+                    // whose token turned out to be expired (access tokens live 30 minutes) by
+                    // resending the same HttpContent instance, which only works if that content
+                    // can be serialized more than once. A live browser stream can only be read
+                    // once; ByteArrayContent can be re-sent indefinitely, so the retry actually
+                    // carries the file instead of silently sending an empty/broken body.
                     using var fileStream = uploadedFile.BrowserFile.OpenReadStream(Model.MaxFileSizeBytes);
-                    using var fileContent = new StreamContent(fileStream);
+                    using var memoryStream = new MemoryStream();
+                    await fileStream.CopyToAsync(memoryStream);
+
+                    using var formData = new MultipartFormDataContent();
+                    using var fileContent = new ByteArrayContent(memoryStream.ToArray());
 
                     // Set proper content type
                     fileContent.Headers.ContentType = new MediaTypeHeaderValue(uploadedFile.BrowserFile.ContentType);
 
                     formData.Add(fileContent, "file", uploadedFile.BrowserFile.Name);
 
-                    var response = await Http.PostAsync("filesave/upload", formData);
+                    var response = await HttpClientFactory.CreateClient("AppUrl").PostAsync("filesave/upload", formData);
 
                     if (response.IsSuccessStatusCode)
                     {

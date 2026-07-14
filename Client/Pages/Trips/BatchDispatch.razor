@@ -32,33 +32,39 @@
                         Label="Select Loading Station"
                         Placeholder="Start typing station name..."
                         ShowDetails="true"
-                        AllowClear="true" />
+                        AllowClear="true"
+                        IsInvalid="@errors.ContainsKey("LoadingDepotId")"
+                        ErrorId="@(errors.ContainsKey("LoadingDepotId") ? "loadingDepotId-error" : null)" />
                     @if (errors.ContainsKey("LoadingDepotId"))
                     {
-                        <p class="mt-1 text-sm text-red-600">@errors["LoadingDepotId"]</p>
+                        <p id="loadingDepotId-error" class="mt-1 text-sm text-red-600">@errors["LoadingDepotId"]</p>
                     }
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="animate-fade-in-up delay-200">
-                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        <label for="dispatchDate" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                             Dispatch Date <span class="text-red-500">*</span>
                         </label>
                         <InputDate id="dispatchDate" Type="InputDateType.DateTimeLocal"
                                 @bind-Value="batchDispatch.DispatchDate"
-                                class="@($"{GetInputClass("DispatchDate")} transition duration-200 focus:scale-[1.02]")" />
+                                class="@($"{GetInputClass("DispatchDate")} transition duration-200 focus:scale-[1.02]")"
+                                aria-invalid="@(errors.ContainsKey("DispatchDate") ? "true" : "false")"
+                                aria-describedby="@(errors.ContainsKey("DispatchDate") ? "dispatchDate-error" : null)" />
                         @if (errors.ContainsKey("DispatchDate"))
                         {
-                            <p class="mt-1 text-sm text-red-600">@errors["DispatchDate"]</p>
+                            <p id="dispatchDate-error" class="mt-1 text-sm text-red-600">@errors["DispatchDate"]</p>
                         }
                     </div>
 
                     <div class="animate-fade-in-up delay-100">
-                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        <label for="batchDispatchProduct" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                             Product <span class="text-red-500">*</span>
                         </label>
-                        <InputSelect @bind-Value="SelectedProduct" @bind-Value:after="OnProductChanged"
-                                class="@($"{GetInputClass("Product")} transition duration-200 focus:scale-[1.02]")">
+                        <InputSelect id="batchDispatchProduct" @bind-Value="SelectedProduct" @bind-Value:after="OnProductChanged"
+                                class="@($"{GetInputClass("Product")} transition duration-200 focus:scale-[1.02]")"
+                                aria-invalid="@(errors.ContainsKey("Product") ? "true" : "false")"
+                                aria-describedby="@(errors.ContainsKey("Product") ? "batchDispatchProduct-error" : null)">
                             <option value="">-- Select Product --</option>
                             @foreach (var p in GetSelectableProducts())
                             {
@@ -67,15 +73,17 @@
                         </InputSelect>
                         @if (errors.ContainsKey("Product"))
                         {
-                            <p class="mt-1 text-sm text-red-600">@errors["Product"]</p>
+                            <p id="batchDispatchProduct-error" class="mt-1 text-sm text-red-600">@errors["Product"]</p>
                         }
                     </div>
                 </div>                                
 
-                <div class="animate-fade-in-up delay-300">
-                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                <fieldset class="animate-fade-in-up delay-300 border-0 p-0 m-0"
+                          aria-invalid="@(errors.ContainsKey("Trucks") ? "true" : "false")"
+                          aria-describedby="@(errors.ContainsKey("Trucks") ? "trucks-error" : null)">
+                    <legend class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                         Select Trucks <span class="text-red-500">*</span>
-                    </label>
+                    </legend>
 
                     @if (isLoadingTrucks)
                     {
@@ -120,9 +128,9 @@
 
                     @if (errors.ContainsKey("Trucks"))
                     {
-                        <p class="mt-1 text-sm text-red-600">@errors["Trucks"]</p>
+                        <p id="trucks-error" class="mt-1 text-sm text-red-600">@errors["Trucks"]</p>
                     }
-                </div>
+                </fieldset>
 
                 <div class="flex justify-end gap-4 pt-6 border-t border-gray-200 dark:border-gray-700 animate-fade-in-up delay-400">
                     <button type="button" @onclick="Cancel"
@@ -267,42 +275,64 @@
             return;
         }
 
-        try
+        var currentUserId = await localStorage.GetItemAsync<Guid?>("uid");
+        if (currentUserId == null)
         {
-            var currentUserId = await localStorage.GetItemAsync<Guid?>("uid");
-            if (currentUserId == null)
-            {
-                ToastService.ShowError("User not authenticated");
-                AppState.IsProcessing = false;            
-                StateHasChanged();
-                return;                
-            }
-            foreach (var truck in Trucks.Where(t => t.IsSelected))
-            {
-                var trip = new Trip
-                {
-                    TruckId = truck.Id,
-                    LoadingDepotId = SelectedStation!.Id,                    
-                    Date = batchDispatch.DispatchDate!.Value,
-                    DriverId = truck.DriverId,
-                    Status = TripStatus.Dispatched,
-                    CreatedAt = DateTimeOffset.UtcNow,
-                    CreatedById = currentUserId.Value
-                };
-                await TripService.AddAsync(trip, AppState.GetCancellationToken());
-            }
+            ToastService.ShowError("User not authenticated");
+            AppState.IsProcessing = false;
+            StateHasChanged();
+            return;
+        }
 
-            ToastService.ShowSuccess("Trucks dispatched successfully", 5);
+        // Continue past a per-truck rejection (e.g. it already has an open trip — a real
+        // possibility now that this is enforced server-side) instead of aborting the whole batch
+        // on the first failure, which used to leave already-dispatched trucks silently committed
+        // and every truck after the failure silently never attempted.
+        var succeeded = new List<string>();
+        var failed = new List<(string TruckNo, string Reason)>();
+
+        foreach (var truck in Trucks.Where(t => t.IsSelected))
+        {
+            var trip = new Trip
+            {
+                TruckId = truck.Id,
+                LoadingDepotId = SelectedStation!.Id,
+                Date = batchDispatch.DispatchDate!.Value,
+                DriverId = truck.DriverId,
+                Status = TripStatus.Dispatched,
+                CreatedAt = DateTimeOffset.UtcNow,
+                CreatedById = currentUserId.Value
+            };
+
+            try
+            {
+                await TripService.AddAsync(trip, AppState.GetCancellationToken());
+                succeeded.Add(truck.TruckNo);
+            }
+            catch (Exception ex)
+            {
+                failed.Add((truck.TruckNo, ex.Message));
+            }
+        }
+
+        if (failed.Count == 0)
+        {
+            ToastService.ShowSuccess($"{succeeded.Count} truck(s) dispatched successfully", 5);
             nav.NavigateTo("/trips");
         }
-        catch (Exception ex)
+        else if (succeeded.Count == 0)
         {
-            ToastService.ShowError(ex.Message);
+            ToastService.ShowError($"No trucks were dispatched. {failed.Count} failed:\n" +
+                string.Join("\n", failed.Select(f => $"{f.TruckNo}: {f.Reason}")), 8);
         }
-        finally
+        else
         {
-            AppState.IsProcessing = false;
+            ToastService.ShowSuccess($"{succeeded.Count} truck(s) dispatched successfully", 5);
+            ToastService.ShowError($"{failed.Count} truck(s) failed:\n" +
+                string.Join("\n", failed.Select(f => $"{f.TruckNo}: {f.Reason}")), 8);
         }
+
+        AppState.IsProcessing = false;
     }
 
     private void Cancel() => nav.NavigateTo("/trips");

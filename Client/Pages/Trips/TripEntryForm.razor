@@ -32,28 +32,32 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <!-- Loading Date -->
                     <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        <label for="loadingDate" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                             Dispatch Date <span class="text-red-500">*</span>
                         </label>
-                        <InputDate id="loadingDate" Type="InputDateType.DateTimeLocal"  
+                        <InputDate id="loadingDate" Type="InputDateType.DateTimeLocal"
                             @bind-Value="tripLoading!.LoadingDate"
                             @bind-Value:after="OnDateChanged"
                             class="@GetInputClass("LoadingDate")"
-                            aria-placeholder="select loading date" />
+                            aria-placeholder="select loading date"
+                            aria-invalid="@(errors.ContainsKey("LoadingDate") ? "true" : "false")"
+                            aria-describedby="@(errors.ContainsKey("LoadingDate") ? "loadingDate-error" : null)" />
 
                         @if (errors.ContainsKey("LoadingDate"))
                         {
-                            <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["LoadingDate"]</p>
+                            <p id="loadingDate-error" class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["LoadingDate"]</p>
                         }
                     </div>
 
                     @* Product  *@
                     <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        <label for="tripProduct" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                             Product <span class="text-red-500">*</span>
                         </label>
-                        <InputSelect @bind-Value="SelectedProduct" @bind-Value:after="OnProductChanged"
-                                class="@($"{GetInputClass("Product")} transition duration-200 focus:scale-[1.02]")">
+                        <InputSelect id="tripProduct" @bind-Value="SelectedProduct" @bind-Value:after="OnProductChanged"
+                                class="@($"{GetInputClass("Product")} transition duration-200 focus:scale-[1.02]")"
+                                aria-invalid="@(errors.ContainsKey("Product") ? "true" : "false")"
+                                aria-describedby="@(errors.ContainsKey("Product") ? "tripProduct-error" : null)">
                             <option value="">-- Select Product --</option>
                             @foreach (var p in GetSelectableProducts())
                             {
@@ -62,19 +66,21 @@
                         </InputSelect>
                         @if (errors.ContainsKey("Product"))
                         {
-                            <p class="mt-1 text-sm text-red-600">@errors["Product"]</p>
+                            <p id="tripProduct-error" class="mt-1 text-sm text-red-600">@errors["Product"]</p>
                         }
                     </div>
 
                     <!-- Truck -->
                     <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        <label for="truckId" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                             Truck <span class="text-red-500">*</span>
                         </label>
                         <InputSelect id="truckId"
                             class="@GetInputClass("TruckId")"
                             @bind-Value="tripLoading.TruckId"
-                            @bind-Value:after="OnTruckChanged">
+                            @bind-Value:after="OnTruckChanged"
+                            aria-invalid="@(errors.ContainsKey("TruckId") ? "true" : "false")"
+                            aria-describedby="@(errors.ContainsKey("TruckId") ? "truckId-error" : null)">
                             <option value="">-- Select Truck --</option>
                             @foreach (var truck in Trucks!)
                             {
@@ -83,7 +89,7 @@
                         </InputSelect>
                         @if (errors.ContainsKey("TruckId"))
                         {
-                            <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["TruckId"]</p>
+                            <p id="truckId-error" class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["TruckId"]</p>
                         }
                     </div>
 
@@ -97,6 +103,9 @@
                                 SearchFunc="SearchDrivers"
                                 SelectedChanged="OnDriverSelected"
                                 Placeholder="Search driver by name or phone..."
+                                AriaLabel="Driver"
+                                IsInvalid="@errors.ContainsKey("DriverId")"
+                                ErrorId="@(errors.ContainsKey("DriverId") ? "driverId-error" : null)"
                                 InitialText="@selectedDriverName">
                                 <OptionTemplate Context="driver">
                                     <span>@driver.FirstName @driver.LastName (@driver.PhoneNo)</span>
@@ -105,23 +114,23 @@
                         </div>
                         @if (errors.ContainsKey("DriverId"))
                         {
-                            <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["DriverId"]</p>
+                            <p id="driverId-error" class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["DriverId"]</p>
                         }
                     </div>                     
                 </div>
 
                 <!-- Loading Point -->
                 <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                        Loading Point <span class="text-red-500">*</span>
-                    </label>
-                    <StationAutocomplete                             
+                    <StationAutocomplete
                             @bind-Value="SelectedStation"
                             StationType="StationType.LoadingDepot"
-                            Label=""
+                            Label="Loading Point"
+                            IsRequired="true"
                             Placeholder="Start typing station name..."
                             ShowDetails="true"
-                            AllowClear="true" />
+                            AllowClear="true"
+                            IsInvalid="@errors.ContainsKey("LoadingPointId")"
+                            ErrorId="@(errors.ContainsKey("LoadingPointId") ? "loadingPointId-error" : null)" />
 
                         @if (SelectedStation != null)
                         {
@@ -133,7 +142,7 @@
                         }
                         @if (errors.ContainsKey("LoadingPointId"))
                         {
-                            <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["LoadingPointId"]</p>
+                            <p id="loadingPointId-error" class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["LoadingPointId"]</p>
                         }
                 </div>
             
@@ -163,7 +172,7 @@
                         <StateSelector IsRequired="@EditMode" Destination="@tripLoading.Destination" OnLocationChanged="@LocationChanged" FieldName="Destination" Errors="errors" GetInputClass="GetInputClass" />
                         @if (errors.ContainsKey("Destination"))
                         {
-                            <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["Destination"]</p>
+                            <p id="destination-error" class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["Destination"]</p>
                         }
                     </div>
                 } *@

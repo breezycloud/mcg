@@ -28,14 +28,41 @@ public class DashboardService : IDashboardService
     public async Task<DashboardMetricsDto> GetMetricsAsync(DateOnly? startDate, DateOnly? endDate, string? product = "All")
     {
         var trips = await GetFilteredTripsAsync(startDate, endDate, product);
-        
+
+        var loadingQuery = _context.Trips.AsNoTracking().Where(t => t.LoadingInfo.LoadingDate.HasValue);
+
+        if (startDate.HasValue)
+        {
+            var startDateTime = startDate.Value.ToDateTime(TimeOnly.MinValue);
+            loadingQuery = loadingQuery.Where(t => t.LoadingInfo.LoadingDate >= startDateTime);
+        }
+
+        if (endDate.HasValue)
+        {
+            var endDateTime = endDate.Value.ToDateTime(TimeOnly.MaxValue);
+            loadingQuery = loadingQuery.Where(t => t.LoadingInfo.LoadingDate <= endDateTime);
+        }
+
+        if (!product!.Contains("All"))
+            loadingQuery = loadingQuery.Where(t => t.Truck!.Product.ToString() == product);
+
+        var totalLoadings = await loadingQuery.CountAsync();
+        var trucksWithLoading = await loadingQuery.Select(t => t.TruckId).Distinct().CountAsync();
+        var totalTrucksInFleet = await _context.Trucks.AsNoTracking().CountAsync();
+        var totalDeployedTrucks = await _context.Trucks.AsNoTracking().CountAsync(t => t.IsActive);
+
         return new DashboardMetricsDto
         {
             TotalTrips = trips.Count,
             ActiveTrips = trips.Count(t => t.Status == TripStatus.Active),
             ClosedTrips = trips.Count(t => t.Status == TripStatus.Closed || t.Status == TripStatus.Completed),
             AvgTripDurationDays = CalculateAverageTripDuration(trips),
-            TotalDispatchedQuantity = trips.Sum(t => t.LoadingInfo.Quantity ?? 0)
+            TotalDispatchedQuantity = trips.Sum(t => t.LoadingInfo.Quantity ?? 0),
+            TotalLoadings = totalLoadings,
+            TotalTrucksInFleet = totalTrucksInFleet,
+            TotalDeployedTrucks = totalDeployedTrucks,
+            TrucksLoadedInPeriod = trucksWithLoading,
+            TruckUtilizationRate = totalDeployedTrucks > 0 ? (decimal)trucksWithLoading / totalDeployedTrucks * 100 : 0
         };
     }
 
@@ -405,7 +432,11 @@ public class DashboardService : IDashboardService
     {
         var durations = trips
             .Where(x => x.CloseInfo.ReturnDateTime.HasValue)
-            .Select(t => t.CalculateTripDuration(t.Date, t.CloseInfo.ReturnDateTime!.Value));
+            .Select(t => t.CalculateTripDuration(t.Date, t.CloseInfo.ReturnDateTime!.Value))
+            // A trip can't close before it was dispatched — a negative value means bad data (e.g.
+            // a mistyped ReturnDateTime), not a real duration. See the same guard in
+            // ControlRoomService.GetMetricsAsync for the specific bad record this was found from.
+            .Where(d => d >= 0);
 
         return durations.Any() ? (decimal)durations.Average() : 0;
     }

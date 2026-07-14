@@ -1,0 +1,36 @@
+<div class="bg-gray-900 rounded-xl border border-gray-800 px-3 py-2.5 flex items-start gap-2.5">
+    <div class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center @IconBgClass">
+        <svg class="w-4 h-4 @IconColorClass" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            @((MarkupString)IconPath)
+        </svg>
+    </div>
+    <div class="min-w-0 flex-1">
+        <div class="text-[10px] uppercase tracking-wide text-gray-500 truncate" title="@Label">@Label</div>
+        <div class="text-xl font-bold mt-0.5 @Accent">
+            @if (ValueContent is not null)
+            {
+                @ValueContent
+            }
+            else
+            {
+                @Value
+            }
+        </div>
+        @if (!string.IsNullOrEmpty(SubValue))
+        {
+            <div class="text-[10px] text-gray-500 mt-0.5 truncate" title="@SubValue">@SubValue</div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
+    [Parameter] public string Value { get; set; } = string.Empty;
+    [Parameter] public RenderFragment? ValueContent { get; set; }
+    [Parameter] public string? SubValue { get; set; }
+    [Parameter] public string Accent { get; set; } = "text-white";
+
+    [Parameter, EditorRequired] public string IconPath { get; set; } = string.Empty;
+    [Parameter] public string IconColorClass { get; set; } = "text-blue-400";
+    [Parameter] public string IconBgClass { get; set; } = "bg-blue-500/15";
+}

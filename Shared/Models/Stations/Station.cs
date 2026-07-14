@@ -20,4 +20,6 @@ public class Station
 
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? UpdatedAt { get; set; }
+
+    public override string ToString() => Name;
 }

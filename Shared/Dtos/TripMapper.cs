@@ -7,7 +7,7 @@ namespace Shared.Dtos;
 
 public static class TripMapper
 {
-    public static TripExportDto ToExportDto(Models.Trips.Trip trip)
+    public static TripExportDto ToExportDto(Models.Trips.Trip trip, bool excludeCng = false)
     {
         var dischargeSummary = trip.Discharges != null && trip.Discharges.Any()
             ? string.Join(" | ", trip.Discharges.Select(d =>
@@ -25,6 +25,14 @@ public static class TripMapper
 
         var tStatus = trip.Status.ToString();
         var tripStatus =  tStatus == "Overdue" ? "Closed" : tStatus;
+
+        // A trip only "counts" toward shortage once one of its discharges is marked final
+        // (matching every report's convention — see TripsController's drill-down endpoints and
+        // StationReportService et al.), and CNG trips are excluded when the setting says so.
+        var hasFinalDischarge = trip.Discharges != null && trip.Discharges.Any(d => d.IsFinalDischarge);
+        var isCngExcluded = excludeCng && (trip.Truck?.Product?.IsCng() ?? false);
+        var countsForShortage = hasFinalDischarge && !isCngExcluded;
+
         return new TripExportDto
         {
             Date = trip.Date,
@@ -55,14 +63,22 @@ public static class TripMapper
             DischargedDate = dischargeDate,
             DischargedQuantity = trip.Discharges!.Sum(x => x.QuantityDischarged),
             DischargedUnit = trip.GetUnit() ?? "N/A",
-            HasShortage = trip.CalculateShortageOverage(trip.LoadingInfo?.Quantity - trip.Discharges!.Sum(x => x.QuantityDischarged)),
-            ShortageAmount = trip.CalculateShortageOverageAmount(trip.LoadingInfo?.Quantity, trip.Discharges!.Sum(x => x.QuantityDischarged)) ?? 0,
+            HasShortage = countsForShortage
+                ? trip.CalculateShortageOverage(trip.LoadingInfo?.Quantity - trip.Discharges!.Sum(x => x.QuantityDischarged))
+                : "Nil",
+            ShortageAmount = countsForShortage
+                ? trip.CalculateShortageOverageAmount(trip.LoadingInfo?.Quantity, trip.Discharges!.Sum(x => x.QuantityDischarged)) ?? 0
+                : 0,
             ReturnDate = trip.CloseInfo.ReturnDateTime.HasValue
             ? trip.CloseInfo.ReturnDateTime?.ToString("dd/MM/yyyy HH:mm:ss")
             : "N/A",
 
             DischargeSummary = dischargeSummary,
-            DurationDays = trip.CalculateTripDuration(trip.Date, trip.CloseInfo.ReturnDateTime),
+            // A trip can't close before it was dispatched — a negative value means bad data (e.g.
+            // a mistyped ReturnDateTime), not a real duration. Clamped rather than filtered since
+            // this is a per-row export field, not an aggregate; Date/ReturnDate stay visible above
+            // for auditing the underlying record.
+            DurationDays = Math.Max(0, trip.CalculateTripDuration(trip.Date, trip.CloseInfo.ReturnDateTime)),
             Notes = trip.CloseInfo.TripRemark ?? "N/A"
         };
     }
@@ -103,8 +119,8 @@ public static class TripMapper
         return "Available";
     }
     
-    public static List<TripExportDto> ToExportDto(List<Trip> trips)
+    public static List<TripExportDto> ToExportDto(List<Trip> trips, bool excludeCng = false)
     {
-        return trips.Select(ToExportDto).ToList();        
+        return trips.Select(t => ToExportDto(t, excludeCng)).ToList();
     }
 }

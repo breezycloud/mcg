@@ -34,7 +34,7 @@
             @if (IsLoading)
             {
                 <div class="m-4 p-4">
-                    <LoadingSpinner/>
+                    <Loader/>
                 </div>
             }
             else
@@ -142,9 +142,9 @@
                     </div>
 
                     <div>
-                        <FileUploadView OnFilesUploaded="@OnUploadComplete"/>
+                        <FileUploadView Model="@waybillUploadModel" OnFilesUploaded="@OnUploadComplete"/>
                     </div>
-                        
+
                     @if (Data.Files.Any())
                     {
                         <div>
@@ -202,6 +202,14 @@
     private bool IsLoading = false;
     private bool IsSubmitting = false;
     private Station? SelectedStation;
+
+    // This is the delivery waybill for this discharge (the physical document the driver
+    // hands over at the station) — every file uploaded here is tagged as such.
+    private FileUploadModel waybillUploadModel = new()
+    {
+        Label = "Waybill",
+        Accept = "image/*,.pdf"
+    };
     private string? SelectedDestination;
     
     // Siding Calculation Properties
@@ -301,6 +309,7 @@
         if (errors.Count > 0)
         {
             ToastService.ShowWarning("Fill the required fields to proceed");
+            IsSubmitting = false;
             StateHasChanged();
             return;
         }
@@ -337,13 +346,17 @@
     }
 
     private async Task OnUploadComplete(List<UploadResult> files)
-    {                
+    {
         if (files.Any())
         {
+            foreach (var file in files)
+            {
+                file.Category = FileCategories.Waybill;
+            }
             Data.Files.AddRange(files);
             @* await OnSave.InvokeAsync(Data); *@
         }
-        StateHasChanged();        
+        StateHasChanged();
     }
 
     private async Task OnDelete(UploadResult file)

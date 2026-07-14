@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Api.Context;
@@ -11,22 +13,38 @@ namespace Api.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
+[Authorize]
 public class UsersController : ControllerBase
 {
     private readonly AppDbContext _context;
-    private readonly EmailPublisherService _mailPublisher;
-  
+    private readonly EmailPublisherService? _mailPublisher;
+    private readonly IConfiguration _configuration;
+    private readonly IWebHostEnvironment _env;
 
-    public UsersController(AppDbContext context, EmailPublisherService mailPublisher)
-    {
-        _context = context;
-        _mailPublisher = mailPublisher;
-    }
+    #if RELEASE
 
+        public UsersController(AppDbContext context, EmailPublisherService mailPublisher, IConfiguration configuration, IWebHostEnvironment env)
+        {
+            _context = context;
+            _mailPublisher = mailPublisher;
+            _configuration = configuration;
+            _env = env;
+        }
+    #endif
+
+     #if DEBUG
+        public UsersController(AppDbContext context, IConfiguration configuration, IWebHostEnvironment env)
+        {
+            _context = context;
+            _configuration = configuration;
+            _env = env;
+        }
+     #endif
     
 
     // POST: api/Users/SendEmail
     [HttpPost("send-email")]
+    [Authorize(Roles = "Admin, Master")]
     public async Task<ActionResult<bool>> SendEmailAsync(EmailQueueMessage message, CancellationToken cancellationToken = default)
     {
         try
@@ -57,6 +75,7 @@ public class UsersController : ControllerBase
 
     // POST: api/Paged
     [HttpPost("paged")]
+    [Authorize(Roles = "Admin, Master")]
     public async Task<ActionResult<GridDataResponse<User>?>> GetPagedDatAsync(GridDataRequest request, CancellationToken cancellationToken = default)
     {
         GridDataResponse<User> response = new();
@@ -95,6 +114,7 @@ public class UsersController : ControllerBase
 
     // GET: api/Users
     [HttpGet]
+    [Authorize(Roles = "Admin, Master")]
     public async Task<ActionResult<IEnumerable<User>>> GetUsers()
     {
         return await _context.Users.ToListAsync();
@@ -131,6 +151,47 @@ public class UsersController : ControllerBase
             return BadRequest();
         }
 
+        var callerId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var callerRole = User.FindFirstValue(ClaimTypes.Role);
+        var isAdminOrMaster = callerRole is "Admin" or "Master";
+
+        var existing = await _context.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
+        if (existing == null)
+        {
+            return NotFound();
+        }
+
+        if (!isAdminOrMaster)
+        {
+            if (callerId != id)
+            {
+                return Forbid();
+            }
+
+            // Non-admin callers editing their own profile may not change role/site/activation/
+            // supervisor fields via this endpoint — only self-service profile fields.
+            user.Role = existing.Role;
+            user.IsActive = existing.IsActive;
+            user.SupervisorId = existing.SupervisorId;
+            user.MaintenanceSiteId = existing.MaintenanceSiteId;
+            user.ManagedProducts = existing.ManagedProducts;
+        }
+
+        if (user.SupervisorId.HasValue && await WouldCreateSupervisorCycleAsync(user.Id, user.SupervisorId.Value))
+        {
+            return BadRequest("This supervisor assignment would create a cycle (directly or transitively supervising themselves).");
+        }
+
+        // This endpoint is for general profile fields only. HashedPassword/PasswordResetToken/
+        // PasswordResetTokenExpiry all carry [JsonIgnore], so the incoming `user` object always
+        // has these three at their C# default (null) — blanket EntityState.Modified would
+        // otherwise null them out in the DB on every single profile edit. Password changes go
+        // through Auth/change-password; reset tokens are only ever written by forgot-password.
+        user.HashedPassword = existing.HashedPassword;
+        user.PasswordResetToken = existing.PasswordResetToken;
+        user.PasswordResetTokenExpiry = existing.PasswordResetTokenExpiry;
+        user.MustChangePassword = existing.MustChangePassword;
+
         _context.Entry(user).State = EntityState.Modified;
 
         try
@@ -155,33 +216,50 @@ public class UsersController : ControllerBase
     // POST: api/Users
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     [HttpPost]
+    [Authorize(Roles = "Admin,Master")]
     public async Task<ActionResult<User>> PostUser(User user)
     {
         var password = Security.GenerateRandomPassword();
-        var hashedPassword = Security.Encrypt("12345678");
-        user.HashedPassword = hashedPassword;
+        user.HashedPassword = Security.HashPassword(password);
+        user.MustChangePassword = true;
         _context.Users.Add(user);
-        await _context.SaveChangesAsync();
-        // Optionally, you can send a welcome email after user creation
-        var emailMessage = new EmailQueueMessage
+
+        try
         {
-            To = user.Email,
-            Subject = "Your login credentials",
-            Template = "AccountDetails",
-            TemplateModel = new AccountDetailBody
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException pg && pg.SqlState == "23505")
+        {
+            _context.ChangeTracker.Clear();
+            return Conflict(new { error = "A user with this email already exists." });
+        }
+
+        if (_mailPublisher != null)
+        {
+            var portalUrl = _configuration.GetValue<string>("Portal:Url") ?? "https://demo-mcc.onrender.com";
+            var emailMessage = new EmailQueueMessage
             {
-                Email = user.Email,
-                Name = user.ToString(),
-                Password = password,
-                PortalUrl = "https://demo-mcc.onrender.com" // Replace with your actual portal URL
-            }
-        };
-        //_mailPublisher.QueueEmailAsync(emailMessage);
+                To = user.Email,
+                Subject = "Your login credentials",
+                Template = "AccountDetails",
+                TemplateModel = new AccountDetailBody
+                {
+                    Email = user.Email,
+                    Name = user.ToString(),
+                    Password = password,
+                    PortalUrl = portalUrl,
+                    IsTestEnvironment = !_env.IsProduction()
+                }
+            };
+            _mailPublisher.QueueEmailAsync(emailMessage);
+        }
+
         return CreatedAtAction("GetUser", new { id = user.Id }, user);
     }
 
     // DELETE: api/Users/5
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin,Master")]
     public async Task<IActionResult> DeleteUser(Guid id)
     {
         var user = await _context.Users.FindAsync(id);
@@ -199,5 +277,32 @@ public class UsersController : ControllerBase
     private bool UserExists(Guid id)
     {
         return _context.Users.Any(e => e.Id == id);
+    }
+
+    // Walks the proposed supervisor's chain upward looking for userId — catches both a direct
+    // self-assignment and a transitive cycle (A supervises B, B supervises A). The visited-set
+    // guard also stops the walk if it encounters an already-existing cycle elsewhere in the data
+    // rather than looping forever.
+    private async Task<bool> WouldCreateSupervisorCycleAsync(Guid userId, Guid supervisorId)
+    {
+        var visited = new HashSet<Guid>();
+        Guid? currentId = supervisorId;
+
+        while (currentId.HasValue)
+        {
+            if (currentId.Value == userId)
+                return true;
+
+            if (!visited.Add(currentId.Value))
+                break;
+
+            currentId = await _context.Users
+                .AsNoTracking()
+                .Where(u => u.Id == currentId.Value)
+                .Select(u => u.SupervisorId)
+                .FirstOrDefaultAsync();
+        }
+
+        return false;
     }
 }

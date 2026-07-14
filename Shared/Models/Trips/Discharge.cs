@@ -23,8 +23,15 @@ public class Discharge
     public DateTimeOffset? DischargeStartTime { get; set; }
     public decimal QuantityDischarged { get; set; }
     public bool IsFinalDischarge { get; set; }
+
+    // Set when the shortage-notification email to NRL CCU is successfully queued (not a
+    // delivery receipt — the pipeline is fire-and-forget over RabbitMQ, same as every other
+    // email in this app). Null means either no shortage was detected or the publisher isn't
+    // registered (e.g. Development builds).
+    public DateTimeOffset? ShortageNotifiedAt { get; set; }
+
     [Column(TypeName = "jsonb")]
-    public List<UploadResult> Files { get; set; } = [];    
+    public List<UploadResult> Files { get; set; } = [];
 
     [StringLength(500)]
     public string? Notes { get; set; }

@@ -1,8 +1,12 @@
 @* ShortagesChart.razor *@
 @inject ITripService TripService
 @inject IExportService ExportService
+@inject IAppSettingsService AppSettingsService
 @using ApexCharts
+@using Shared.Extensions
+@using Shared.Interfaces.Settings
 @using System.ComponentModel.DataAnnotations.Schema
+@implements IDisposable
 
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
     <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
@@ -121,22 +125,39 @@
     private int WithinToleranceCount => AllShortages.Count(s => s.VariancePercentage <= Tolerance);
     private decimal HighestShortage => AllShortages.Any() ? AllShortages.Max(s => s.ShortageAmount) : 0;
 
-    protected override async Task OnInitializedAsync() 
-    { 
-        await LoadShortagesData(); 
-        await InitializeChart(); 
-    } 
+    protected override async Task OnInitializedAsync()
+    {
+        AppState.DashboardDataChanged += OnDashboardDataChanged;
+        await LoadShortagesData();
+        await InitializeChart();
+    }
 
-    protected override async Task OnParametersSetAsync() 
-    { 
-        if (HasParameterChanged()) 
-        { 
-            await LoadShortagesData(); 
-            await UpdateChart(); 
-        } 
-    } 
+    protected override async Task OnParametersSetAsync()
+    {
+        if (HasParameterChanged())
+        {
+            await LoadShortagesData();
+            await UpdateChart();
+        }
+    }
 
     private bool HasParameterChanged() { return true; }
+
+    private async void OnDashboardDataChanged(object? sender, string entityType)
+    {
+        // Shortage is derived from both the loaded quantity (Trip) and what was
+        // discharged (Discharge), so either kind of change can move the numbers.
+        if (entityType != "Trip" && entityType != "Discharge")
+            return;
+
+        await LoadShortagesData();
+        await UpdateChart();
+    }
+
+    public void Dispose()
+    {
+        AppState.DashboardDataChanged -= OnDashboardDataChanged;
+    }
 
     private async Task LoadShortagesData()
     {
@@ -148,6 +169,10 @@
 
             if (Product.HasValue)
                 trips = trips.Where(t => t.Truck?.Product == Product.Value).ToArray();
+
+            var settings = await AppSettingsService.GetAsync(AppState.GetCancellationToken());
+            if (settings.ExcludeCngFromShortage)
+                trips = trips.Where(t => !(t.Truck?.Product?.IsCng() ?? false)).ToArray();
 
             var shortages = trips
                 .Where(t => t.Discharges?.Any(d => d.IsFinalDischarge) == true)

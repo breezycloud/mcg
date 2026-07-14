@@ -8,17 +8,20 @@
 
 <div class="relative">
     <input
-        id="autocomplete-input"
+        id="@_inputId"
         type="text"
         class="w-full bg-gray-50 border border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-700 dark:text-white
                text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 pr-10"
         placeholder="@Placeholder"
+        aria-label="@(AriaLabel ?? Placeholder)"
+        aria-invalid="@(IsInvalid ? "true" : "false")"
+        aria-describedby="@ErrorId"
         @bind="SearchText"
         @bind:event="oninput"
         @onkeydown="OnKeyDown"
         role="combobox"
         aria-autocomplete="list"
-        aria-controls="autocomplete-list"
+        aria-controls="@_listId"
         aria-expanded="@showList.ToString().ToLower()"
         aria-activedescendant="@GetActiveDescendantId()"
         autocomplete="off" />
@@ -56,7 +59,7 @@
 
     @if (showList && FilteredItems?.Any() == true)
     {
-        <ul id="autocomplete-list"
+        <ul id="@_listId"
             class="absolute z-10 w-full bg-white border border-gray-300 dark:bg-gray-800 dark:border-gray-700 
                    rounded-lg shadow-lg mt-1 max-h-60 overflow-auto
                    transition-opacity duration-200 ease-in-out"
@@ -97,9 +100,16 @@
     [Parameter, EditorRequired]
     public Func<string, int, CancellationToken, Task<List<TItem>>> SearchFunc { get; set; } = default!;
     [Parameter] public string Placeholder { get; set; } = "";
+    [Parameter] public string? AriaLabel { get; set; }
+    [Parameter] public bool IsInvalid { get; set; }
+    [Parameter] public string? ErrorId { get; set; }
     [Parameter] public EventCallback<TItem> SelectedChanged { get; set; }
     [Parameter] public RenderFragment<TItem> OptionTemplate { get; set; } = default!;
     [Parameter] public string? InitialText { get; set; }
+
+    private readonly string _instanceId = Guid.NewGuid().ToString("N");
+    private string _inputId => $"autocomplete-input-{_instanceId}";
+    private string _listId => $"autocomplete-list-{_instanceId}";
 
     protected override void OnInitialized()
     {
@@ -176,19 +186,37 @@
 
         isLoading = true;
 
-        var results = await SearchFunc(SearchText, currentPage, token);
-        if (token.IsCancellationRequested) return;
+        try
+        {
+            var results = await SearchFunc(SearchText, currentPage, token);
+            if (token.IsCancellationRequested) return;
 
-        hasMore = results.Count == PageSize;
+            hasMore = results.Count == PageSize;
 
-        if (resetPage)
-            FilteredItems = results;
-        else
-            FilteredItems.AddRange(results);
+            if (resetPage)
+                FilteredItems = results;
+            else
+                FilteredItems.AddRange(results);
 
-        showList = FilteredItems.Any();
-        isLoading = false;
-        isFirstLoad = false;
+            showList = FilteredItems.Any();
+        }
+        catch (OperationCanceledException)
+        {
+            // A newer keystroke superseded this search — not a failure, nothing to report.
+        }
+        catch
+        {
+            // Previously unhandled: SearchFunc throwing here left isLoading stuck true forever
+            // (a permanently spinning autocomplete dropdown) and the exception itself vanished
+            // silently — DebouncedSearch's fire-and-forget Task.Run only caught
+            // TaskCanceledException, so anything else became an unobserved task exception.
+            ToastService.ShowError("Search failed. Please try again.");
+        }
+        finally
+        {
+            isLoading = false;
+            isFirstLoad = false;
+        }
 
         await InvokeAsync(StateHasChanged);
     }

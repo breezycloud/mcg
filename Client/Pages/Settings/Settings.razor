@@ -1,0 +1,126 @@
+@page "/settings"
+@inject IAppSettingsService AppSettingsService
+@attribute [Authorize(Roles = "Master, Admin")]
+
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+    <h1 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Settings</h1>
+
+    @if (AppState.IsBusy)
+    {
+        <Loader />
+    }
+    else
+    {
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-4 sm:p-5">
+            <h3 class="text-sm font-bold text-gray-800 dark:text-white mb-1">NRL CCU Notifications</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                Where the automatic delivery-shortage notification email is sent once a final discharge, its calibration chart,
+                waybill, and loading/arrival ullage readings are all in place.
+            </p>
+
+            <div class="space-y-4">
+                <div>
+                    <label for="nrl-ccu-email" class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
+                        NRL CCU Email
+                    </label>
+                    <input id="nrl-ccu-email" type="email" @bind="Data.NrlCcuEmail"
+                           placeholder="ccu@nrl.example.com"
+                           class="bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white border-gray-300" />
+                </div>
+
+                <div>
+                    <label for="nrl-ccu-cc" class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
+                        CC Emails
+                    </label>
+                    <input id="nrl-ccu-cc" type="text" @bind="Data.NrlCcuCcEmails"
+                           placeholder="ops@mcg.example.com; supervisor@mcg.example.com"
+                           class="bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white border-gray-300" />
+                    <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">Separate multiple addresses with a semicolon ( ; ).</p>
+                </div>
+            </div>
+
+            <div class="mt-5 pt-4 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                <span class="text-xs text-gray-400 dark:text-gray-500">
+                    @(Data.UpdatedAt != null ? $"Last saved {Data.UpdatedAt.Value.ToLocalTime():dd MMM yyyy HH:mm}" : "Never saved")
+                </span>
+                <button type="button" @onclick="Save" disabled="@IsSaving"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow-sm hover:bg-blue-700 text-sm font-medium disabled:opacity-50">
+                    @(IsSaving ? "Saving..." : "Save")
+                </button>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-4 sm:p-5 mt-4">
+            <h3 class="text-sm font-bold text-gray-800 dark:text-white mb-1">Shortage Reporting</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                CNG's discharge measurements aren't directly comparable to liquid products — turn this on to leave CNG
+                trips out of shortage dashboards, reports, drill-downs, and CSV exports. CNG and LPG are always left
+                out of CCU notifications regardless of this setting, since neither product's shortage figures are
+                reliable enough to act on.
+            </p>
+
+            <label class="flex items-center gap-3 cursor-pointer">
+                <input type="checkbox" @bind="Data.ExcludeCngFromShortage"
+                       class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600" />
+                <span class="text-sm text-gray-700 dark:text-gray-300">Exclude CNG from shortage reporting</span>
+            </label>
+
+            <div class="mt-5 pt-4 border-t border-gray-100 dark:border-gray-700 flex items-center justify-end">
+                <button type="button" @onclick="Save" disabled="@IsSaving"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow-sm hover:bg-blue-700 text-sm font-medium disabled:opacity-50">
+                    @(IsSaving ? "Saving..." : "Save")
+                </button>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private NotificationSettings Data { get; set; } = new();
+    private bool IsSaving { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        AppState.IsBusy = true;
+        try
+        {
+            Data = await AppSettingsService.GetAsync(AppState.GetCancellationToken());
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError("Failed to load settings");
+            Console.WriteLine($"Error loading settings: {ex.Message}");
+        }
+        finally
+        {
+            AppState.IsBusy = false;
+        }
+    }
+
+    private async Task Save()
+    {
+        IsSaving = true;
+        try
+        {
+            var success = await AppSettingsService.UpdateAsync(Data, AppState.GetCancellationToken());
+            if (success)
+            {
+                Data = await AppSettingsService.GetAsync(AppState.GetCancellationToken());
+                ToastService.ShowSuccess("Settings saved!");
+            }
+            else
+            {
+                ToastService.ShowWarning("Failed to save settings");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError("Failed to save settings");
+            Console.WriteLine($"Error saving settings: {ex.Message}");
+        }
+        finally
+        {
+            IsSaving = false;
+        }
+    }
+}

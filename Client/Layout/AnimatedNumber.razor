@@ -1,0 +1,36 @@
+@inject IJSRuntime JS
+
+<span @ref="_element" class="tabular-nums"></span>
+
+@code {
+    [Parameter, EditorRequired] public decimal Value { get; set; }
+    [Parameter] public int Decimals { get; set; }
+    [Parameter] public string Prefix { get; set; } = "";
+    [Parameter] public string Suffix { get; set; } = "";
+    [Parameter] public int DurationMs { get; set; } = 800;
+
+    private ElementReference _element;
+    private decimal _lastValue;
+    private bool _hasRendered;
+
+    // Deliberately never puts @Value into this component's own markup — the span's text is owned
+    // entirely by JS (animateValue.js) from first paint onward. If Razor re-rendered the text here
+    // too, Blazor's diffing would overwrite the DOM mid-animation on every parent refresh.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _hasRendered = true;
+            _lastValue = Value;
+            await JS.InvokeVoidAsync("animateValue", _element, Value, Value, 0, Decimals, Prefix, Suffix);
+            return;
+        }
+
+        if (!_hasRendered || Value == _lastValue)
+            return;
+
+        var from = _lastValue;
+        _lastValue = Value;
+        await JS.InvokeVoidAsync("animateValue", _element, from, Value, DurationMs, Decimals, Prefix, Suffix);
+    }
+}

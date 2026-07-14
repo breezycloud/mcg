@@ -1,7 +1,7 @@
 @page "/requests"
 @inject IRequestService RequestService
 @inject IMaintenanceService SiteService
-@attribute [Authorize(Roles ="Supervisor, Maintenance, Monitoring, Admin, Master")]
+@attribute [Authorize(Roles ="Supervisor, Maintenance, Monitoring, Admin, Master, MaintenanceSupervisor, Manager")]
 <PageTitle>Requests</PageTitle>
 
 
@@ -38,8 +38,8 @@
                             <option value="@status">@StringConverter.ToDescription(status)</option>
                         }
                     </select>
-                     <AuthorizeView Roles="Admin, Master">
-                        <InputSelect id="maintenanceSite" 
+                     <AuthorizeView Roles="Admin, Master, MaintenanceSupervisor, Manager">
+                        <InputSelect id="maintenanceSite"
                             class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                             @bind-Value="request.Id"
                             style="width: 15rem;"
@@ -65,7 +65,7 @@
                         
                      }
                  </div>
-                <AuthorizeView Roles="Admin, Master, Supervisor">
+                <AuthorizeView Roles="Admin, Master, Supervisor, Manager">
                     <div class="flex flex-col items-stretch justify-end flex-shrink-0 w-full space-y-2 md:w-auto md:flex-row md:space-y-0 md:items-center md:space-x-3">
                         <a 
                             href="service-report" 
@@ -140,28 +140,25 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 text-right">
-                                    <div class="flex justify-end space-x-3">
-                                       <AuthorizeView Roles="Admin, Master, Monitoring, Maintenance">
+                                    <RowActionMenu IsOpen="openActionMenuId == request.Id" OnToggle="() => ToggleActionMenu(request.Id)" TriggerLabel="Service request actions">
+                                        <AuthorizeView Roles="Admin, Master, Monitoring, Maintenance, MaintenanceSupervisor, Manager">
                                             @if(request.Status == RequestStatus.Pending)
                                             {
-                                                <button 
-                                                    @onclick="() => EditRequest(request.Id)" 
-                                                    class="font-medium text-blue-600 dark:text-blue-400 hover:underline">
+                                                <button type="button" role="menuitem" @onclick="() => { ToggleActionMenu(request.Id); EditRequest(request.Id); }"
+                                                    class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
                                                     Edit
                                                 </button>
-                                            }                                       
-                                        <button 
-                                            @onclick="() => ViewRequest(request.Id)" 
-                                            class="font-medium text-gray-600 dark:text-gray-400 hover:underline">
-                                            View
-                                        </button>
-                                       </AuthorizeView>                                                                               
-                                        @* <button 
-                                            @onclick="() => DeleteRequest(request.Id)" 
-                                            class="font-medium text-red-600 dark:text-red-500 hover:underline">
+                                            }
+                                            <button type="button" role="menuitem" @onclick="() => { ToggleActionMenu(request.Id); ViewRequest(request.Id); }"
+                                                class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                                View
+                                            </button>
+                                        </AuthorizeView>
+                                        @* <button type="button" @onclick="() => { ToggleActionMenu(request.Id); DeleteRequest(request.Id); }"
+                                            class="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700">
                                             Delete
                                         </button> *@
-                                    </div>
+                                    </RowActionMenu>
                                 </td>
                             </tr>
                         }
@@ -223,27 +220,44 @@
     private MaintenanceSite[]? Sites;
     private MaintenanceSite? Site = new();
     private bool IsDisabled = false;
+    private Guid? openActionMenuId;
+
+    private void ToggleActionMenu(Guid requestId)
+    {
+        openActionMenuId = openActionMenuId == requestId ? null : requestId;
+    }
+
     protected override async Task OnInitializedAsync()
     {
         // Load trucks and sites here
-        AppState.IsBusy = true;  
-        request = new GridDataRequest { Page = 0, PageSize = 10};       
-        var shopId = await localStorage.GetItemAsync<Guid?>("shopId");
-        var userId = await localStorage.GetItemAsync<Guid>("uid");
-        if (shopId is not null || shopId.Equals(Guid.Empty))
+        AppState.IsBusy = true;
+        try
         {
-            request.Id = shopId.Value;
-            request.UserId = userId;
-            IsDisabled = true;
-            Site = await SiteService.GetAsync(shopId.Value, AppState.GetCancellationToken());
+            request = new GridDataRequest { Page = 0, PageSize = 10};
+            var shopId = await localStorage.GetItemAsync<Guid?>("shopId");
+            var userId = await localStorage.GetItemAsync<Guid>("uid");
+            if (shopId is not null || shopId.Equals(Guid.Empty))
+            {
+                request.Id = shopId.Value;
+                request.UserId = userId;
+                IsDisabled = true;
+                Site = await SiteService.GetAsync(shopId.Value, AppState.GetCancellationToken());
+            }
+            else
+            {
+                Sites = await SiteService.GetAsync(AppState.GetCancellationToken());
+            }
+
+            await LoadRequests();
         }
-        else
+        catch
         {
-            Sites = await SiteService.GetAsync(AppState.GetCancellationToken());
+            ToastService.ShowError("Failed to load service requests");
         }
-       
-        await LoadRequests();
-        AppState.IsBusy = false;
+        finally
+        {
+            AppState.IsBusy = false;
+        }
     }
 
 
@@ -286,9 +300,13 @@
     private async Task LoadRequests()
     {
         AppState.IsBusy = true;
-        try 
+        try
         {
             response = await RequestService.GetPagedAsync(request, AppState.GetCancellationToken());
+        }
+        catch
+        {
+            ToastService.ShowError("Failed to load service requests");
         }
         finally
         {

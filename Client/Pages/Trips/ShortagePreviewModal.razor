@@ -1,0 +1,187 @@
+@using Shared.Models.MessageBroker
+@inject IJSRuntime JSRuntime
+@inject IDischargeService DischargeService
+@implements IDisposable
+
+@if (IsVisible)
+{
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-gray bg-opacity-50 p-4">
+        <div id="@_dialogId" class="relative w-full max-w-2xl max-h-[90vh] flex flex-col bg-white rounded-lg shadow dark:bg-gray-700"
+             role="dialog" aria-modal="true" aria-label="Preview CCU Notification" tabindex="-1">
+            <div class="flex items-start justify-between p-4 border-b rounded-t dark:border-gray-600">
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Preview CCU Notification</h3>
+                <button type="button" @onclick="Close" aria-label="Close"
+                        class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white">
+                    <svg aria-hidden="true" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="p-4 md:p-5 space-y-4 overflow-y-auto">
+                @if (IsLoading)
+                {
+                    <div class="flex items-center gap-2 text-gray-500 py-10 justify-center">
+                        <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                        </svg>
+                        Loading preview...
+                    </div>
+                }
+                else if (Preview is null)
+                {
+                    <p class="text-sm text-red-600 dark:text-red-400">Failed to load preview.</p>
+                }
+                else if (Preview.AlreadySent)
+                {
+                    <p class="text-sm text-gray-600 dark:text-gray-300">
+                        A CCU notification was already sent for this discharge
+                        @(Preview.SentAt.HasValue ? $"on {Preview.SentAt.Value.ToLocalTime():dd MMM yyyy HH:mm}." : ".")
+                    </p>
+                }
+                else if (!Preview.Ready)
+                {
+                    <p class="text-sm text-gray-600 dark:text-gray-300 mb-2">This can't be sent yet — still missing:</p>
+                    <ul class="list-disc list-inside text-sm text-red-600 dark:text-red-400 space-y-1">
+                        @foreach (var item in Preview.MissingRequirements)
+                        {
+                            <li>@item</li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <div class="text-sm space-y-1 text-gray-700 dark:text-gray-200">
+                        <div><span class="font-medium">To:</span> @Preview.To</div>
+                        @if (!string.IsNullOrWhiteSpace(Preview.Cc))
+                        {
+                            <div><span class="font-medium">Cc:</span> @Preview.Cc</div>
+                        }
+                        <div><span class="font-medium">Subject:</span> @Preview.Subject</div>
+                    </div>
+                    <iframe title="Email preview" srcdoc="@Preview.Html" class="w-full h-96 border border-gray-200 dark:border-gray-600 rounded-lg bg-white"></iframe>
+                    @if (!string.IsNullOrWhiteSpace(SendError))
+                    {
+                        <p class="text-sm text-red-600 dark:text-red-400">@SendError</p>
+                    }
+                }
+            </div>
+
+            <div class="flex items-center justify-end gap-3 p-4 border-t dark:border-gray-600">
+                <button type="button" @onclick="Close"
+                        class="py-2.5 px-5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600">
+                    @(Preview?.Ready == true ? "Cancel" : "Close")
+                </button>
+                @if (Preview?.Ready == true)
+                {
+                    <button type="button" @onclick="Send" disabled="@IsSending"
+                            class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 disabled:opacity-50">
+                        @(IsSending ? "Sending..." : "Send to CCU")
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public EventCallback OnSent { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private bool IsVisible { get; set; }
+    private bool IsLoading { get; set; }
+    private bool IsSending { get; set; }
+    private bool _pendingActivate;
+    private readonly string _dialogId = $"shortage-preview-modal-{Guid.NewGuid():N}";
+    private DotNetObjectReference<ShortagePreviewModal>? _dotNetRef;
+
+    private Guid _dischargeId;
+    private ShortagePreviewDto? Preview { get; set; }
+    private string? SendError { get; set; }
+
+    public async Task Show(Guid dischargeId)
+    {
+        _dischargeId = dischargeId;
+        Preview = null;
+        SendError = null;
+        IsVisible = true;
+        _pendingActivate = true;
+        StateHasChanged();
+        await LoadPreview();
+    }
+
+    private async Task LoadPreview()
+    {
+        IsLoading = true;
+        StateHasChanged();
+        try
+        {
+            Preview = await DischargeService.GetShortagePreviewAsync(_dischargeId, AppState.GetCancellationToken());
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Failed to load preview: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_pendingActivate)
+        {
+            _pendingActivate = false;
+            _dotNetRef ??= DotNetObjectReference.Create(this);
+            await JSRuntime.InvokeVoidAsync("focusTrap.activate", _dialogId, _dotNetRef);
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnEscapePressed() => await Close();
+
+    private async Task Send()
+    {
+        IsSending = true;
+        SendError = null;
+        StateHasChanged();
+        try
+        {
+            var (success, error) = await DischargeService.SendShortageNotificationAsync(_dischargeId, AppState.GetCancellationToken());
+            if (success)
+            {
+                ToastService.ShowSuccess("CCU notification sent.");
+                await OnSent.InvokeAsync();
+                await Close();
+            }
+            else
+            {
+                SendError = error;
+            }
+        }
+        catch (Exception ex)
+        {
+            SendError = ex.Message;
+        }
+        finally
+        {
+            IsSending = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task Close()
+    {
+        await JSRuntime.InvokeVoidAsync("focusTrap.deactivate", _dialogId);
+        IsVisible = false;
+        await OnClose.InvokeAsync();
+    }
+
+    public void Dispose()
+    {
+        _dotNetRef?.Dispose();
+    }
+}

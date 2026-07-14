@@ -23,12 +23,16 @@ public class SeedData
         var scopeFactory = services.GetRequiredService<IServiceScopeFactory>();
         using var scope = scopeFactory.CreateScope();
         using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        //db.Database.EnsureDeleted();
-        var created = await db.Database.EnsureCreatedAsync();
+        // Schema is now owned by EF Core migrations (Api/Migrations) instead of
+        // EnsureCreatedAsync() + ad-hoc raw SQL here — see InitialBaseline for
+        // context on why. Applies any pending migrations, including creating
+        // the whole schema from scratch on a genuinely empty database.
+        await db.Database.MigrateAsync();
 
         await AddMigrations(scopeFactory);
 
-        if (created)
+        var isEmpty = !await db.Users.AnyAsync();
+        if (isEmpty)
         {
             stopWatch = new();
             stopWatch.Start();
@@ -91,6 +95,14 @@ public class SeedData
         _ = await db.Database.ExecuteSqlRawAsync(@"
             CREATE INDEX IF NOT EXISTS ""IX_Users_PasswordResetToken"" ON ""Users"" (""PasswordResetToken"");
         ");
+
+        // DailyReports schema now owned by the InitialBaseline EF migration
+        // (see Api/Migrations) instead of a raw-SQL block here — this is
+        // exactly the class of gap (a table shape only captured as ad-hoc SQL,
+        // easy to miss on a restored/divergent database) that motivated
+        // switching to migrations as the schema-of-record going forward. New
+        // schema changes should get a `dotnet ef migrations add` instead of a
+        // new block in this method.
     }
 
     public record Drivers(Guid Id, string FirstName, string LastName,string PhoneNo, string LicensePlate);
@@ -199,7 +211,7 @@ public class SeedData
                 FirstName = "Aminu",
                 LastName = "Aliyu",
                 Email = "nerdyamin@gmail.com",
-                HashedPassword = Security.Encrypt("jacubox123*"),
+                HashedPassword = Security.HashPassword("jacubox123*"),
                 Role = UserRole.Master
             },
             new User
@@ -209,7 +221,7 @@ public class SeedData
                 LastName = "Aliyu",
                 Email = "mstphly@gmail.com",
                 Role = UserRole.Master,
-                HashedPassword = Security.Encrypt("12345678"),
+                HashedPassword = Security.HashPassword("12345678"),
             }
         ]);
 

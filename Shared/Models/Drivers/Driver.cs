@@ -24,6 +24,11 @@ public class Driver
     public DateOnly? ExpiryDate { get; set; }
     [Column(TypeName = "jsonb")]
     public List<UploadResult> Files { get; set; } = [];
+
+    public Guid? CurrentMotorMateId { get; set; }
+    [ForeignKey(nameof(CurrentMotorMateId))]
+    public virtual MotorMate? CurrentMotorMate { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? UpdatedAt { get; set; }
     public virtual ICollection<Trip>? Trips { get; set; } = [];

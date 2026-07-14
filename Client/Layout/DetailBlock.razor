@@ -1,0 +1,11 @@
+<div class="min-w-0">
+    <div class="text-[11px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">@Label</div>
+    <div class="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate" title="@Value">
+        @(string.IsNullOrWhiteSpace(Value) ? "—" : Value)
+    </div>
+</div>
+
+@code {
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public string? Value { get; set; }
+}

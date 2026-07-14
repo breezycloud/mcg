@@ -1,6 +1,7 @@
 @using ApexCharts
 @using System.Threading.Tasks
 @inject IDashboardService DashboardService
+@implements IDisposable
 
 @if (IsLoading)
 {
@@ -49,6 +50,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        AppState.DashboardDataChanged += OnDashboardDataChanged;
         await InitializeChartOptions();
         await LoadData();
     }
@@ -67,12 +69,36 @@ else
         return true; // For simplicity, always reload when parameters change
     }
 
+    private async void OnDashboardDataChanged(object? sender, string entityType)
+    {
+        if (entityType != "Trip")
+            return;
+
+        await LoadData();
+        await UpdateChart();
+    }
+
+    public void Dispose()
+    {
+        AppState.DashboardDataChanged -= OnDashboardDataChanged;
+    }
+
     private async Task LoadData()
     {
         IsLoading = true;
-        var result = await DashboardService.GetTripMonthlyProductSummaries(Product.ToString());
-        Data = result ?? new();
-        IsLoading = false;
+        try
+        {
+            var result = await DashboardService.GetTripMonthlyProductSummaries(Product.ToString());
+            Data = result ?? new();
+        }
+        catch
+        {
+            ToastService.ShowError("Failed to load trip status data");
+        }
+        finally
+        {
+            IsLoading = false;
+        }
     }
 
     private async Task InitializeChartOptions()

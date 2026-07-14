@@ -36,4 +36,15 @@ jobs:
           password: ${{ secrets.VPS_PASSWORD }}
           source: "./publish/*"
           target: ${{ secrets.STAGING_CLIENT_TARGET }}
-          rm: true  # Remove old files before copy      
+          rm: true  # Remove old files before copy
+
+      - name: Fix Ownership on VPS
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          script: |
+            echo "🔐 Fixing file ownership..."
+            sudo chown -R www-data:www-data ${{ secrets.STAGING_CLIENT_TARGET }}
+            echo "✅ Deployment complete!"

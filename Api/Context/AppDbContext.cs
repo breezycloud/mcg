@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Shared.Models.Auth;
 using Shared.Models.Drivers;
 using Shared.Models.IoTs;
 using Shared.Models.Logging;
@@ -13,6 +14,7 @@ using Shared.Models.Checkpoints;
 using Shared.Models.RefuelInfos;
 using Shared.Models.TripCheckpoints;
 using Shared.Models.Incidents;
+using Shared.Models.Settings;
 
 namespace Api.Context;
 
@@ -24,8 +26,11 @@ public class AppDbContext : DbContext
 
     }
     public virtual DbSet<User> Users { get; set; } = default!;
+    public virtual DbSet<RefreshToken> RefreshTokens { get; set; } = default!;
     public virtual DbSet<AuditLog> AuditLogs { get; set; } = default!;
     public virtual DbSet<Driver> Drivers { get; set; } = default!;
+    public virtual DbSet<MotorMate> MotorMates { get; set; } = default!;
+    public virtual DbSet<MotorMateHistory> MotorMateHistories { get; set; } = default!;
     public virtual DbSet<LogMessage> Logs { get; set; } = default!;
     public virtual DbSet<MaintenanceSite> MaintenanceSites { get; set; } = default!;
     public virtual DbSet<Station> Stations { get; set; } = default!;
@@ -35,6 +40,7 @@ public class AppDbContext : DbContext
     public virtual DbSet<Origin> TripOrigins { get; set; } = default!;
     public virtual DbSet<Destination> TripDestinations { get; set; } = default!;
     public virtual DbSet<Discharge> Discharges { get; set; } = default!;
+    public virtual DbSet<ShortageRecommendation> ShortageRecommendations { get; set; } = default!;
     public virtual DbSet<Truck> Trucks { get; set; } = default!;
     public virtual DbSet<IoT> IoTs { get; set; } = default!;
     public virtual DbSet<RefuelInfo> RefuelInfos { get; set; } = default!;
@@ -45,13 +51,39 @@ public class AppDbContext : DbContext
     public DbSet<IncidentType> IncidentTypes { get; set; } = default!;
     public DbSet<IncidentHistory> IncidentHistories { get; set; } = default!;
     public virtual DbSet<DailyReport> DailyReports { get; set; } = default!;
+    public virtual DbSet<NotificationSettings> AppSettings { get; set; } = default!;
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<User>()
-            .HasIndex(x => x.Email)
-            .IsUnique();
+        modelBuilder.Entity<User>(entity =>
+        {
+            entity.HasIndex(x => x.Email)
+                  .IsUnique();
+
+            // Self-referencing FK: who this user reports to. Restrict delete — an employee
+            // record shouldn't vanish out from under their reports if the supervisor is
+            // deleted; the supervisor must be reassigned/cleared first.
+            entity.HasOne(x => x.Supervisor)
+                  .WithMany()
+                  .HasForeignKey(x => x.SupervisorId)
+                  .OnDelete(DeleteBehavior.Restrict)
+                  .IsRequired(false);
+        });
+
+        modelBuilder.Entity<RefreshToken>(entity =>
+        {
+            // Unique so a hash collision (or a bug that reissues the same token) can never
+            // create two live rows referring to different users.
+            entity.HasIndex(x => x.TokenHash)
+                  .IsUnique()
+                  .HasDatabaseName("UX_RefreshTokens_TokenHash");
+
+            // Supports "revoke every session for this user" (password change, account
+            // deactivation) without a full table scan.
+            entity.HasIndex(x => x.UserId)
+                  .HasDatabaseName("IX_RefreshTokens_UserId");
+        });
 
         // Enforce constraints on Trip.DispatchId to avoid duplicate dispatches at the database level.
         // Use a varchar(30) length and a unique index (filtered to non-null values) as a final safety net.
@@ -64,6 +96,58 @@ public class AppDbContext : DbContext
                   .IsUnique()
                   .HasDatabaseName("IX_Trips_DispatchId")
                   .HasFilter("\"DispatchId\" IS NOT NULL");
+
+            // Explicit plain FK index — without this, adding the filtered unique index below makes
+            // EF Core treat it as the FK index's replacement and drop it. A partial index can't
+            // serve ordinary "WHERE TruckId = x" lookups (used throughout Control Room/Dashboard/
+            // Truck Report), so both must exist side by side. Two HasIndex() calls on the exact
+            // same property are otherwise treated as the same index (identity is the property
+            // list, not the chained .HasDatabaseName()) — passing the name directly here is what
+            // makes EF Core keep them as genuinely separate indexes.
+            entity.HasIndex(new[] { nameof(Trip.TruckId) }, "IX_Trips_TruckId");
+
+            // A truck can only have one open trip (Active=0, Overdue=2, Dispatched=4) at a time.
+            // Backs the app-level check in TripsController.ValidateNoOpenTripAsync as the final
+            // safety net against two near-simultaneous dispatch requests both racing past it.
+            entity.HasIndex(new[] { nameof(Trip.TruckId) }, "UX_Trips_TruckId_OpenStatus")
+                  .IsUnique()
+                  .HasFilter("\"Status\" IN (0, 2, 4)");
+        });
+
+        modelBuilder.Entity<ShortageRecommendation>(entity =>
+        {
+            // Supports "latest recommendation for this trip" lookups without a full scan.
+            entity.HasIndex(x => x.TripId)
+                  .HasDatabaseName("IX_ShortageRecommendations_TripId");
+
+            entity.HasOne(x => x.RecordedBy)
+                  .WithMany()
+                  .HasForeignKey(x => x.RecordedById)
+                  .OnDelete(DeleteBehavior.SetNull)
+                  .IsRequired(false);
+        });
+
+        // TruckNo/LicensePlate/VIN uniqueness was previously enforced only by a client-triggered
+        // pre-flight check with no re-check in PostTruck and no DB backstop — two concurrent
+        // "Add Truck" submissions with the same plate both succeeded. Same fix pattern as the
+        // Trip dispatch race guard above: filtered unique indexes as the final safety net,
+        // paired with a DbUpdateException catch in TrucksController.PostTruck.
+        modelBuilder.Entity<Truck>(entity =>
+        {
+            entity.HasIndex(t => t.TruckNo)
+                  .IsUnique()
+                  .HasDatabaseName("UX_Trucks_TruckNo")
+                  .HasFilter("\"TruckNo\" IS NOT NULL AND \"TruckNo\" != ''");
+
+            entity.HasIndex(t => t.LicensePlate)
+                  .IsUnique()
+                  .HasDatabaseName("UX_Trucks_LicensePlate")
+                  .HasFilter("\"LicensePlate\" IS NOT NULL AND \"LicensePlate\" != ''");
+
+            entity.HasIndex(t => t.VIN)
+                  .IsUnique()
+                  .HasDatabaseName("UX_Trucks_VIN")
+                  .HasFilter("\"VIN\" IS NOT NULL AND \"VIN\" != ''");
         });
 
         modelBuilder.Entity<DailyReport>(entity =>
@@ -102,6 +186,49 @@ public class AppDbContext : DbContext
             entity.HasOne(x => x.ReviewedBy)
                   .WithMany()
                   .HasForeignKey(x => x.ReviewedById)
+                  .OnDelete(DeleteBehavior.SetNull)
+                  .IsRequired(false);
+        });
+
+        modelBuilder.Entity<Driver>(entity =>
+        {
+            entity.HasOne(x => x.CurrentMotorMate)
+                  .WithMany(x => x.Drivers)
+                  .HasForeignKey(x => x.CurrentMotorMateId)
+                  .OnDelete(DeleteBehavior.SetNull)
+                  .IsRequired(false);
+
+            // The real uniqueness guard lives in the database as a hand-written expression
+            // index (see migration ReplaceDriverPhoneUniqueIndexWithNormalized) rather than a
+            // fluent HasIndex here — EF's fluent API can only index an actual column, not an
+            // expression, and the whole point is to key on NORMALIZED digits (last 10, matching
+            // Shared/Helpers/PhoneNumberHelper.NormalizeForComparison) so "8069993037" and
+            // "08069993037" collide as the same number instead of silently coexisting the way
+            // the previous exact-text UX_Drivers_PhoneNo index let three pairs do.
+        });
+
+        modelBuilder.Entity<MotorMateHistory>(entity =>
+        {
+            entity.HasOne(x => x.Driver)
+                  .WithMany()
+                  .HasForeignKey(x => x.DriverId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.PreviousMotorMate)
+                  .WithMany()
+                  .HasForeignKey(x => x.PreviousMotorMateId)
+                  .OnDelete(DeleteBehavior.SetNull)
+                  .IsRequired(false);
+
+            entity.HasOne(x => x.NewMotorMate)
+                  .WithMany()
+                  .HasForeignKey(x => x.NewMotorMateId)
+                  .OnDelete(DeleteBehavior.SetNull)
+                  .IsRequired(false);
+
+            entity.HasOne(x => x.ChangedBy)
+                  .WithMany()
+                  .HasForeignKey(x => x.ChangedById)
                   .OnDelete(DeleteBehavior.SetNull)
                   .IsRequired(false);
         });

@@ -27,7 +27,7 @@
                 @if (AppState.IsBusy)
                 {
                     <div class="pb-4 space-y-3">
-                        <LoadingSpinner/>
+                        <Loader/>
                     </div>
                 }
                 else
@@ -158,9 +158,9 @@
                         class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-blue-300 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600">
                     Cancel
                 </button>
-                <button @onclick="Save" type="button"
-                        class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
-                    @(EditMode  ? "Save" : "Save Changes")
+                <button @onclick="Save" type="button" disabled="@IsSubmitting"
+                        class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800 disabled:opacity-50 disabled:cursor-not-allowed">
+                    @(IsSubmitting ? "Saving..." : (EditMode ? "Save" : "Save Changes"))
                 </button>
             </div>
         </div>
@@ -180,7 +180,8 @@
     public EventCallback OnClose { get; set; }
 
     private Dictionary<string, string> errors = new();
-    
+    private bool IsSubmitting = false;
+
     private Station[]? Stations = [];
 
     protected override async Task OnInitializedAsync()
@@ -214,27 +215,37 @@
     }
 
     private async Task Save()
-    {        
-        errors.Clear();
-        if (string.IsNullOrWhiteSpace(CurrentRefuelInfo.DispatchId))
+    {
+        if (IsSubmitting) return;
+        IsSubmitting = true;
+
+        try
         {
-            errors[nameof(CurrentRefuelInfo.DispatchId)] = "Dispatch No is required.";            
+            errors.Clear();
+            if (string.IsNullOrWhiteSpace(CurrentRefuelInfo.DispatchId))
+            {
+                errors[nameof(CurrentRefuelInfo.DispatchId)] = "Dispatch No is required.";
+            }
+            if (CurrentRefuelInfo!.StationId.Equals(Guid.Empty))
+            {
+                errors[nameof(CurrentRefuelInfo.StationId)] = "Station is required.";
+            }
+            if (CurrentRefuelInfo!.Quantity <= 0)
+            {
+                errors[nameof(CurrentRefuelInfo.Quantity)] = "Quantity must be greater than zero.";
+            }
+            if (errors.Count > 0)
+            {
+                ToastService.ShowWarning("Fill the required fields to proceed");
+                return; // Validation failed, do not proceed
+            }
+            await OnSave.InvokeAsync(CurrentRefuelInfo);
         }
-        if (CurrentRefuelInfo!.StationId.Equals(Guid.Empty))
+        finally
         {
-            errors[nameof(CurrentRefuelInfo.StationId)] = "Station is required.";
-        }
-        if (CurrentRefuelInfo!.Quantity <= 0)
-        {
-            errors[nameof(CurrentRefuelInfo.Quantity)] = "Quantity must be greater than zero.";
-        }        
-        if (errors.Count > 0)
-        {
-            ToastService.ShowWarning("Fill the required fields to proceed");
+            IsSubmitting = false;
             StateHasChanged();
-            return; // Validation failed, do not proceed
-        }        
-        await OnSave.InvokeAsync(CurrentRefuelInfo);
+        }
     }
 
     private async Task CloseCheckpointModal()

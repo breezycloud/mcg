@@ -1,7 +1,7 @@
 @page "/trucks/{Action}/{Id:guid?}"
 @inject ITruckService TruckService
 @inject IDriverService DriverService
-@attribute [Authorize(Roles = "Supervisor, Admin, Master")]
+@attribute [Authorize(Roles = "Supervisor, Admin, Master, Manager")]
 
 
 <div class="max-w-2xl mx-auto p-4 sm:p-6">
@@ -152,6 +152,7 @@
                         SearchFunc="SearchDrivers"
                         SelectedChanged="OnDriverSelected"
                         Placeholder="Search driver by name or phone..."
+                        AriaLabel="Driver"
                         InitialText="@selectedDriverName">
                         <OptionTemplate Context="driver">
                             <span>@driver.FirstName @driver.LastName (@driver.PhoneNo)</span>
@@ -210,9 +211,9 @@
                         </div>                        
                     </div>
                     <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                            (@(Product)) Calibration Parameters 
-                        </label>
+                        <h4 class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            (@(Product)) Calibration Parameters
+                        </h4>
                         @if (CurrentTruck.CalibrationParams!.Count != 3)
                         {
                             <div class="flex align-center justify-end">
@@ -226,25 +227,31 @@
                             CalibrationParams="@(CurrentTruck.CalibrationParams)"/>
                     </div>
                     <div>
+                        <FileUploadView Model="@calibrationChartUploadModel" OnFilesUploaded="@OnCalibrationChartUploadComplete"/>
+                    </div>
+                    <div>
+                        <FileListView Files="@CalibrationChartFiles" ShowDelete="@(CalibrationChartFiles.Any())" OnDelete="@OnCalibrationChartDelete" />
+                    </div>
+                    <div>
                         <FileUploadView OnFilesUploaded="@OnUploadComplete"/>
                     </div>
                     <div>
-                        <FileListView Files="CurrentTruck.Files" ShowDelete="@(CurrentTruck.Files.Any())" OnDelete="@OnDelete" />
+                        <FileListView Files="@GeneralFiles" ShowDelete="@(GeneralFiles.Any())" OnDelete="@OnDelete" />
                     </div>
-                }                
+                }
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">
+                        <span class="block mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">
                             Created At
-                        </label>
+                        </span>
                         <div class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300">
                             @CurrentTruck.CreatedAt.ToString("MMM dd, yyyy HH:mm")
                         </div>
                     </div>
                     <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">
+                        <span class="block mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">
                             Last Updated
-                        </label>
+                        </span>
                         <div class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300">
                             @(CurrentTruck.UpdatedAt?.ToString("MMM dd, yyyy HH:mm") ?? "Never")
                         </div>
@@ -300,8 +307,8 @@
                 @if (Product == Product.LPG)
                 {
                     <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Tare Weight (kg)</label>
-                        <InputNumber @bind-Value="currentCalibration.TareWeight" class="@GetInputClass("TareWeight")" />
+                        <label for="tareWeight" class="block text-sm font-medium text-gray-700 mb-1">Tare Weight (kg)</label>
+                        <InputNumber id="tareWeight" @bind-Value="currentCalibration.TareWeight" class="@GetInputClass("TareWeight")" />
                         @if (errors.ContainsKey("TareWeight"))
                         {
                             <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["TareWeight"]</p>
@@ -309,8 +316,8 @@
                     </div>
 
                     <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Gross Weight (kg)</label>
-                        <InputNumber @bind-Value="currentCalibration.GrossWeight" class="@GetInputClass("GrossWeight")" />
+                        <label for="grossWeight" class="block text-sm font-medium text-gray-700 mb-1">Gross Weight (kg)</label>
+                        <InputNumber id="grossWeight" @bind-Value="currentCalibration.GrossWeight" class="@GetInputClass("GrossWeight")" />
                         @if (errors.ContainsKey("GrossWeight"))
                         {
                             <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["GrossWeight"]</p>
@@ -320,7 +327,7 @@
                 else
                 {
                     <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Compartment</label>
+                        <label for="comId" class="block text-sm font-medium text-gray-700 mb-1">Compartment</label>
                         <InputSelect id="comId"
                             class="@GetInputClass("Compartment")"
                             @bind-Value="currentCalibration.Compartment"
@@ -338,8 +345,8 @@
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Ullage (mm)</label>
-                            <InputNumber  @bind-Value="currentUllage" class="@GetInputClass("currentUllage")">
+                            <label for="currentUllage" class="block text-sm font-medium text-gray-700 mb-1">Ullage (mm)</label>
+                            <InputNumber id="currentUllage" @bind-Value="currentUllage" class="@GetInputClass("currentUllage")">
                             </InputNumber>
                             @if (errors.ContainsKey("currentUllage"))
                             {
@@ -348,8 +355,8 @@
                         </div>
 
                         <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Liquid Height (mm)</label>
-                            <InputNumber @bind-Value="currentLiquidHeight" class="@GetInputClass("currentLiquidHeight")" />
+                            <label for="currentLiquidHeight" class="block text-sm font-medium text-gray-700 mb-1">Liquid Height (mm)</label>
+                            <InputNumber id="currentLiquidHeight" @bind-Value="currentLiquidHeight" class="@GetInputClass("currentLiquidHeight")" />
                             @if (errors.ContainsKey("currentLiquidHeight"))
                             {
                                 <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["currentLiquidHeight"]</p>
@@ -443,11 +450,16 @@
 
                 if (type == "LicensePlate")
                     errors["LicensePlate"] = "License Plate already exist";
-            }    
+            }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-
+            // A failed pre-check must not silently read as "unique" — the network hiccup that
+            // broke this request means we genuinely don't know, so tell the user rather than
+            // letting them proceed on a false assumption. The server-side unique constraint
+            // still backs this up regardless, but this avoids a confusing failure on submit.
+            ToastService.ShowWarning($"Couldn't verify {type} is unique — check your connection and try again.");
+            Console.Error.WriteLine($"ValidateEntry({type}) failed: {ex.Message}");
         }
     }
 
@@ -606,8 +618,19 @@
         }
     }
 
+    private FileUploadModel calibrationChartUploadModel = new()
+    {
+        Label = "Calibration Chart",
+        Accept = "image/*,.pdf"
+    };
+
+    // The general slot only shows untagged files so the two upload lists don't visually
+    // double up — CalibrationChartFiles is everything tagged the other way.
+    private List<UploadResult> GeneralFiles => CurrentTruck.Files.Where(f => f.Category != FileCategories.CalibrationChart).ToList();
+    private List<UploadResult> CalibrationChartFiles => CurrentTruck.Files.Where(f => f.Category == FileCategories.CalibrationChart).ToList();
+
     private async Task OnUploadComplete(List<UploadResult> files)
-    {        
+    {
         if (files.Any())
         {
             CurrentTruck.Files.AddRange(files);
@@ -624,7 +647,39 @@
     }
     private async Task OnDelete(UploadResult file)
     {
-        if (string.IsNullOrWhiteSpace(file.FileName))        
+        if (string.IsNullOrWhiteSpace(file.FileName))
+            return;
+
+        CurrentTruck.Files.Remove(file);
+        if (EditMode)
+        {
+            await HandleSubmit();
+        }
+    }
+
+    private async Task OnCalibrationChartUploadComplete(List<UploadResult> files)
+    {
+        if (files.Any())
+        {
+            foreach (var file in files)
+            {
+                file.Category = FileCategories.CalibrationChart;
+            }
+            CurrentTruck.Files.AddRange(files);
+            if (EditMode)
+            {
+                await HandleSubmit();
+            }
+        }
+        else
+        {
+            ToastService.ShowError("Failed to upload files");
+        }
+        StateHasChanged();
+    }
+    private async Task OnCalibrationChartDelete(UploadResult file)
+    {
+        if (string.IsNullOrWhiteSpace(file.FileName))
             return;
 
         CurrentTruck.Files.Remove(file);

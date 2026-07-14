@@ -196,9 +196,13 @@
     private async Task LoadCheckpoints()
     {
         AppState.IsBusy = true;
-        try 
+        try
         {
             response = await CheckpointService.GetPagedAsync(request, AppState.GetCancellationToken());
+        }
+        catch
+        {
+            ToastService.ShowError("Failed to load checkpoints");
         }
         finally
         {

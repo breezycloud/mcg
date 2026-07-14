@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Shared.Enums;
+using Shared.Extensions;
 using Shared.Models.Drivers;
 using Shared.Models.Incidents;
 using Shared.Models.Services;
@@ -44,6 +45,7 @@ public class Trip
     public virtual ICollection<ServiceRequest> ServiceRequests { get; set; } = [];
     public virtual ICollection<Incident> Incidents { get; set; } = [];
     public virtual ICollection<Discharge> Discharges { get; set; } = [];
+    public virtual ICollection<ShortageRecommendation> ShortageRecommendations { get; set; } = [];
     [ForeignKey(nameof(LoadingDepotId))]
     public Station? LoadingDepot { get; set; }
 
@@ -88,9 +90,9 @@ public class Trip
 
     public string CalculateShortageOverage(decimal? Quantity, decimal? SumQuantity)
     {
-        if (SumQuantity - Quantity != 0)
+        if (SumQuantity - Quantity > 0)
             return "Overage";
-        else if (SumQuantity - Quantity != 0)
+        else if (SumQuantity - Quantity < 0)
             return "Shortage";
         else
             return "Nil";
@@ -98,10 +100,11 @@ public class Trip
 
     public string GetUnit()
     {
-        return Truck?.Product.ToString() switch
+        if (Truck?.Product is null) return "LTR";
+        if (Truck.Product.Value.IsCng()) return "SCM";
+        return Truck.Product switch
         {
-            "CNG" => "SCM",
-            "LPG" => "KG",
+            Product.LPG => "KG",
             _ => "LTR"
         };
     }

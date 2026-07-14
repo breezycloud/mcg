@@ -24,10 +24,47 @@ namespace Api.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.16")
+                .HasAnnotation("ProductVersion", "9.0.17")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("Shared.Models.Auth.RefreshToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ReplacedByTokenId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique()
+                        .HasDatabaseName("UX_RefreshTokens_TokenHash");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("IX_RefreshTokens_UserId");
+
+                    b.ToTable("RefreshTokens");
+                });
 
             modelBuilder.Entity("Shared.Models.Checkpoints.Checkpoint", b =>
                 {
@@ -73,6 +110,9 @@ namespace Api.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid?>("CurrentMotorMateId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateOnly?>("ExpiryDate")
                         .HasColumnType("date");
 
@@ -101,7 +141,72 @@ namespace Api.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CurrentMotorMateId");
+
                     b.ToTable("Drivers");
+                });
+
+            modelBuilder.Entity("Shared.Models.Drivers.MotorMate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("PhoneNo")
+                        .IsRequired()
+                        .HasMaxLength(11)
+                        .HasColumnType("character varying(11)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("MotorMates");
+                });
+
+            modelBuilder.Entity("Shared.Models.Drivers.MotorMateHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("ChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ChangedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("DriverId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("NewMotorMateId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("PreviousMotorMateId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChangedById");
+
+                    b.HasIndex("DriverId");
+
+                    b.HasIndex("NewMotorMateId");
+
+                    b.HasIndex("PreviousMotorMateId");
+
+                    b.ToTable("MotorMateHistories");
                 });
 
             modelBuilder.Entity("Shared.Models.Incidents.Incident", b =>
@@ -527,6 +632,29 @@ namespace Api.Migrations
                     b.ToTable("ServiceRequestHistory");
                 });
 
+            modelBuilder.Entity("Shared.Models.Settings.NotificationSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("ExcludeCngFromShortage")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("NrlCcuCcEmails")
+                        .HasColumnType("text");
+
+                    b.Property<string>("NrlCcuEmail")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("AppSettings");
+                });
+
             modelBuilder.Entity("Shared.Models.Shops.MaintenanceSite", b =>
                 {
                     b.Property<Guid>("Id")
@@ -718,6 +846,9 @@ namespace Api.Migrations
                     b.Property<decimal>("QuantityDischarged")
                         .HasColumnType("numeric");
 
+                    b.Property<DateTimeOffset?>("ShortageNotifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<double>("SidingHours")
                         .HasColumnType("double precision");
 
@@ -770,6 +901,45 @@ namespace Api.Migrations
                     b.HasIndex("StationId");
 
                     b.ToTable("TripOrigins");
+                });
+
+            modelBuilder.Entity("Shared.Models.Trips.ShortageRecommendation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CcuReferenceNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("ReceivedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("RecommendedShortageAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<Guid?>("RecordedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Remarks")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("TripId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RecordedById");
+
+                    b.HasIndex("TripId")
+                        .HasDatabaseName("IX_ShortageRecommendations_TripId");
+
+                    b.ToTable("ShortageRecommendations");
                 });
 
             modelBuilder.Entity("Shared.Models.Trips.Trip", b =>
@@ -849,7 +1019,11 @@ namespace Api.Migrations
 
                     b.HasIndex("ReceivingDepotId");
 
-                    b.HasIndex("TruckId");
+                    b.HasIndex(new[] { "TruckId" }, "IX_Trips_TruckId");
+
+                    b.HasIndex(new[] { "TruckId" }, "UX_Trips_TruckId_OpenStatus")
+                        .IsUnique()
+                        .HasFilter("\"Status\" IN (0, 2, 4)");
 
                     b.ToTable("Trips");
                 });
@@ -920,6 +1094,21 @@ namespace Api.Migrations
 
                     b.HasIndex("DriverId");
 
+                    b.HasIndex("LicensePlate")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Trucks_LicensePlate")
+                        .HasFilter("\"LicensePlate\" IS NOT NULL AND \"LicensePlate\" != ''");
+
+                    b.HasIndex("TruckNo")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Trucks_TruckNo")
+                        .HasFilter("\"TruckNo\" IS NOT NULL AND \"TruckNo\" != ''");
+
+                    b.HasIndex("VIN")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Trucks_VIN")
+                        .HasFilter("\"VIN\" IS NOT NULL AND \"VIN\" != ''");
+
                     b.ToTable("Trucks");
                 });
 
@@ -928,6 +1117,9 @@ namespace Api.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<UploadResult>("Avatar")
+                        .HasColumnType("jsonb");
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -942,12 +1134,6 @@ namespace Api.Migrations
 
                     b.Property<string>("HashedPassword")
                         .HasColumnType("text");
-
-                    b.Property<string>("PasswordResetToken")
-                        .HasColumnType("text");
-
-                    b.Property<DateTimeOffset?>("PasswordResetTokenExpiry")
-                        .HasColumnType("timestamp with time zone");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
@@ -966,11 +1152,23 @@ namespace Api.Migrations
                         .IsRequired()
                         .HasColumnType("jsonb");
 
+                    b.Property<bool>("MustChangePassword")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("PasswordResetToken")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("PasswordResetTokenExpiry")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("PhoneNo")
                         .HasColumnType("text");
 
                     b.Property<int>("Role")
                         .HasColumnType("integer");
+
+                    b.Property<Guid?>("SupervisorId")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -979,6 +1177,8 @@ namespace Api.Migrations
 
                     b.HasIndex("Email")
                         .IsUnique();
+
+                    b.HasIndex("SupervisorId");
 
                     b.ToTable("Users");
                 });
@@ -990,6 +1190,48 @@ namespace Api.Migrations
                         .HasForeignKey("StationId");
 
                     b.Navigation("Station");
+                });
+
+            modelBuilder.Entity("Shared.Models.Drivers.Driver", b =>
+                {
+                    b.HasOne("Shared.Models.Drivers.MotorMate", "CurrentMotorMate")
+                        .WithMany("Drivers")
+                        .HasForeignKey("CurrentMotorMateId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("CurrentMotorMate");
+                });
+
+            modelBuilder.Entity("Shared.Models.Drivers.MotorMateHistory", b =>
+                {
+                    b.HasOne("Shared.Models.Users.User", "ChangedBy")
+                        .WithMany()
+                        .HasForeignKey("ChangedById")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Shared.Models.Drivers.Driver", "Driver")
+                        .WithMany()
+                        .HasForeignKey("DriverId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Shared.Models.Drivers.MotorMate", "NewMotorMate")
+                        .WithMany()
+                        .HasForeignKey("NewMotorMateId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Shared.Models.Drivers.MotorMate", "PreviousMotorMate")
+                        .WithMany()
+                        .HasForeignKey("PreviousMotorMateId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("ChangedBy");
+
+                    b.Navigation("Driver");
+
+                    b.Navigation("NewMotorMate");
+
+                    b.Navigation("PreviousMotorMate");
                 });
 
             modelBuilder.Entity("Shared.Models.Incidents.Incident", b =>
@@ -1245,6 +1487,24 @@ namespace Api.Migrations
                     b.Navigation("Station");
                 });
 
+            modelBuilder.Entity("Shared.Models.Trips.ShortageRecommendation", b =>
+                {
+                    b.HasOne("Shared.Models.Users.User", "RecordedBy")
+                        .WithMany()
+                        .HasForeignKey("RecordedById")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Shared.Models.Trips.Trip", "Trip")
+                        .WithMany("ShortageRecommendations")
+                        .HasForeignKey("TripId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("RecordedBy");
+
+                    b.Navigation("Trip");
+                });
+
             modelBuilder.Entity("Shared.Models.Trips.Trip", b =>
                 {
                     b.HasOne("Shared.Models.Users.User", "ClosedBy")
@@ -1301,9 +1561,24 @@ namespace Api.Migrations
                     b.Navigation("Driver");
                 });
 
+            modelBuilder.Entity("Shared.Models.Users.User", b =>
+                {
+                    b.HasOne("Shared.Models.Users.User", "Supervisor")
+                        .WithMany()
+                        .HasForeignKey("SupervisorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Supervisor");
+                });
+
             modelBuilder.Entity("Shared.Models.Drivers.Driver", b =>
                 {
                     b.Navigation("Trips");
+                });
+
+            modelBuilder.Entity("Shared.Models.Drivers.MotorMate", b =>
+                {
+                    b.Navigation("Drivers");
                 });
 
             modelBuilder.Entity("Shared.Models.Incidents.Incident", b =>
@@ -1330,6 +1605,8 @@ namespace Api.Migrations
                     b.Navigation("Incidents");
 
                     b.Navigation("ServiceRequests");
+
+                    b.Navigation("ShortageRecommendations");
                 });
 
             modelBuilder.Entity("Shared.Models.Trucks.Truck", b =>

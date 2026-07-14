@@ -1,0 +1,26 @@
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+    <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 truncate" title="@Label">@Label</div>
+    <div class="@(Large ? "text-3xl" : "text-xl") font-bold mt-1 @Accent">
+        @if (ValueContent is not null)
+        {
+            @ValueContent
+        }
+        else
+        {
+            @Value
+        }
+    </div>
+    @if (!string.IsNullOrEmpty(SubValue))
+    {
+        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate" title="@SubValue">@SubValue</div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
+    [Parameter] public string Value { get; set; } = string.Empty;
+    [Parameter] public RenderFragment? ValueContent { get; set; }
+    [Parameter] public string? SubValue { get; set; }
+    [Parameter] public string Accent { get; set; } = "text-gray-900 dark:text-white";
+    [Parameter] public bool Large { get; set; }
+}

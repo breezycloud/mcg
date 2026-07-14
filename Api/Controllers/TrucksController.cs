@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using Api.Context;
 using Shared.Dtos;
 using Shared.Models.Trucks;
@@ -16,6 +17,7 @@ namespace Api.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
+[Authorize]
 public class TrucksController : ControllerBase
 {
     private readonly AppDbContext _context;
@@ -207,7 +209,7 @@ public class TrucksController : ControllerBase
         return NoContent();
     }
 
-    [Authorize(Roles = "Supervisor, Admin, Master, DriverSupervisor")]
+    [Authorize(Roles = "Supervisor, Admin, Master, DriverSupervisor, Manager")]
     [HttpPut("{id}/driver")]
     public async Task<IActionResult> AssignDriver(Guid id, TruckDriverAssignmentDto model, CancellationToken cancellationToken)
     {
@@ -241,10 +243,31 @@ public class TrucksController : ControllerBase
     // POST: api/Trucks
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     [HttpPost]
-    public async Task<ActionResult<Truck>> PostTruck(Truck truck)
+    public async Task<ActionResult<Truck>> PostTruck(Truck truck, CancellationToken cancellationToken)
     {
+        if (truck.Id == Guid.Empty)
+            truck.Id = Guid.NewGuid();
+
         _context.Trucks.Add(truck);
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException pg && pg.SqlState == "23505")
+        {
+            // Last-resort race guard: two near-simultaneous "Add Truck" submissions both passed
+            // client-side uniqueness pre-checks before either committed — same fix pattern as
+            // TripsController's dispatch race guard.
+            _context.ChangeTracker.Clear();
+            var field = pg.ConstraintName switch
+            {
+                "UX_Trucks_TruckNo" => "truck number",
+                "UX_Trucks_LicensePlate" => "license plate",
+                "UX_Trucks_VIN" => "VIN",
+                _ => "identifying field"
+            };
+            return Conflict(new { error = $"A truck with this {field} already exists." });
+        }
 
         return CreatedAtAction("GetTruck", new { id = truck.Id }, truck);
     }
@@ -267,8 +290,10 @@ public class TrucksController : ControllerBase
 
     private IQueryable<Truck> GetDispatchEligibleTrucksQuery()
     {
+        // Must match TripsController.ValidateNoOpenTripAsync's definition of "open" — a truck
+        // sitting in Overdue still has an undispatched trip, it's just running long.
         var trucksWithUnavailableTrips = _context.Trips
-            .Where(t => t.Status == TripStatus.Active || t.Status == TripStatus.Dispatched)
+            .Where(t => t.Status == TripStatus.Active || t.Status == TripStatus.Dispatched || t.Status == TripStatus.Overdue)
             .Select(t => t.TruckId)
             .Distinct();
 

@@ -15,21 +15,30 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 using Api.Context;
+using Api.Filters;
 using Api.Util;
 using Shared.Models.Trips;
 using Shared.Helpers;
 using Shared.Dtos;
 using Shared.Enums;
+using Shared.Extensions;
 
 namespace Api.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
+[Authorize]
 public class TripsController : ControllerBase
 {
+    // Alphanumeric + dash only, 1-30 chars — same shape as DispatchCheckController's, used by
+    // GetDispatchDetail (the get-dispatch action, the other endpoint external callers hit).
+    private static readonly Regex DispatchIdRegex =
+        new(@"^[a-zA-Z0-9\-]{1,30}$", RegexOptions.Compiled, TimeSpan.FromMilliseconds(100));
+
     private readonly AppDbContext _context;
     private readonly ILogger<TripsController> _logger;
     private readonly string _uploadPath;
+    private readonly string _uploadRoot;
 
     public TripsController(AppDbContext context, ILogger<TripsController> logger, IConfiguration config, IHostEnvironment env)
     {
@@ -40,6 +49,10 @@ public class TripsController : ControllerBase
         _uploadPath = Path.IsPathRooted(rawPath)
             ? rawPath
             : Path.Combine(env.ContentRootPath, rawPath);
+
+        // Canonical, trailing-separator form of the upload root, used to verify any resolved
+        // file path is actually contained within it before opening (path-traversal guard).
+        _uploadRoot = Path.GetFullPath(_uploadPath + Path.DirectorySeparatorChar);
     }
 
     [HttpGet("generate-dispatch")]
@@ -175,7 +188,7 @@ public class TripsController : ControllerBase
         }
 
         var trips = await query.OrderByDescending(x => x.CreatedAt).ToListAsync(cancellationToken);
-        var report = TripMapper.ToExportDto(trips);
+        var report = TripMapper.ToExportDto(trips, await GetExcludeCngSettingAsync(cancellationToken));
 
         var csv = new StringBuilder();
 
@@ -264,7 +277,7 @@ public class TripsController : ControllerBase
         }
 
         var trips = await query.OrderByDescending(x => x.CreatedAt).ToListAsync(cancellationToken);
-        var report = TripMapper.ToExportDto(trips);
+        var report = TripMapper.ToExportDto(trips, await GetExcludeCngSettingAsync(cancellationToken));
 
         var csv = new StringBuilder();
         
@@ -349,9 +362,216 @@ public class TripsController : ControllerBase
         }
         catch (System.Exception)
         {
-            
+
             throw;
         }
+    }
+
+    // Shared by the three trip-level drill-down reports below (station/truck/driver-report). A
+    // trip's shortage only counts once one of its discharges is marked final — matching every
+    // aggregate report's convention (StationReportService et al.) rather than showing a premature
+    // number for a still-in-progress delivery — and CNG trips are zeroed out when the setting
+    // says so, same as everywhere else, without hiding the row (the drill-down is about this
+    // specific truck/driver/station's full history, not a product-filtered view).
+    private static decimal ShortageAmountFor(Trip trip, decimal loaded, decimal totalDischarged, bool excludeCng)
+    {
+        var hasFinalDischarge = trip.Discharges?.Any(d => d.IsFinalDischarge) ?? false;
+        if (!hasFinalDischarge) return 0;
+        if (excludeCng && (trip.Truck?.Product?.IsCng() ?? false)) return 0;
+        return loaded - totalDischarged;
+    }
+
+    // No caching, matching AppSettingsController's own read pattern — this is a low-traffic
+    // settings row, not worth a cache invalidation story yet.
+    private async Task<bool> GetExcludeCngSettingAsync(CancellationToken cancellationToken)
+    {
+        var settings = await _context.AppSettings.AsNoTracking().FirstOrDefaultAsync(cancellationToken);
+        return settings?.ExcludeCngFromShortage ?? false;
+    }
+
+    // POST: api/Trips/station-report — every trip that discharged at the given
+    // station. Shortage is trip-wide (loaded qty minus the sum of ALL of that
+    // trip's discharges, not just this station's) — see StationReportDto.
+    [HttpPost("station-report")]
+    public async Task<ActionResult<List<StationReportDto>>> GetStationReport([FromBody] StationReportFilter filter, CancellationToken cancellationToken = default)
+    {
+        var query = _context.Trips
+            .Include(x => x.Driver)
+            .Include(x => x.Truck)
+            .Include(x => x.LoadingDepot)
+            .Include(x => x.Discharges)
+            .AsSplitQuery()
+            .Where(x => x.Discharges.Any(d => d.StationId == filter.StationId))
+            .AsQueryable();
+
+        if (filter.StartDate.HasValue)
+        {
+            var start = filter.StartDate.Value.ToDateTime(TimeOnly.MinValue);
+            query = query.Where(x => x.Date >= start);
+        }
+        if (filter.EndDate.HasValue)
+        {
+            var end = filter.EndDate.Value.ToDateTime(TimeOnly.MaxValue);
+            query = query.Where(x => x.Date <= end);
+        }
+
+        var trips = await query.OrderByDescending(x => x.Date).ToListAsync(cancellationToken);
+        var excludeCng = await GetExcludeCngSettingAsync(cancellationToken);
+
+        var report = trips.Select(trip =>
+        {
+            var totalDischarged = trip.Discharges?.Sum(d => d.QuantityDischarged) ?? 0;
+            var dischargedAtStation = trip.Discharges?
+                .Where(d => d.StationId == filter.StationId)
+                .Sum(d => d.QuantityDischarged) ?? 0;
+            var loaded = trip.LoadingInfo?.Quantity ?? 0;
+
+            return new StationReportDto
+            {
+                TripId = trip.Id,
+                Date = trip.Date,
+                TruckNo = trip.Truck?.TruckNo,
+                TruckPlate = trip.Truck?.LicensePlate,
+                Product = trip.Truck?.Product?.ToDisplay(),
+                DriverName = trip.Driver?.ToString(),
+                DriverPhone = trip.Driver?.PhoneNo,
+                LoadingDepot = trip.LoadingDepot?.Name,
+                LoadingDate = trip.LoadingInfo?.LoadingDate.HasValue == true
+                    ? trip.LoadingInfo.LoadingDate.Value.ToString("dd/MM/yyyy")
+                    : null,
+                DispatchQuantity = loaded,
+                DischargedQuantity = dischargedAtStation,
+                ShortageAmount = ShortageAmountFor(trip, loaded, totalDischarged, excludeCng),
+                Unit = trip.GetUnit(),
+                Status = trip.Status.ToString(),
+            };
+        }).ToList();
+
+        return report;
+    }
+
+    // POST: api/Trips/truck-report — every trip made by the given truck. See
+    // TruckTripReportDto for why DischargedQuantity here is the trip-wide total
+    // rather than scoped to one station (unlike station-report).
+    [HttpPost("truck-report")]
+    public async Task<ActionResult<List<TruckTripReportDto>>> GetTruckReport([FromBody] TruckTripReportFilter filter, CancellationToken cancellationToken = default)
+    {
+        var query = _context.Trips
+            .Include(x => x.Driver)
+            .Include(x => x.Truck)
+            .Include(x => x.LoadingDepot)
+            .Include(x => x.Discharges).ThenInclude(d => d.Station)
+            .AsSplitQuery()
+            .Where(x => x.TruckId == filter.TruckId)
+            .AsQueryable();
+
+        if (filter.StartDate.HasValue)
+        {
+            var start = filter.StartDate.Value.ToDateTime(TimeOnly.MinValue);
+            query = query.Where(x => x.Date >= start);
+        }
+        if (filter.EndDate.HasValue)
+        {
+            var end = filter.EndDate.Value.ToDateTime(TimeOnly.MaxValue);
+            query = query.Where(x => x.Date <= end);
+        }
+
+        var trips = await query.OrderByDescending(x => x.Date).ToListAsync(cancellationToken);
+        var excludeCng = await GetExcludeCngSettingAsync(cancellationToken);
+
+        var report = trips.Select(trip =>
+        {
+            var totalDischarged = trip.Discharges?.Sum(d => d.QuantityDischarged) ?? 0;
+            var loaded = trip.LoadingInfo?.Quantity ?? 0;
+            var stationNames = trip.Discharges?
+                .Where(d => d.Station != null)
+                .Select(d => d.Station!.Name)
+                .Distinct()
+                .ToList() ?? [];
+
+            return new TruckTripReportDto
+            {
+                TripId = trip.Id,
+                Date = trip.Date,
+                StationNames = stationNames.Count > 0 ? string.Join(", ", stationNames) : null,
+                Product = trip.Truck?.Product?.ToDisplay(),
+                DriverName = trip.Driver?.ToString(),
+                DriverPhone = trip.Driver?.PhoneNo,
+                LoadingDepot = trip.LoadingDepot?.Name,
+                LoadingDate = trip.LoadingInfo?.LoadingDate.HasValue == true
+                    ? trip.LoadingInfo.LoadingDate.Value.ToString("dd/MM/yyyy")
+                    : null,
+                DispatchQuantity = loaded,
+                DischargedQuantity = totalDischarged,
+                ShortageAmount = ShortageAmountFor(trip, loaded, totalDischarged, excludeCng),
+                Unit = trip.GetUnit(),
+                Status = trip.Status.ToString(),
+            };
+        }).ToList();
+
+        return report;
+    }
+
+    // POST: api/Trips/driver-report — every trip made by the given driver. See
+    // DriverTripReportDto for why DischargedQuantity here is the trip-wide total
+    // rather than scoped to one station (unlike station-report).
+    [HttpPost("driver-report")]
+    public async Task<ActionResult<List<DriverTripReportDto>>> GetDriverReport([FromBody] DriverTripReportFilter filter, CancellationToken cancellationToken = default)
+    {
+        var query = _context.Trips
+            .Include(x => x.Driver)
+            .Include(x => x.Truck)
+            .Include(x => x.LoadingDepot)
+            .Include(x => x.Discharges).ThenInclude(d => d.Station)
+            .AsSplitQuery()
+            .Where(x => x.DriverId == filter.DriverId)
+            .AsQueryable();
+
+        if (filter.StartDate.HasValue)
+        {
+            var start = filter.StartDate.Value.ToDateTime(TimeOnly.MinValue);
+            query = query.Where(x => x.Date >= start);
+        }
+        if (filter.EndDate.HasValue)
+        {
+            var end = filter.EndDate.Value.ToDateTime(TimeOnly.MaxValue);
+            query = query.Where(x => x.Date <= end);
+        }
+
+        var trips = await query.OrderByDescending(x => x.Date).ToListAsync(cancellationToken);
+        var excludeCng = await GetExcludeCngSettingAsync(cancellationToken);
+
+        var report = trips.Select(trip =>
+        {
+            var totalDischarged = trip.Discharges?.Sum(d => d.QuantityDischarged) ?? 0;
+            var loaded = trip.LoadingInfo?.Quantity ?? 0;
+            var stationNames = trip.Discharges?
+                .Where(d => d.Station != null)
+                .Select(d => d.Station!.Name)
+                .Distinct()
+                .ToList() ?? [];
+
+            return new DriverTripReportDto
+            {
+                TripId = trip.Id,
+                Date = trip.Date,
+                TruckNo = trip.Truck?.TruckNo,
+                TruckPlate = trip.Truck?.LicensePlate,
+                StationNames = stationNames.Count > 0 ? string.Join(", ", stationNames) : null,
+                Product = trip.Truck?.Product?.ToDisplay(),
+                LoadingDepot = trip.LoadingDepot?.Name,
+                LoadingDate = trip.LoadingInfo?.LoadingDate.HasValue == true
+                    ? trip.LoadingInfo.LoadingDate.Value.ToString("dd/MM/yyyy")
+                    : null,
+                DispatchQuantity = loaded,
+                DischargedQuantity = totalDischarged,
+                ShortageAmount = ShortageAmountFor(trip, loaded, totalDischarged, excludeCng),
+                Unit = trip.GetUnit(),
+                Status = trip.Status.ToString(),
+            };
+        }).ToList();
+
+        return report;
     }
 
     // private string EscapeCsv(string? value)
@@ -489,13 +709,20 @@ public class TripsController : ControllerBase
     // PUT: api/Trips/5
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     [HttpPut("{id}")]
+    [Authorize(Roles = "Master, Admin, Supervisor, DriverSupervisor, Manager, Monitoring")]
     public async Task<IActionResult> PutTrip(Guid id, Trip trip, CancellationToken cancellationToken)
     {
         if (id != trip.Id)
         {
             return BadRequest();
         }
-        
+
+        var productScopeError = await ValidateProductScopeAsync(trip, cancellationToken);
+        if (productScopeError is not null)
+        {
+            return Forbid();
+        }
+
         var loadingValidation = ValidateLoadingInfo(trip);
         if (loadingValidation is not null && trip.ArrivalInfo is null)
             return BadRequest(loadingValidation);
@@ -524,12 +751,13 @@ public class TripsController : ControllerBase
     // PUT: api/Trips/5
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     [HttpPut("update-no-restriction/{id}")]
+    [Authorize(Roles = "Master, Admin")]
     public async Task<IActionResult> PutTripNoRestriction(Guid id, Trip trip, CancellationToken cancellationToken)
     {
         if (id != trip.Id)
         {
             return BadRequest();
-        }        
+        }
 
         var loadingValidation = ValidateLoadingInfo(trip);
         if (loadingValidation is not null)
@@ -604,13 +832,22 @@ public class TripsController : ControllerBase
     //     return CreatedAtAction("GetTrip", new { id = trip.Id }, trip);
     // }
 
+    // Called by the external Atlantic Dispatch app, which has no user JWT — API-key gated
+    // the same way DispatchCheckController is, rather than the class-level [Authorize]
+    // (JWT) every other action here uses. [AllowAnonymous] is required to actually bypass
+    // that class-level [Authorize]; ApiKeyAuthFilter is what enforces the real check.
     [HttpGet("get-dispatch")]
+    [AllowAnonymous]
+    [ServiceFilter(typeof(ApiKeyAuthFilter))]
     public async Task<ActionResult<DispatchDetail>> GetDispatchDetail(string id, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrEmpty(id))
+        // Same shape as DispatchCheckController.DispatchIdRegex — validated here too now that
+        // this endpoint is reachable by an external, API-key-authenticated caller rather than
+        // only logged-in internal users.
+        if (string.IsNullOrWhiteSpace(id) || id.Length > 30 || !DispatchIdRegex.IsMatch(id))
         {
             return BadRequest("Invalid dispatch ID format.");
-        }        
+        }
         var dispatch = await _context.Trips
             .AsNoTracking()
             .Where(t => t.DispatchId.Trim() == id.Trim())
@@ -671,7 +908,7 @@ public class TripsController : ControllerBase
     }
 
     [HttpPost("download-loading-files")]
-    [Authorize(Roles = "Admin, Master")]
+    [Authorize(Roles = "Admin, Master, Manager")]
     public async Task<IActionResult> DownloadLoadingFilesAsync(
         [FromBody] ReportFilter filter,
         CancellationToken cancellationToken)    
@@ -740,7 +977,16 @@ public class TripsController : ControllerBase
                         if (string.IsNullOrWhiteSpace(file.ServerFileName))
                             continue;
 
-                        var physicalPath = Path.Combine(_uploadPath, file.ServerFileName);
+                        // ServerFileName is stored data, not necessarily a value this server generated
+                        // (older rows, or a future bug, could carry a path-traversal payload) — resolve
+                        // and re-verify it lands inside the upload root before ever opening it.
+                        var physicalPath = Path.GetFullPath(Path.Combine(_uploadRoot, file.ServerFileName));
+                        if (!physicalPath.StartsWith(_uploadRoot, StringComparison.OrdinalIgnoreCase))
+                        {
+                            _logger.LogWarning("Rejected out-of-root file reference: {Name} (Trip: {TripId})", file.ServerFileName, trip.Id);
+                            continue;
+                        }
+
                         if (!System.IO.File.Exists(physicalPath))
                         {
                             _logger.LogWarning("File not on disk: {Path} (Trip: {TripId})", physicalPath, trip.Id);
@@ -813,8 +1059,24 @@ public class TripsController : ControllerBase
     // POST: api/Trips
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     [HttpPost]
+    [Authorize(Roles = "Master, Admin, Supervisor, DriverSupervisor, Manager, Monitoring")]
     public async Task<ActionResult<Trip>> PostTrip(Trip trip, CancellationToken cancellationToken)
     {
+        // Unconditional — a truck with an open trip can never be dispatched again through this
+        // endpoint, not even by Admin/Master. There is deliberately no role override here: the
+        // override is only for backdating (ValidateDispatchDateAsync below), never for this.
+        var openTripError = await ValidateNoOpenTripAsync(trip, cancellationToken);
+        if (openTripError is not null)
+        {
+            return Conflict(openTripError);
+        }
+
+        var productScopeError = await ValidateProductScopeAsync(trip, cancellationToken);
+        if (productScopeError is not null)
+        {
+            return Forbid();
+        }
+
         var dispatchValidationError = await ValidateDispatchDateAsync(trip, cancellationToken);
         if (dispatchValidationError is not null)
         {
@@ -851,6 +1113,16 @@ public class TripsController : ControllerBase
                 await _context.SaveChangesAsync(cancellationToken);
                 return CreatedAtAction("GetTrip", new { id = trip.Id }, trip);
             }
+            catch (DbUpdateException ex) when (ex.InnerException is PostgresException pg && pg.SqlState == "23505" && pg.ConstraintName == "UX_Trips_TruckId_OpenStatus")
+            {
+                // Last-resort race guard: two near-simultaneous requests both passed
+                // ValidateNoOpenTripAsync before either committed. The DB constraint is what
+                // actually stops the second one — this is not retryable, the truck genuinely
+                // already has an open trip now.
+                _context.ChangeTracker.Clear();
+                _logger?.LogWarning(ex, "Blocked duplicate open trip for truck {TruckId} (race past app-level check).", trip.TruckId);
+                return Conflict(new { error = "This truck already has an open trip. Please refresh and try again." });
+            }
             catch (DbUpdateException ex) when (ex.InnerException is PostgresException pg && pg.SqlState == "23505")
             {
                 // Unique violation - likely a race when two requests generate the same DispatchId.
@@ -870,6 +1142,7 @@ public class TripsController : ControllerBase
 
     // DELETE: api/Trips/5
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Master, Admin")]
     public async Task<IActionResult> DeleteTrip(Guid id)
     {
         var trip = await _context.Trips.FindAsync(id);
@@ -907,8 +1180,60 @@ public class TripsController : ControllerBase
         return null;
     }
 
+    // A truck already out on an open trip (Active, Dispatched, or Overdue — anything not yet
+    // Closed/Completed) can never be dispatched again until that trip is closed. Deliberately no
+    // role bypass: this is the hard rule that stops a truck from being dispatched multiple times
+    // at once, which the date-ordering check alone never guarded against. Backed by a filtered
+    // unique index (see AppDbContext) as a last-resort guard against two near-simultaneous
+    // requests both passing this check before either commits.
+    private async Task<string?> ValidateNoOpenTripAsync(Trip trip, CancellationToken cancellationToken)
+    {
+        var openTrip = await _context.Trips
+            .AsNoTracking()
+            .Where(x => x.TruckId == trip.TruckId && x.Id != trip.Id &&
+                        (x.Status == TripStatus.Active || x.Status == TripStatus.Dispatched || x.Status == TripStatus.Overdue))
+            .OrderByDescending(x => x.Date)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (openTrip is null)
+            return null;
+
+        return $"This truck already has an open trip (dispatched {openTrip.Date:MMM dd, yyyy}, {openTrip.Status}). " +
+               "It must be closed before the truck can be dispatched again.";
+    }
+
+    // DriverSupervisor accounts are scoped to a subset of products in the UI, but nothing
+    // server-side enforced that — the ManagedProducts claim (Security.GetManagedProducts) was
+    // defined but never actually checked by any controller, so a DriverSupervisor calling this
+    // API directly could dispatch or edit a trip for a truck outside their assigned products.
+    private async Task<string?> ValidateProductScopeAsync(Trip trip, CancellationToken cancellationToken)
+    {
+        if (!User.IsDriverSupervisor())
+            return null;
+
+        var truckProduct = await _context.Trucks
+            .AsNoTracking()
+            .Where(t => t.Id == trip.TruckId)
+            .Select(t => (Product?)t.Product)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (truckProduct is null)
+            return "Truck not found.";
+
+        var managedProducts = User.GetManagedProducts();
+        if (!managedProducts.Contains(truckProduct.Value))
+        {
+            return "You are not authorized to dispatch or edit trips for this product.";
+        }
+
+        return null;
+    }
+
     private async Task<string?> ValidateDispatchDateAsync(Trip trip, CancellationToken cancellationToken)
     {
+        // Only Admin/Master can back-date a dispatch (e.g. to record a trip that happened but was
+        // never entered) — deliberately narrower than the open-trip check above, which has no
+        // override for anyone.
         if (User.IsInRole(UserRole.Admin) || User.IsInRole(UserRole.Master))
         {
             return null;

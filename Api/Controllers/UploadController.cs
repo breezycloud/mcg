@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -14,6 +15,7 @@ namespace Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class UploadsController : ControllerBase
 {
     private readonly string _uploadPath;
@@ -51,8 +53,9 @@ public class UploadsController : ControllerBase
         }
         catch (System.Exception ex)
         {
-            return BadRequest(ex);
-        }        
+            _logger.LogError(ex, "File upload failed");
+            return BadRequest(new { error = "Upload failed. Please try again." });
+        }
     }
 
     private async Task<UploadResultDto> ProcessFile(IFormFile file)
@@ -92,8 +95,8 @@ public class UploadsController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex.Message);
-            return Failed($"Server error: {ex.Message}");
+            _logger.LogError(ex, "Failed to persist uploaded file");
+            return Failed("Server error while saving the file.");
         }
     }
 

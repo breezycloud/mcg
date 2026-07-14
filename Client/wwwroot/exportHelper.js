@@ -7,9 +7,6 @@ function downloadReport(reportName, byteArray) {
     document.body.removeChild(link);
 }       
 
-function jsCallback(dotnetReference) {
-    dotnetReference.invokeMethodAsync("ProcessResult", employeeJson);
-}
 async function exportFile(fileName, contentStreamReference) {
     const arrayBuffer = await contentStreamReference.arrayBuffer();
     const blob = new Blob([arrayBuffer]);
@@ -20,40 +17,6 @@ async function exportFile(fileName, contentStreamReference) {
     anchorElement.click();
     anchorElement.remove();
     URL.revokeObjectURL(url);
-}
-
-async function importFile(contentStreamReference) {
-    const arrayBuffer = await contentStreamReference.arrayBuffer();
-    const blob = new Blob([arrayBuffer]);    
-    const contents = new Array();
-    if (blob) {     
-        try {
-            var fileReader = new FileReader();
-            fileReader.readAsBinaryString(blob);
-            fileReader.onload = function (event) {
-                var data = event.target.result;
-
-                var workbook = XLSX.read(data, {
-                    type: "binary",
-                    cellDates: true
-                });
-
-                workbook.SheetNames.forEach((sheet) => {
-                    let rowObject = XLSX.utils.sheet_to_row_object_array(
-                        workbook.Sheets[sheet]
-                    );
-                    var json = JSON.stringify(rowObject);                    
-                    contents.push(json)                    
-                });                
-                if (contents.length > 0) {
-                    localStorage.setItem("file", contents);
-                }
-            };             
-        } catch (e) {
-            console.log(e);
-        }        
-    }        
-    
 }
 
 async function shareInvite() {

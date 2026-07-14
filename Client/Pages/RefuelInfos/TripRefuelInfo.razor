@@ -92,19 +92,17 @@
     [Parameter] public EventCallback OnSave { get; set; }
     private bool IsBusy = false;
     
-    @* protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
+        // Subscribing here (once) instead of in OnParametersSetAsync (called on every
+        // re-render where the parent passes new parameters) — the previous code re-subscribed
+        // on every parameter set with no guard, so the longer this component stayed mounted the
+        // more duplicate handlers piled up, each firing its own reload on the next refuel event.
         AppState.RefuelProcessed += OnRefuelled!;
-        if (!string.IsNullOrWhiteSpace(Dispatch))
-        {
-            request = new GridDataRequest { SearchTerm = Dispatch, Page = 0, PageSize = 10};
-            await Loadrefuelling();
-        }
-    } *@
-    
+    }
+
     protected override async Task OnParametersSetAsync()
     {
-        AppState.RefuelProcessed += OnRefuelled!;
         if (!string.IsNullOrWhiteSpace(Dispatch))
         {
             request = new GridDataRequest { SearchTerm = Dispatch, Page = 0, PageSize = 10};

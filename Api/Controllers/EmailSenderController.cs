@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Api.Services.Messages;
 using Shared.Models.MessageBroker;
@@ -9,6 +10,7 @@ namespace Api.Controllers;
 // API /Controllers/EmailController.cs
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "Admin, Master")]
 public class EmailController() : ControllerBase
 {
     [HttpPost("send")]
