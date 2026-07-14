@@ -25,7 +25,7 @@
             <!-- Modal body -->
             <div class="p-6 space-y-4">
                 <p class="text-base leading-relaxed text-gray-500 dark:text-gray-400">
-                    Version @(ServerVersion) is now available. @(ReleaseNotes)
+                    @(ReleaseNotes ?? "A new version of the app is available.")
                 </p>
             </div>
             <!-- Modal footer -->
@@ -47,23 +47,24 @@
 @code {
 
     [Parameter]
-    public double ServerVersion { get; set; }
-    
+    public string ServerVersion { get; set; } = string.Empty;
+
     [Parameter]
-    public double ClientVersion { get; set; }
+    public string ClientVersion { get; set; } = string.Empty;
 
     [Parameter]
     public string? ReleaseNotes { get; set; }
-    
+
     void Close() => AppState.ShowUpdateDialog = false;
 
     private async Task UpdateNow()
     {
-        // Clear cache and reload
-        await js.InvokeVoidAsync("deleteAllCaches");
-        @* await js.InvokeVoidAsync("caches.delete", "dotnet-resources-/"); *@
-        await js.InvokeVoidAsync("window.location.reload", true);
+        // Record the new version BEFORE reloading — reload tears down the WASM runtime
+        // immediately, so anything after it in this method never actually runs, and the
+        // dialog would otherwise keep reappearing forever after every reload.
         await localStorage.SetItemAsync("clientVersion", ServerVersion);
+        await js.InvokeVoidAsync("deleteAllCaches");
+        await js.InvokeVoidAsync("window.location.reload", true);
     }
 
     private async Task RemindLater()

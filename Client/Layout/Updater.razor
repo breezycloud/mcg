@@ -3,28 +3,23 @@
 @implements IDisposable
 @using Shared.Helpers
 
-@if (AppState.ShowUpdateDialog)
-{
-    
-}
 <UpdateModal ServerVersion="@serverVersion" ClientVersion="@clientVersion" ReleaseNotes="@releaseNotes" />
 @code {
-    private double clientVersion = 1.0; // Hardcoded in client build
-    private double serverVersion;
+    private string clientVersion = string.Empty;
+    private string serverVersion = string.Empty;
     private bool forceUpdate;
     private string? releaseNotes;
-    private bool showUpdateDialog;
     private Timer? versionCheckTimer;
 
-    [CascadingParameter] 
+    [CascadingParameter]
     public Task<AuthenticationState> authenticationState { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
     {
         await CheckForUpdates();
-        
+
         // Check every 15 minutes
-        versionCheckTimer = new Timer(async _ => 
+        versionCheckTimer = new Timer(async _ =>
         {
             await CheckForUpdates();
             StateHasChanged();
@@ -35,52 +30,52 @@
     {
         try
         {
-            var localClientVersion = await localStorage.GetItemAsync<double?>("clientVersion");
-            if (localClientVersion is not null || localClientVersion.HasValue)
-                clientVersion = localClientVersion.Value; 
-            
             var response = await Http.GetFromJsonAsync<VersionManifest>("appversion");
-            
-            if (response != null)
+            if (response is null) return;
+
+            serverVersion = response.AppVersion;
+            forceUpdate = response.ForceUpdate;
+            releaseNotes = response.ReleaseNotes;
+
+            var localClientVersion = await localStorage.GetItemAsync<string>("clientVersion");
+            if (string.IsNullOrEmpty(localClientVersion))
             {
-                serverVersion = response.AppVersion!;
-                forceUpdate = response.ForceUpdate;
-                releaseNotes = response.ReleaseNotes!;
-                
-                // Compare versions
-                if (serverVersion > clientVersion)
-                {                    
-                    if (forceUpdate)
-                    {                        
-                        showUpdateDialog = true;
-                    }
-                    else
-                    {                        
-                        // Check if user previously deferred this version
-                        var lastDeferredVersion = await localStorage.GetItemAsync<double?>("lastDeferredVersion");
-                        if (lastDeferredVersion != serverVersion)
-                        {
-                            showUpdateDialog = true;
-                        }
-                    }
-                }
+                // Nothing to update FROM — this browser has never recorded a version before
+                // (first-ever visit). Just remember the current one; don't prompt.
+                await localStorage.SetItemAsync("clientVersion", serverVersion);
+                return;
             }
-            
-            var userAuthenticationState = await authenticationState;
-            var claims = userAuthenticationState.User;
-            if (!claims!.Identity!.IsAuthenticated)
+
+            clientVersion = localClientVersion;
+
+            // version.txt is a fixed-width "yyyyMMddHHmmss" timestamp, so ordinal string
+            // comparison sorts chronologically — this only prompts when the server is
+            // genuinely newer, not just different.
+            if (string.CompareOrdinal(serverVersion, clientVersion) <= 0)
                 return;
 
-            if (showUpdateDialog)
+            if (forceUpdate)
             {
-                AppState.ShowUpdateDialog = true;
-            }                
+                var userAuthenticationState = await authenticationState;
+                if (userAuthenticationState.User?.Identity?.IsAuthenticated == true)
+                    AppState.ShowUpdateDialog = true;
+                return;
+            }
+
+            // Check if user previously deferred this version
+            var lastDeferredVersion = await localStorage.GetItemAsync<string>("lastDeferredVersion");
+            if (lastDeferredVersion != serverVersion)
+            {
+                var userAuthenticationState = await authenticationState;
+                if (userAuthenticationState.User?.Identity?.IsAuthenticated == true)
+                    AppState.ShowUpdateDialog = true;
+            }
         }
         catch (Exception ex)
         {
             Console.Error.WriteLine($"Version check failed: {ex.Message}");
-        }        
-    }    
+        }
+    }
 
     public void Dispose()
     {

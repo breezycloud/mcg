@@ -47,8 +47,20 @@
   </ItemGroup>
 
 
-  <ItemGroup>    
+  <ItemGroup>
     <ProjectReference Include="..\Shared\Shared.csproj" />
   </ItemGroup>
+
+  <!-- Stamps a build-time version marker into the publish output so AppVersionController can
+       report a value that actually changes on every deploy, instead of a hardcoded number
+       someone has to remember to bump. Uses the UTC build timestamp rather than the git commit
+       SHA because the Docker build context excludes .git (see .dockerignore) and this needs to
+       work identically for local Docker builds, the manual SSH deploy, and CI. -->
+  <Target Name="WriteVersionFile" AfterTargets="Publish">
+    <PropertyGroup>
+      <BuildVersion>$([System.DateTime]::UtcNow.ToString("yyyyMMddHHmmss"))</BuildVersion>
+    </PropertyGroup>
+    <WriteLinesToFile File="$(PublishDir)version.txt" Lines="$(BuildVersion)" Overwrite="true" />
+  </Target>
 
 </Project>
