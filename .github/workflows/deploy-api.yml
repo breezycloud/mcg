@@ -40,7 +40,6 @@ jobs:
               password: ${{ secrets.VPS_PASSWORD }}
               source: "./publish/*"
               target: ${{ secrets.API_TARGET }}
-              rm: true  # Remove old files before copy
 
            # 👇 NEW STEP: Create uploads directory on VPS with proper permissions
           - name: Create Uploads Directory on VPS
