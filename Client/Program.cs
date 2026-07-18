@@ -6,6 +6,7 @@ using Blazored.LocalStorage;
 using Client.Handlers;
 using Polly;
 using Polly.Extensions.Http;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
 using Shared.Interfaces.Auth;
 using Client.Services.Auth;
@@ -60,7 +61,16 @@ builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddOptions();
-builder.Services.AddAuthorizationCore();
+// Fallback policy so every route requires authentication by default -- most pages had no
+// [Authorize] attribute at all (only 10 of 85 did) and were reachable unauthenticated at the
+// client-routing level. Pages that must stay public (login, forgot/reset password) opt out
+// explicitly with [AllowAnonymous] instead of everything else needing to opt in.
+builder.Services.AddAuthorizationCore(options =>
+{
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
 builder.Services.AddBlazoredLocalStorage();
 
 

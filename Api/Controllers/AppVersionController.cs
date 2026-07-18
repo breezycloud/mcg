@@ -5,23 +5,29 @@ using Shared.Helpers;
 [Route("api/[controller]")]
 public class AppVersionController : ControllerBase
 {
-    // [Authorize]
-    private double AppVersion;
+    // Written by the WriteVersionFile MSBuild target (Api.csproj) at publish time, so this
+    // changes on every real deploy without anyone having to remember to bump a hardcoded
+    // number. Read once at startup since it can't change while this process is running.
+    private static readonly string AppVersion = ReadVersion();
+    private static readonly DateTime ReleaseDate = ReadReleaseDate();
+
+    private static string VersionFilePath => Path.Combine(AppContext.BaseDirectory, "version.txt");
+
+    private static string ReadVersion() =>
+        System.IO.File.Exists(VersionFilePath) ? System.IO.File.ReadAllText(VersionFilePath).Trim() : "dev";
+
+    private static DateTime ReadReleaseDate() =>
+        System.IO.File.Exists(VersionFilePath) ? System.IO.File.GetLastWriteTimeUtc(VersionFilePath) : DateTime.UtcNow;
+
     [HttpGet]
     public IActionResult GetVersionInfo()
     {
-        #if DEBUG
-            AppVersion = 1.1;
-        #else
-            AppVersion = 4.8;
-        #endif
-        
         return Ok(new VersionManifest
         {
-            AppVersion = AppVersion, // Update this with each release
-            ForceUpdate = true,    // Set to true when critical updates are available
-            ReleaseDate = DateTime.Now,
-            ReleaseNotes = "minor bug fixes and performance improvements." // Update with actual release notes
+            AppVersion = AppVersion,
+            ForceUpdate = true,
+            ReleaseDate = ReleaseDate,
+            ReleaseNotes = "A new version of the app is available."
         });
     }
 }
