@@ -279,35 +279,54 @@ public class DriversController : ControllerBase
 
         var changedById = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-        using var stream = file.OpenReadStream();
-        try
+        // Two attempts: a 23505 here can be a genuine, persistent conflict (the file collides
+        // with an existing record), but it can also be a transient race between two concurrent
+        // imports both resolving the same new motor mate at once — each one's lookup misses the
+        // other's not-yet-committed insert, both try to create it, and the loser's SaveChanges
+        // fails even though the row it wanted now exists. This happened for real in prod: two
+        // driver rows imported ~0.5s apart both missed each other and created two MotorMate
+        // records for the same phone number (see UX_MotorMates_PhoneNo_Normalized). Retrying
+        // once makes the loser re-run its lookup, find the winner's now-committed row, and reuse
+        // it instead of colliding again — a genuine conflict just fails the same way on both
+        // attempts, so this costs nothing in that case.
+        for (var attempt = 1; attempt <= 2; attempt++)
         {
-            var (rows, created, updated, motorMatesCreated, motorMateHistoryEntries, trucksAssigned) =
-                await ProcessImportAsync(stream, commit: true, changedById, cancellationToken);
-
-            return new DriverImportCommitResponse
+            using var stream = file.OpenReadStream();
+            try
             {
-                Rows = rows,
-                CreatedCount = created,
-                UpdatedCount = updated,
-                SkippedCount = rows.Count(r => r.HasErrors),
-                MotorMatesCreated = motorMatesCreated,
-                MotorMateHistoryEntries = motorMateHistoryEntries,
-                TrucksAssigned = trucksAssigned,
-            };
+                var (rows, created, updated, motorMatesCreated, motorMateHistoryEntries, trucksAssigned) =
+                    await ProcessImportAsync(stream, commit: true, changedById, cancellationToken);
+
+                return new DriverImportCommitResponse
+                {
+                    Rows = rows,
+                    CreatedCount = created,
+                    UpdatedCount = updated,
+                    SkippedCount = rows.Count(r => r.HasErrors),
+                    MotorMatesCreated = motorMatesCreated,
+                    MotorMateHistoryEntries = motorMateHistoryEntries,
+                    TrucksAssigned = trucksAssigned,
+                };
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is PostgresException pg && pg.SqlState == "23505")
+            {
+                // Last-resort race guard, same pattern as PutDriver/PostDriver. The within-batch
+                // check in ProcessImportAsync only catches duplicates WITHIN this file; this
+                // catches a row whose phone number (driver's or a newly-created motor mate's —
+                // this commit saves both) collides with an existing record already in the
+                // database in a different format (e.g. "8069993037" vs "08069993037") — the
+                // exact class of bug that slipped through as pre-existing duplicate pairs before
+                // the normalized unique indexes existed.
+                _context.ChangeTracker.Clear();
+                if (attempt == 2)
+                {
+                    return Conflict("Import failed: one or more phone numbers already exist for another driver or motor mate (possibly saved in a different format). Please review the file and try again.");
+                }
+            }
         }
-        catch (DbUpdateException ex) when (ex.InnerException is PostgresException pg && pg.SqlState == "23505")
-        {
-            // Last-resort race guard, same pattern as PutDriver/PostDriver. The within-batch
-            // check in ProcessImportAsync only catches duplicates WITHIN this file; this catches
-            // a row whose phone number (driver's or a newly-created motor mate's — this commit
-            // saves both) collides with an existing record already in the database in a
-            // different format (e.g. "8069993037" vs "08069993037") — the exact class of bug
-            // that slipped through as three pre-existing driver duplicate pairs before
-            // UX_Drivers_PhoneNo_Normalized existed — or any other near-simultaneous-import race.
-            _context.ChangeTracker.Clear();
-            return Conflict("Import failed: one or more phone numbers already exist for another driver or motor mate (possibly saved in a different format). Please review the file and try again.");
-        }
+
+        // Unreachable — the loop above always returns on either a success or the second attempt's conflict.
+        throw new InvalidOperationException("Unreachable.");
     }
 
     // CSV columns (fixed position — header text is ignored, since "Phone Number"
