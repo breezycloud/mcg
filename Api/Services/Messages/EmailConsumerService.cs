@@ -2,6 +2,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using FluentEmail.Core;
+using FluentEmail.Core.Interfaces;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -14,7 +15,7 @@ public class EmailConsumerService : BackgroundService
 {
     private readonly IConnection _connection;
     private readonly IModel _channel;
-    private readonly IFluentEmail _fluentEmail;
+    private readonly IFluentEmailFactory _fluentEmailFactory;
     private readonly RazorLightEngine _razorEngine;
     private readonly ILogger<EmailConsumerService> _logger;
     private readonly string _uploadRootPath;
@@ -22,12 +23,12 @@ public class EmailConsumerService : BackgroundService
 
     public EmailConsumerService(
         IOptions<MessageBrokerSetting> rabbitConfig,
-        IFluentEmail fluentEmail,
+        IFluentEmailFactory fluentEmailFactory,
         IConfiguration configuration,
         IWebHostEnvironment environment,
         ILogger<EmailConsumerService> logger)
     {
-        _fluentEmail = fluentEmail;
+        _fluentEmailFactory = fluentEmailFactory;
         _configuration = configuration;
         _logger = logger;
 
@@ -109,7 +110,12 @@ public class EmailConsumerService : BackgroundService
         // and silently rebinds to CC(string, string), then fails converting the list.
         string htmlContent = await _razorEngine.CompileRenderAsync(templatePath, model);
 
-        IFluentEmail email = _fluentEmail
+        // A fresh builder per message, not a shared/injected IFluentEmail — FluentEmail's
+        // To()/CC() calls append to the underlying Data lists rather than replacing them, so
+        // reusing one instance across messages silently accumulated every prior send's
+        // recipients (e.g. a CCU shortage notification's Cc list leaking onto every email sent
+        // after it, including unrelated password resets).
+        IFluentEmail email = _fluentEmailFactory.Create()
             .To(message.To)
             .Subject(message.Subject)
             .Body(htmlContent, true);
