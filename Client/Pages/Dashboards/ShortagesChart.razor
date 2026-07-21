@@ -180,7 +180,10 @@
                 {
                     var loadingQty = t.LoadingInfo?.Quantity ?? 0;
                     var discharged = t.Discharges?.Sum(d => d.QuantityDischarged) ?? 0;
-                    var variance = loadingQty - discharged;
+                    // A recorded CCU recommendation is the authoritative figure once the trip
+                    // already qualifies (final discharge present, filtered above) — it replaces
+                    // the raw (loaded - discharged) variance.
+                    var variance = ShortageHelper.ResolveShortageAmount(loadingQty - discharged, t.ShortageRecommendations);
 
                     return new ShortageAnalysis
                     {

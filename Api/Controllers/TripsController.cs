@@ -174,6 +174,7 @@ public class TripsController : ControllerBase
             .Include(x => x.CreatedBy)
             .Include(x => x.ClosedBy)
             .Include(x => x.CompletedBy)
+            .Include(x => x.ShortageRecommendations)
             .Where(x => x.Date.Month == request.StartDate.Month && x.Date.Year == request.StartDate.Year)
             .AsSplitQuery()
             .AsQueryable();
@@ -263,6 +264,7 @@ public class TripsController : ControllerBase
             .Include(x => x.CreatedBy)
             .Include(x => x.ClosedBy)
             .Include(x => x.CompletedBy)
+            .Include(x => x.ShortageRecommendations)
             .Where(x => x.LoadingInfo.LoadingDate.HasValue && x.LoadingInfo.LoadingDate.Value.Month == request.StartDate.Month && x.LoadingInfo.LoadingDate.Value.Year == request.StartDate.Year)
             .AsSplitQuery()
             .AsQueryable();
@@ -353,12 +355,30 @@ public class TripsController : ControllerBase
     }
 
 
+    // Feeds only the Dashboard's ShortagesChart. Mirrors ControlRoomService.GetTripsInWindowAsync
+    // so the two pages' "shortage this month" figures agree: trips are classified by the month
+    // they were LOADED, not dispatched (a trip dispatched in one month can load in the next), the
+    // upper bound is end-of-day rather than midnight (previously excluded anything dispatched
+    // later today), and CNG exclusion follows AppSettings.ExcludeCngFromShortage instead of being
+    // hardcoded on — this used to always strip CNG trips regardless of the setting.
     [HttpPost("trips-byrange")]
     public async Task<ActionResult<IEnumerable<Trip>>> TripsByRange(ReportFilter filter, CancellationToken cancellationToken)
     {
         try
         {
-            return await _context.Trips.Include(x => x.Discharges).Include(x => x.Truck).Where(x =>  x.Truck.Product != Shared.Enums.Product.CngAbuja && x.Truck.Product != Shared.Enums.Product.CngLagos && x.Date >= filter.StartDate.ToDateTime(TimeOnly.MinValue) && x.Date <= filter.EndDate.Value.ToDateTime(TimeOnly.MinValue)).ToArrayAsync(cancellationToken);
+            var excludeCng = await GetExcludeCngSettingAsync(cancellationToken);
+            var windowStart = new DateTimeOffset(filter.StartDate.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+            var windowEnd = new DateTimeOffset((filter.EndDate ?? filter.StartDate).ToDateTime(TimeOnly.MaxValue), TimeSpan.Zero);
+
+            var query = _context.Trips.Include(x => x.Discharges).Include(x => x.Truck).Include(x => x.ShortageRecommendations)
+                .Where(x => x.LoadingInfo.LoadingDate.HasValue &&
+                            x.LoadingInfo.LoadingDate >= windowStart &&
+                            x.LoadingInfo.LoadingDate <= windowEnd);
+
+            if (excludeCng)
+                query = query.Where(x => x.Truck.Product != Shared.Enums.Product.CngAbuja && x.Truck.Product != Shared.Enums.Product.CngLagos);
+
+            return await query.ToArrayAsync(cancellationToken);
         }
         catch (System.Exception)
         {
@@ -378,7 +398,10 @@ public class TripsController : ControllerBase
         var hasFinalDischarge = trip.Discharges?.Any(d => d.IsFinalDischarge) ?? false;
         if (!hasFinalDischarge) return 0;
         if (excludeCng && (trip.Truck?.Product?.IsCng() ?? false)) return 0;
-        return loaded - totalDischarged;
+        // A recorded CCU recommendation is the authoritative figure once the trip already
+        // qualifies (final discharge present, not CNG-excluded) — it replaces the raw
+        // computation, it never makes an otherwise-ineligible trip eligible.
+        return ShortageHelper.ResolveShortageAmount(loaded - totalDischarged, trip.ShortageRecommendations);
     }
 
     // No caching, matching AppSettingsController's own read pattern — this is a low-traffic
@@ -400,6 +423,7 @@ public class TripsController : ControllerBase
             .Include(x => x.Truck)
             .Include(x => x.LoadingDepot)
             .Include(x => x.Discharges)
+            .Include(x => x.ShortageRecommendations)
             .AsSplitQuery()
             .Where(x => x.Discharges.Any(d => d.StationId == filter.StationId))
             .AsQueryable();
@@ -461,6 +485,7 @@ public class TripsController : ControllerBase
             .Include(x => x.Truck)
             .Include(x => x.LoadingDepot)
             .Include(x => x.Discharges).ThenInclude(d => d.Station)
+            .Include(x => x.ShortageRecommendations)
             .AsSplitQuery()
             .Where(x => x.TruckId == filter.TruckId)
             .AsQueryable();
@@ -523,6 +548,7 @@ public class TripsController : ControllerBase
             .Include(x => x.Truck)
             .Include(x => x.LoadingDepot)
             .Include(x => x.Discharges).ThenInclude(d => d.Station)
+            .Include(x => x.ShortageRecommendations)
             .AsSplitQuery()
             .Where(x => x.DriverId == filter.DriverId)
             .AsQueryable();
@@ -1176,6 +1202,13 @@ public class TripsController : ControllerBase
 
         if (requireDestination && trip.LoadingInfo.DestinationMode == DestinationMode.Single && string.IsNullOrWhiteSpace(trip.LoadingInfo.Destination))
             return "Destination is required when DestinationMode is Single.";
+
+        // The truck can't load before it's dispatched — same calendar day is fine (dispatch and
+        // loading routinely happen hours apart on the same day), only an earlier loading date is
+        // invalid. Applies uniformly across create/edit/master-edit, since this is a data-integrity
+        // rule rather than a role-scoped restriction.
+        if (trip.LoadingInfo.LoadingDate.HasValue && trip.LoadingInfo.LoadingDate.Value.Date < trip.Date.Date)
+            return "Loading date cannot be before the dispatch date.";
 
         return null;
     }

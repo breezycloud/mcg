@@ -7,7 +7,7 @@ namespace Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Admin,Master,Manager,Monitoring,Management")]
+[Authorize]
 public class ControlRoomController : ControllerBase
 {
     private readonly IControlRoomService _controlRoomService;

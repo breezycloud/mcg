@@ -1,0 +1,242 @@
+@inject IJSRuntime JSRuntime
+@inject ITripService TripService
+@inject IDriverService DriverService
+@implements IDisposable
+
+@if (IsVisible)
+{
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-gray bg-opacity-50 p-4">
+        <div id="@_dialogId" class="relative w-full max-w-lg bg-white rounded-lg shadow dark:bg-gray-700"
+             role="dialog" aria-modal="true" aria-label="Edit Dispatch Information" tabindex="-1">
+            <div class="flex items-start justify-between p-4 border-b rounded-t dark:border-gray-600">
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Edit Dispatch Information</h3>
+                <button type="button" @onclick="Close" aria-label="Close"
+                        class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white">
+                    <svg aria-hidden="true" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="p-4 md:p-5 space-y-4">
+                <div>
+                    <label for="dispatch-date" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        Dispatch Date <span class="text-red-500">*</span>
+                    </label>
+                    <input type="date" id="dispatch-date" @bind="dispatchDate"
+                           class="@GetInputClass("DispatchDate")" aria-invalid="@errors.ContainsKey("DispatchDate")" />
+                    @if (errors.ContainsKey("DispatchDate"))
+                    {
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["DispatchDate"]</p>
+                    }
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Changing the date regenerates the Dispatch ID to match.</p>
+                </div>
+
+                <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        Driver <span class="text-red-500">*</span>
+                    </label>
+                    <div @key="driverAutocompleteKey">
+                        <Autocomplete TItem="Driver"
+                            SearchFunc="SearchDrivers"
+                            SelectedChanged="OnDriverSelected"
+                            Placeholder="Search driver by name or phone..."
+                            AriaLabel="Driver"
+                            IsInvalid="@errors.ContainsKey("DriverId")"
+                            ErrorId="@(errors.ContainsKey("DriverId") ? "driverId-error" : null)"
+                            InitialText="@selectedDriverName">
+                            <OptionTemplate Context="driver">
+                                <span>@driver.FirstName @driver.LastName (@driver.PhoneNo)</span>
+                            </OptionTemplate>
+                        </Autocomplete>
+                    </div>
+                    @if (errors.ContainsKey("DriverId"))
+                    {
+                        <p id="driverId-error" class="mt-1 text-sm text-red-600 dark:text-red-500">@errors["DriverId"]</p>
+                    }
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 p-4 border-t dark:border-gray-600">
+                <button type="button" @onclick="Close"
+                        class="py-2.5 px-5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600">
+                    Cancel
+                </button>
+                <button type="button" @onclick="Save" disabled="@IsSubmitting"
+                        class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 disabled:opacity-50">
+                    @(IsSubmitting ? "Saving..." : "Save")
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public EventCallback<Trip> OnSave { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private bool IsVisible { get; set; }
+    private bool IsSubmitting { get; set; }
+    private bool _pendingActivate;
+    private readonly string _dialogId = $"edit-dispatch-modal-{Guid.NewGuid():N}";
+    private DotNetObjectReference<EditDispatchModal>? _dotNetRef;
+
+    private Trip? _trip;
+    private DateTime? dispatchDate;
+    private Guid? driverId;
+    private Driver? selectedDriver;
+    private string? selectedDriverName;
+    private int driverAutocompleteKey;
+    private Dictionary<string, string> errors = new();
+
+    public void Show(Trip trip)
+    {
+        _trip = trip;
+        dispatchDate = trip.Date.Date;
+        driverId = trip.DriverId;
+        selectedDriver = trip.Driver;
+        selectedDriverName = trip.Driver is null
+            ? string.Empty
+            : $"{trip.Driver.FirstName} {trip.Driver.LastName} ({trip.Driver.PhoneNo})";
+        driverAutocompleteKey++;
+        errors.Clear();
+        IsVisible = true;
+        _pendingActivate = true;
+        StateHasChanged();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_pendingActivate)
+        {
+            _pendingActivate = false;
+            _dotNetRef ??= DotNetObjectReference.Create(this);
+            await JSRuntime.InvokeVoidAsync("focusTrap.activate", _dialogId, _dotNetRef);
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnEscapePressed() => await Close();
+
+    private async Task<List<Driver>> SearchDrivers(string query, int page, CancellationToken ct)
+    {
+        var request = new GridDataRequest
+        {
+            SearchTerm = query,
+            Page = page,
+            PageSize = 10
+        };
+
+        var response = await DriverService.GetPagedAsync(request, ct);
+        return response?.Data ?? [];
+    }
+
+    private void OnDriverSelected(Driver? driver)
+    {
+        selectedDriver = driver;
+        driverId = driver?.Id;
+        selectedDriverName = driver is null
+            ? string.Empty
+            : $"{driver.FirstName} {driver.LastName} ({driver.PhoneNo})";
+        errors.Remove("DriverId");
+    }
+
+    private string GetInputClass(string fieldName)
+    {
+        var baseClass = "bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500";
+        return errors.ContainsKey(fieldName)
+            ? $"{baseClass} border-red-500 bg-red-50 dark:bg-red-900 dark:border-red-700"
+            : $"{baseClass} border-gray-300";
+    }
+
+    private bool Validate()
+    {
+        errors.Clear();
+        if (dispatchDate is null)
+        {
+            errors["DispatchDate"] = "Dispatch date is required";
+        }
+        // The truck can't load before it's dispatched — same day is fine, only a dispatch date
+        // that lands after the already-recorded loading date is invalid. Mirrors the server-side
+        // check in TripsController.ValidateLoadingInfo, which is what actually enforces this.
+        else if (_trip?.LoadingInfo?.LoadingDate is { } loadingDate && dispatchDate.Value.Date > loadingDate.Date)
+        {
+            errors["DispatchDate"] = $"Dispatch date cannot be after the loading date ({loadingDate:dd MMM yyyy}).";
+        }
+        if (driverId is null || driverId == Guid.Empty)
+        {
+            errors["DriverId"] = "Driver is required";
+        }
+        return errors.Count == 0;
+    }
+
+    private async Task Save()
+    {
+        if (_trip is null || !Validate())
+        {
+            StateHasChanged();
+            return;
+        }
+
+        IsSubmitting = true;
+        try
+        {
+            var newDateOnly = DateOnly.FromDateTime(dispatchDate!.Value);
+            var originalDateOnly = DateOnly.FromDateTime(_trip.Date.Date);
+
+            var dispatchId = _trip.DispatchId;
+            // Only regenerate when the date actually moved — GenerateDispatchId treats this
+            // trip's own still-in-DB row as an existing collision otherwise, handing back a
+            // needless "-1" suffix on a no-op save.
+            if (newDateOnly != originalDateOnly)
+            {
+                dispatchId = await TripService.GenerateDispatchIdAsync(_trip.TruckId, newDateOnly, AppState.GetCancellationToken());
+                if (string.IsNullOrWhiteSpace(dispatchId))
+                {
+                    ToastService.ShowError("Failed to generate a Dispatch ID for the new date");
+                    return;
+                }
+            }
+
+            _trip.Date = new DateTimeOffset(
+                newDateOnly.Year, newDateOnly.Month, newDateOnly.Day,
+                _trip.Date.Hour, _trip.Date.Minute, _trip.Date.Second,
+                _trip.Date.Offset);
+            _trip.DriverId = driverId;
+            _trip.Driver = selectedDriver;
+            _trip.DispatchId = dispatchId;
+
+            var success = await TripService.UploadAsync(_trip, AppState.GetCancellationToken());
+            if (success)
+            {
+                ToastService.ShowSuccess("Dispatch information updated!");
+                await OnSave.InvokeAsync(_trip);
+                await Close();
+            }
+            else
+            {
+                ToastService.ShowError("Failed to update dispatch information");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error: {ex.Message}");
+        }
+        finally
+        {
+            IsSubmitting = false;
+        }
+    }
+
+    private async Task Close()
+    {
+        await JSRuntime.InvokeVoidAsync("focusTrap.deactivate", _dialogId);
+        IsVisible = false;
+        await OnClose.InvokeAsync();
+    }
+
+    public void Dispose()
+    {
+        _dotNetRef?.Dispose();
+    }
+}

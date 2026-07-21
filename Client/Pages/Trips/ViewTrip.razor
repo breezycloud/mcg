@@ -16,6 +16,7 @@
         <ConfirmationModal @ref="deleteModal" Title="Delete Trip"
                             Message="Are you sure you want to delete this trip? This action cannot be undone."
                             OnClose="HandleDeleteModalClose" />
+        <EditDispatchModal @ref="editDispatchModal" OnSave="HandleDispatchInfoSaved" />
 
         <!-- Hero -->
         <div class="bg-slate-900 dark:bg-slate-950 rounded-3xl shadow-lg p-5 sm:p-6 mb-4">
@@ -29,6 +30,14 @@
                         @Trip?.Status
                     </span>
                     <div class="flex gap-1.5">
+                        <AuthorizeView Roles="Admin, Master" Context="masterAuth">
+                            <Authorized>
+                                <button class="px-2.5 py-1 bg-white/10 hover:bg-white/20 text-white rounded-lg text-xs font-medium border border-white/10"
+                                        @onclick="() => editDispatchModal.Show(Trip!)" aria-label="Edit dispatch information">
+                                    Edit Dispatch
+                                </button>
+                            </Authorized>
+                        </AuthorizeView>
                         <AuthorizeView Roles="Admin, Master, Monitoring, Supervisor, DriverSupervisor, Manager" Context="auth">
                             <Authorized>
                                 @if (Trip.Status != TripStatus.Completed)
@@ -42,7 +51,7 @@
                         </AuthorizeView>
                         <AuthorizeView Roles="Admin, Master, Manager" Context="auth">
                             <Authorized>
-                                <button class="px-2.5 py-1 bg-white/10 hover:bg-red-500/80 text-white rounded-lg text-xs font-medium border border-white/10"
+                                <button class="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-medium border border-red-600/50"
                                         @onclick="() => deleteModal.Show()" aria-label="Delete trip">
                                     Delete
                                 </button>
@@ -62,7 +71,7 @@
                 <StatChip Label="Remaining" Value="@Remaining.ToString("N0")" Unit="@Trip?.GetUnit()" ColorClass="bg-amber-600" />
                 @if (HasFinalDischarge)
                 {
-                    <StatChip Label="Shortage" Value="@ShortageAmount.ToString("N0")" Unit="@Trip?.GetUnit()"
+                    <StatChip Label="Shortage" Value="@ShortageStatChipValue" Unit="@Trip?.GetUnit()"
                               ColorClass="@(ShortageAmount > 0 ? "bg-red-600" : "bg-slate-700")"
                               BadgeText="@(ShortageAmount > 0 ? (Recommendations.Any() ? "✓ CCU Logged" : "CCU Pending") : null)"
                               BadgeColorClass="@(Recommendations.Any() ? "bg-emerald-500 text-white" : "bg-amber-400 text-slate-900")" />
@@ -211,7 +220,13 @@
                     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-4 sm:p-5">
                         <div class="flex justify-between items-start gap-2 mb-2">
                             <h3 class="text-sm font-bold text-gray-800 dark:text-white">Shortage &amp; CCU</h3>
-                            <span class="text-sm font-bold text-red-600 dark:text-red-400 whitespace-nowrap">@ShortageAmount.ToString("N0") @Trip!.GetUnit()</span>
+                            <span class="text-sm font-bold text-red-600 dark:text-red-400 whitespace-nowrap">
+                                @ShortageAmount.ToString("N0") @Trip!.GetUnit()
+                                @if (CcuRecommendedAmount.HasValue)
+                                {
+                                    <span class="font-medium text-gray-500 dark:text-gray-400">(CCU: @CcuRecommendedAmount.Value.ToString("N0") @Trip!.GetUnit())</span>
+                                }
+                            </span>
                         </div>
                         <div class="mb-3 flex flex-wrap items-center gap-2">
                             @if (Recommendations.Any())
@@ -372,6 +387,7 @@
     private AuthenticationState? Authentication { get; set; }
 
     private ConfirmationModal deleteModal = default!;
+    private EditDispatchModal editDispatchModal = default!;
     private Discharge? editingDischarge;
     private RecommendationModal recommendationModal = default!;
     private ShortagePreviewModal shortagePreviewModal = default!;
@@ -391,7 +407,18 @@
     // shortfall against the full load and isn't one.
     private bool HasFinalDischarge => Trip?.Discharges?.Any(d => d.IsFinalDischarge) ?? false;
     private Discharge? FinalDischarge => Trip?.Discharges?.FirstOrDefault(d => d.IsFinalDischarge);
+
+    // This page shows the raw computed figure alongside the CCU recommendation (in brackets),
+    // rather than replacing it like every other shortage report/aggregate does — see
+    // ShortageHelper for the override used everywhere else.
     private decimal ShortageAmount => HasFinalDischarge ? Remaining : 0;
+
+    // Each trip carries at most one recommendation.
+    private decimal? CcuRecommendedAmount => Recommendations.FirstOrDefault()?.RecommendedShortageAmount;
+
+    private string ShortageStatChipValue => CcuRecommendedAmount.HasValue
+        ? $"{ShortageAmount:N0} (CCU: {CcuRecommendedAmount.Value:N0})"
+        : ShortageAmount.ToString("N0");
 
     // Mirrors ShortageNotificationService.CheckAndNotifyAsync's four requirements, so staff can
     // see exactly what's blocking the CCU notification instead of just "not yet notified".
@@ -556,6 +583,12 @@
             ToastService.ShowSuccess("Discharge deleted!");
             StateHasChanged();
         }
+    }
+
+    private void HandleDispatchInfoSaved(Trip trip)
+    {
+        Trip = trip;
+        StateHasChanged();
     }
 
     private void OnEditTrip() => nav.NavigateTo($"/edit-trip/{Trip?.Id}");

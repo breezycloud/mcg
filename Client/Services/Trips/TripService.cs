@@ -263,7 +263,10 @@ public class TripService(IHttpClientFactory _httpClient, IJSRuntime js) : ITripS
         {
             using var response = await _httpClient.CreateClient("AppUrl").GetAsync($"Trips/generate-dispatch?truckId={truckId}&date={date:yyyy-MM-dd}", cancellationToken);
             response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<string?>();
+            // The endpoint returns a bare string result, which ASP.NET Core's StringOutputFormatter
+            // serializes as raw text/plain (unquoted), not JSON — ReadFromJsonAsync<string?>() would
+            // throw trying to parse that as JSON.
+            return await response.Content.ReadAsStringAsync(cancellationToken);
         }
         catch (System.Exception)
         {
