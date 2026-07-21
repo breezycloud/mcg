@@ -3,7 +3,7 @@
 @using Shared.Interfaces.Drivers
 @inject IDriverService DriverService
 @inject ITripService TripService
-@attribute [Authorize(Roles = "Admin, Master, Supervisor, Nrl, DriverSupervisor, Manager")]
+@attribute [Authorize]
 <PageTitle>Driver Drill-down</PageTitle>
 
 <div class="p-6 space-y-6">

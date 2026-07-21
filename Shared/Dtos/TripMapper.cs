@@ -1,6 +1,7 @@
 using Shared.Enums;
 using Shared.Models.Trips;
 using Shared.Extensions;
+using Shared.Helpers;
 
 namespace Shared.Dtos;
 
@@ -33,6 +34,14 @@ public static class TripMapper
         var isCngExcluded = excludeCng && (trip.Truck?.Product?.IsCng() ?? false);
         var countsForShortage = hasFinalDischarge && !isCngExcluded;
 
+        // A recorded CCU recommendation is the authoritative figure once the trip already
+        // counts for shortage — it replaces the raw (loaded - discharged) variance, it never
+        // makes an otherwise-ineligible trip eligible.
+        var rawVariance = trip.LoadingInfo?.Quantity - trip.Discharges?.Sum(x => x.QuantityDischarged);
+        var resolvedVariance = countsForShortage
+            ? ShortageHelper.ResolveShortageAmount(rawVariance ?? 0, trip.ShortageRecommendations)
+            : (decimal?)null;
+
         return new TripExportDto
         {
             Date = trip.Date,
@@ -64,11 +73,9 @@ public static class TripMapper
             DischargedQuantity = trip.Discharges!.Sum(x => x.QuantityDischarged),
             DischargedUnit = trip.GetUnit() ?? "N/A",
             HasShortage = countsForShortage
-                ? trip.CalculateShortageOverage(trip.LoadingInfo?.Quantity - trip.Discharges!.Sum(x => x.QuantityDischarged))
+                ? trip.CalculateShortageOverage(resolvedVariance)
                 : "Nil",
-            ShortageAmount = countsForShortage
-                ? trip.CalculateShortageOverageAmount(trip.LoadingInfo?.Quantity, trip.Discharges!.Sum(x => x.QuantityDischarged)) ?? 0
-                : 0,
+            ShortageAmount = resolvedVariance ?? 0,
             ReturnDate = trip.CloseInfo.ReturnDateTime.HasValue
             ? trip.CloseInfo.ReturnDateTime?.ToString("dd/MM/yyyy HH:mm:ss")
             : "N/A",

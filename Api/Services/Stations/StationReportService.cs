@@ -2,6 +2,7 @@ using Api.Context;
 using Microsoft.EntityFrameworkCore;
 using Shared.Enums;
 using Shared.Extensions;
+using Shared.Helpers;
 using Shared.Interfaces.Stations;
 using Shared.Models.RefuelInfos;
 using Shared.Models.Stations;
@@ -234,7 +235,7 @@ public class StationReportService : IStationReportService
     private async Task<List<Trip>> GetTripsLoadedInWindowAsync(DateTimeOffset? windowStart, CancellationToken cancellationToken)
     {
         var query = _context.Trips.AsNoTracking().Where(t => t.LoadingDepotId.HasValue)
-            .Include(t => t.Truck).Include(t => t.Discharges).AsSplitQuery().AsQueryable();
+            .Include(t => t.Truck).Include(t => t.Discharges).Include(t => t.ShortageRecommendations).AsSplitQuery().AsQueryable();
 
         if (windowStart.HasValue)
             query = query.Where(t => t.LoadingInfo.LoadingDate.HasValue && t.LoadingInfo.LoadingDate >= windowStart.Value);
@@ -487,7 +488,7 @@ public class StationReportService : IStationReportService
     private async Task<List<Trip>> GetTripsInWindowAsync(DateTimeOffset? windowStart, CancellationToken cancellationToken)
     {
         var query = _context.Trips.AsNoTracking().Where(t => t.Discharges.Any())
-            .Include(t => t.Truck).Include(t => t.Discharges).AsSplitQuery().AsQueryable();
+            .Include(t => t.Truck).Include(t => t.Discharges).Include(t => t.ShortageRecommendations).AsSplitQuery().AsQueryable();
 
         if (windowStart.HasValue)
             query = query.Where(t => t.LoadingInfo.LoadingDate.HasValue && t.LoadingInfo.LoadingDate >= windowStart.Value);
@@ -510,7 +511,11 @@ public class StationReportService : IStationReportService
     {
         var loadingQty = trip.LoadingInfo.Quantity ?? 0;
         var discharged = trip.Discharges.Sum(d => d.QuantityDischarged);
-        return Math.Max(0, loadingQty - discharged);
+        var rawShortage = Math.Max(0, loadingQty - discharged);
+        // A recorded CCU recommendation is the authoritative figure once the trip already
+        // qualifies (final discharge present — callers already filter for this) — it replaces
+        // the raw computation.
+        return ShortageHelper.ResolveShortageAmount(rawShortage, trip.ShortageRecommendations);
     }
 
     // Shortage rate as % of volume (shortage / loaded quantity) — matches TruckReportService's

@@ -5,7 +5,7 @@
 @using Shared.Models.Stations
 @inject IStationReportService StationReportService
 @inject IExportService ExportService
-@attribute [Authorize(Roles = "Admin, Master, Supervisor, Nrl, DriverSupervisor, Manager")]
+@attribute [Authorize]
 <PageTitle>Station Report</PageTitle>
 
 <div class="p-6 space-y-6">

@@ -133,6 +133,7 @@
                                     Loading Date & Time <span class="text-red-500">*</span>
                                 </label>
                                 <input type="datetime-local" @bind="Trip!.LoadingInfo.LoadingDate"
+                                    @bind:after="ValidateLoadingDate"
                                     class="@GetInputClass("LoadingDate")">
                                 @if (errors.ContainsKey("LoadingDate"))
                                 {
@@ -712,6 +713,21 @@
         return true;
     }
 
+    // Runs as soon as the date is picked, rather than waiting for a Save click, so the reason
+    // shows up under the field itself instead of a Save button that's disabled with no
+    // explanation. Mirrors the server-side check in TripsController.ValidateLoadingInfo.
+    private void ValidateLoadingDate()
+    {
+        if (Trip?.LoadingInfo?.LoadingDate is { } loadingDate && loadingDate.Date < Trip.Date.Date)
+        {
+            errors["LoadingDate"] = $"Loading date cannot be before the dispatch date ({Trip.Date:dd MMM yyyy}).";
+        }
+        else
+        {
+            errors.Remove("LoadingDate");
+        }
+    }
+
     private bool IsLoadingInfoValid()
     {
         if (Trip is null || Trip.LoadingInfo is null) return false;
@@ -740,6 +756,13 @@
             else if (Trip!.LoadingInfo.LoadingDate is null)
             {
                 errors["LoadingDate"] = "Date is required";
+            }
+            // The truck can't load before it's dispatched — same day is fine, only an earlier
+            // loading date is invalid. Mirrors the server-side check in
+            // TripsController.ValidateLoadingInfo, which is what actually enforces this.
+            else if (Trip!.LoadingInfo.LoadingDate.Value.Date < Trip!.Date.Date)
+            {
+                errors["LoadingDate"] = $"Loading date cannot be before the dispatch date ({Trip!.Date:dd MMM yyyy}).";
             }
             else if (Trip!.LoadingInfo.Quantity is null || Trip!.LoadingInfo.Quantity <= 0)
             {

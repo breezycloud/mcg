@@ -2,6 +2,7 @@ using Api.Context;
 using Microsoft.EntityFrameworkCore;
 using Shared.Enums;
 using Shared.Extensions;
+using Shared.Helpers;
 using Shared.Interfaces.Trucks;
 using Shared.Models.Trips;
 using Shared.Models.Trucks;
@@ -277,7 +278,7 @@ public class TruckReportService : ITruckReportService
     private async Task<List<Trip>> GetTripsInWindowAsync(DateTimeOffset? windowStart, string? product, CancellationToken cancellationToken)
     {
         var query = FilterByProduct(
-            _context.Trips.AsNoTracking().Include(t => t.Truck).Include(t => t.Discharges).AsSplitQuery(),
+            _context.Trips.AsNoTracking().Include(t => t.Truck).Include(t => t.Discharges).Include(t => t.ShortageRecommendations).AsSplitQuery(),
             product);
 
         if (windowStart.HasValue)
@@ -301,7 +302,11 @@ public class TruckReportService : ITruckReportService
     {
         var loadingQty = trip.LoadingInfo.Quantity ?? 0;
         var discharged = trip.Discharges.Sum(d => d.QuantityDischarged);
-        return Math.Max(0, loadingQty - discharged);
+        var rawShortage = Math.Max(0, loadingQty - discharged);
+        // A recorded CCU recommendation is the authoritative figure once the trip already
+        // qualifies (final discharge present — callers already filter for this) — it replaces
+        // the raw computation.
+        return ShortageHelper.ResolveShortageAmount(rawShortage, trip.ShortageRecommendations);
     }
 
     // Shortage rate as % of volume (shortage / loaded quantity), not % of trips that had any

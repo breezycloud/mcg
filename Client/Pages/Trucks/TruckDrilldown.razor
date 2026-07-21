@@ -3,7 +3,7 @@
 @using Shared.Interfaces.Trucks
 @inject ITruckService TruckService
 @inject ITripService TripService
-@attribute [Authorize(Roles = "Admin, Master, Supervisor, Nrl, DriverSupervisor, Manager")]
+@attribute [Authorize]
 <PageTitle>Truck Drill-down</PageTitle>
 
 <div class="p-6 space-y-6">
